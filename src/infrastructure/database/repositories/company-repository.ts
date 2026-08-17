@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+﻿import { and, desc, eq } from "drizzle-orm";
 
-import { asCompanyId } from "@/domain/branding";
-import type { CompanyRecord, CompanyRepository } from "@/application/ports/company-repository";
+import { asCompanyId, type CompanyId } from "@/domain/branding";
+import type { CompanyRepository } from "@/application/ports/company-repository";
+import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { Database, Tx } from "@/application/tx";
 import { companies } from "../schema";
 
@@ -73,8 +74,9 @@ export class CompanyRepositoryImpl implements CompanyRepository {
     return mapCompanyRow(row);
   }
 
-  async findById(id: ReturnType<typeof asCompanyId>, tx: Tx): Promise<CompanyRecord | null> {
-    const [row] = await tx
+  async findById(id: CompanyId, tx?: Tx): Promise<CompanyRecord | null> {
+    const executor = tx ?? this.db;
+    const [row] = await executor
       .select()
       .from(companies)
       .where(eq(companies.id, id));
@@ -92,3 +94,6 @@ export class CompanyRepositoryImpl implements CompanyRepository {
     return rows.map(mapCompanyRow);
   }
 }
+
+// Local alias: keeps port signatures readable without importing branding twice.
+

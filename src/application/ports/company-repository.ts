@@ -1,4 +1,4 @@
-import type { CompanyId, Halalas } from "@/domain/branding";
+﻿import type { CompanyId, Halalas } from "@/domain/branding";
 import type { DocumentStatus } from "@/domain/value-objects/document-status";
 import type { Tx } from "../tx";
 
@@ -39,7 +39,8 @@ export interface CompanyRepository {
     },
     now: Date,
   ): Promise<CompanyRecord>;
-  findById(id: CompanyId, tx: Tx): Promise<CompanyRecord | null>;
+  /** Pass a Tx inside use-case transactions; omit for plain reads. */
+  findById(id: CompanyId, tx?: Tx): Promise<CompanyRecord | null>;
   list(limit: number, offset: number): Promise<CompanyRecord[]>;
 }
 

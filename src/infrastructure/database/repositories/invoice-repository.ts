@@ -1,6 +1,6 @@
 ﻿import { and, asc, desc, eq } from "drizzle-orm";
 
-import { asCompanyId, asCustomerId, asInvoiceId } from "@/domain/branding";
+import { asCompanyId, asCustomerId, asInvoiceId, type CompanyId, type InvoiceId } from "@/domain/branding";
 import type {
   CreateDraftInvoiceInput,
   InvoiceItemRecord,
@@ -81,7 +81,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
         })
         .returning();
       if (!inv) {
-        throw new Error("Failed to insert invoice â€” no row returned");
+        throw new Error("Failed to insert invoice — no row returned");
       }
 
       const itemRows = await tx
@@ -106,16 +106,17 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
   }
 
   async findByIdWithItems(
-    id: ReturnType<typeof asInvoiceId>,
-    tx: Tx,
+    id: InvoiceId,
+    tx?: Tx,
   ): Promise<InvoiceRecord | null> {
-    const [inv] = await tx
+    const executor = tx ?? this.db;
+    const [inv] = await executor
       .select()
       .from(invoices)
       .where(eq(invoices.id, id));
     if (!inv) return null;
 
-    const items = await tx
+    const items = await executor
       .select()
       .from(invoiceItems)
       .where(eq(invoiceItems.invoiceId, id))
@@ -125,7 +126,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
   }
 
   async markIssued(
-    id: ReturnType<typeof asInvoiceId>,
+    id: InvoiceId,
     input: MarkIssuedInput,
     tx: Tx,
   ): Promise<InvoiceRecord> {
@@ -142,7 +143,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
       .where(eq(invoices.id, id))
       .returning();
     if (!updated) {
-      throw new NotFoundError(`Invoice not found`);
+      throw new NotFoundError("Invoice not found");
     }
 
     const items = await tx
@@ -155,12 +156,38 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
   }
 
   async listByCompany(
-    companyId: ReturnType<typeof asCompanyId>,
+    companyId: CompanyId,
     filters: InvoiceListFilters,
     limit: number,
     offset: number,
   ): Promise<InvoiceRecord[]> {
-    const conditions = [eq(invoices.companyId, companyId)];
+    return this.listWithConditions(
+      [eq(invoices.companyId, companyId)],
+      filters,
+      limit,
+      offset,
+    );
+  }
+
+  async listAll(
+    filters: InvoiceListFilters,
+    limit: number,
+    offset: number,
+  ): Promise<InvoiceRecord[]> {
+    return this.listWithConditions([], filters, limit, offset);
+  }
+
+  /**
+   * Shared list path. Items are fetched per-invoice: acceptable at MVP scale
+   * (≤ DEFAULT_PAGE_SIZE invoices per page); revisit with a join if lists grow.
+   */
+  private async listWithConditions(
+    companyConditions: ReturnType<typeof eq>[],
+    filters: InvoiceListFilters,
+    limit: number,
+    offset: number,
+  ): Promise<InvoiceRecord[]> {
+    const conditions = [...companyConditions];
     if (filters.status) {
       conditions.push(eq(invoices.status, filters.status));
     }
@@ -168,7 +195,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
     const rows = await this.db
       .select()
       .from(invoices)
-      .where(and(...conditions))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(invoices.createdAt))
       .limit(limit)
       .offset(offset);

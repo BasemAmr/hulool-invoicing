@@ -1,4 +1,4 @@
-import type { CompanyId, CustomerId, Halalas, InvoiceId } from "@/domain/branding";
+﻿import type { CompanyId, CustomerId, Halalas, InvoiceId } from "@/domain/branding";
 import type { DocumentStatus } from "@/domain/value-objects/document-status";
 import type { Tx } from "../tx";
 
@@ -61,7 +61,8 @@ export interface InvoiceRepository {
     input: CreateDraftInvoiceInput,
     now: Date,
   ): Promise<InvoiceRecord>;
-  findByIdWithItems(id: InvoiceId, tx: Tx): Promise<InvoiceRecord | null>;
+  /** Pass a Tx inside use-case transactions; omit for plain reads. */
+  findByIdWithItems(id: InvoiceId, tx?: Tx): Promise<InvoiceRecord | null>;
   markIssued(
     id: InvoiceId,
     input: MarkIssuedInput,
@@ -69,6 +70,12 @@ export interface InvoiceRepository {
   ): Promise<InvoiceRecord>;
   listByCompany(
     companyId: CompanyId,
+    filters: InvoiceListFilters,
+    limit: number,
+    offset: number,
+  ): Promise<InvoiceRecord[]>;
+  /** Cross-company listing for the dashboard. */
+  listAll(
     filters: InvoiceListFilters,
     limit: number,
     offset: number,
