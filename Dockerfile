@@ -37,6 +37,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# pnpm standalone symlink fix: copy full node_modules so deep resolution works reliably
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
 # Copy migrations folder and entrypoint script
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
