@@ -5,6 +5,8 @@ import { db } from "@/infrastructure/database";
 import { CompanySidebar, CompanyMobileNav } from "@/components/layout/company-sidebar";
 import type { CompanyId } from "@/domain/branding";
 
+export const dynamic = "force-dynamic";
+
 const container = createContainer(db);
 
 export default async function CompanyScopedLayout({
