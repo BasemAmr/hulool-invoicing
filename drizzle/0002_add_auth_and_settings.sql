@@ -64,3 +64,5 @@ ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "footer_text" text;
 ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "unified_number" text;
 --> statement-breakpoint
 ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "address_postal_code" text;
+--> statement-breakpoint
+ALTER TABLE "receipt_vouchers" ADD COLUMN IF NOT EXISTS "invoice_id" uuid REFERENCES "invoices"("id") ON DELETE SET NULL;
