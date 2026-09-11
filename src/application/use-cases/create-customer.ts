@@ -28,10 +28,12 @@ export class CreateCustomer {
         nameAr: data.nameAr,
         nameEn: data.nameEn ?? null,
         vatNumber: data.vatNumber ?? null,
+        unifiedNumber: data.unifiedNumber ?? null,
         phone: data.phone ?? null,
         email: data.email ?? null,
         addressCity: data.addressCity ?? null,
         addressStreet: data.addressStreet ?? null,
+        addressPostalCode: data.addressPostalCode ?? null,
       },
       now,
     );

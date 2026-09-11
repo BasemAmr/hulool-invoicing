@@ -1,4 +1,11 @@
-﻿import { z } from "zod";
+import path from "node:path";
+import dotenv from "dotenv";
+import { z } from "zod";
+
+// Load Next.js environment files for standalone/CLI scripts
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 /**
  * Environment validation — lazy, fail fast with a clear message.

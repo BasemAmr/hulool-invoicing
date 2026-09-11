@@ -15,6 +15,7 @@ import { multiplyQuantity, sum, vatOf } from "../value-objects/money";
 export interface TotalsInputLine {
   unitPrice: Halalas;
   quantity: number;
+  discountAmount?: Halalas;
   vatRate: number;
 }
 
@@ -33,7 +34,9 @@ export interface TotalsResult {
 
 export function calculateTotals(lines: TotalsInputLine[]): TotalsResult {
   const outputLines: TotalsOutputLine[] = lines.map((line) => {
-    const lineSubtotal = multiplyQuantity(line.unitPrice, line.quantity);
+    const rawSubtotal = multiplyQuantity(line.unitPrice, line.quantity);
+    const discount = line.discountAmount ?? 0;
+    const lineSubtotal = Math.max(0, rawSubtotal - discount) as Halalas;
     const lineVat = vatOf(lineSubtotal, line.vatRate);
     const lineTotal = (lineSubtotal + lineVat) as Halalas;
     return { lineSubtotal, lineVat, lineTotal };

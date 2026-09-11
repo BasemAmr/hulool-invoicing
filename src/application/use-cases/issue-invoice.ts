@@ -15,6 +15,8 @@ import type { IdempotencyStore } from "../ports/idempotency-store";
 import type { InvoiceRepository } from "../ports/invoice-repository";
 import type { SequencePort } from "../ports/sequence-port";
 
+import type { ReceiptVoucherRepository } from "../ports/receipt-voucher-repository";
+
 export interface IssueInvoiceInput {
   invoiceId: string;
   idempotencyKey?: string;
@@ -30,6 +32,7 @@ export interface IssueInvoiceInput {
  *   4. Allocates the next atomic invoice number.
  *   5. Builds the ZATCA Phase 1 QR payload.
  *   6. Marks the invoice as issued.
+ *   7. Auto-creates a linked receipt voucher.
  *
  * All steps share the same transaction so that a failure in any step
  * rolls back the sequence allocation, idempotency claim, and invoice update.
@@ -42,6 +45,7 @@ export class IssueInvoice {
     private readonly clock: Clock,
     private readonly idempotencyStore: IdempotencyStore,
     private readonly db: Database,
+    private readonly receiptVoucherRepository?: ReceiptVoucherRepository,
   ) {}
 
   async execute(input: IssueInvoiceInput): Promise<InvoiceDto> {
@@ -118,6 +122,23 @@ export class IssueInvoice {
         },
         tx,
       );
+
+      // 7. Auto-create linked receipt voucher
+      if (this.receiptVoucherRepository) {
+        await this.receiptVoucherRepository.create(
+          {
+            companyId: invoice.companyId,
+            customerId: invoice.customerId,
+            invoiceId: invoice.id,
+            voucherDate: invoice.issueDate,
+            amount: invoice.total,
+            paymentMethod: "other",
+            reference: invoiceNumber,
+            notes: `سند قبض للفاتورة رقم ${invoiceNumber}`,
+          },
+          tx,
+        );
+      }
 
       return toInvoiceDto(updated);
     });

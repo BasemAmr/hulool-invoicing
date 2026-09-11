@@ -8,10 +8,12 @@ import type { InvoiceRecord } from "./ports/invoice-repository";
  */
 
 export interface InvoiceItemDto {
+  savedProductId?: string | null;
   position: number;
   description: string;
   quantity: number;
   unitPrice: string;
+  discountAmount: string;
   vatRate: number;
   lineSubtotal: string;
   lineVat: string;
@@ -22,6 +24,8 @@ export interface InvoiceDto {
   id: string;
   companyId: string;
   customerId: string;
+  templateId: string;
+  invoiceType: "standard" | "simplified";
   invoiceNumber: string | null;
   status: "draft" | "issued" | "cancelled";
   issueDate: string;
@@ -30,6 +34,7 @@ export interface InvoiceDto {
   subtotal: string;
   vatAmount: string;
   total: string;
+  terms: string | null;
   notes: string | null;
   qrPayload: string | null;
   issuedAt: string | null;
@@ -43,6 +48,8 @@ export function toInvoiceDto(record: InvoiceRecord): InvoiceDto {
     id: record.id,
     companyId: record.companyId,
     customerId: record.customerId,
+    templateId: record.templateId || "simple_red",
+    invoiceType: record.invoiceType,
     invoiceNumber: record.invoiceNumber,
     status: record.status,
     issueDate: record.issueDate,
@@ -51,16 +58,20 @@ export function toInvoiceDto(record: InvoiceRecord): InvoiceDto {
     subtotal: toDecimalString(record.subtotal),
     vatAmount: toDecimalString(record.vatAmount),
     total: toDecimalString(record.total),
+    terms: record.terms,
     notes: record.notes,
     qrPayload: record.qrPayload,
     issuedAt: record.issuedAt,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+
     items: record.items.map((item) => ({
+      savedProductId: item.savedProductId ?? null,
       position: item.position,
       description: item.description,
       quantity: item.quantity,
       unitPrice: toDecimalString(item.unitPrice),
+      discountAmount: toDecimalString(item.discountAmount),
       vatRate: item.vatRate,
       lineSubtotal: toDecimalString(item.lineSubtotal),
       lineVat: toDecimalString(item.lineVat),

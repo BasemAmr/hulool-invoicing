@@ -33,7 +33,14 @@ export class CreateCompany {
         vatNumber: data.vatNumber,
         crNumber: data.crNumber ?? null,
         prefix: data.prefix,
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        website: data.website ?? null,
         logoUrl: data.logoUrl ?? null,
+        logoFileId: data.logoFileId ?? null,
+        backgroundFileId: data.backgroundFileId ?? null,
+        signatureFileId: data.signatureFileId ?? null,
+        footerText: data.footerText ?? null,
         addressBuildingNumber: data.addressBuildingNumber ?? null,
         addressStreet: data.addressStreet ?? null,
         addressDistrict: data.addressDistrict ?? null,
@@ -43,6 +50,7 @@ export class CreateCompany {
       },
       now,
     );
+
     return { id: record.id, prefix: record.prefix };
   }
 }

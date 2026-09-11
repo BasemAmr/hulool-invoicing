@@ -1,4 +1,4 @@
-﻿import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import { asCompanyId, asCustomerId, asInvoiceId, type CompanyId, type InvoiceId } from "@/domain/branding";
 import type {
@@ -10,7 +10,7 @@ import type {
   MarkIssuedInput,
 } from "@/application/ports/invoice-repository";
 import type { Database, Tx } from "@/application/tx";
-import { NotFoundError } from "@/domain/errors";
+import { InvalidTransitionError, NotFoundError } from "@/domain/errors";
 import { fromDecimalString, toDecimalString } from "@/domain/value-objects/money";
 import { invoices, invoiceItems } from "../schema";
 
@@ -19,10 +19,12 @@ type InvoiceItemRow = typeof invoiceItems.$inferSelect;
 
 function mapItemRow(item: InvoiceItemRow): InvoiceItemRecord {
   return {
+    savedProductId: item.savedProductId,
     position: item.position,
     description: item.description,
     quantity: Number(item.quantity),
     unitPrice: fromDecimalString(item.unitPrice),
+    discountAmount: fromDecimalString(item.discountAmount),
     vatRate: Number(item.vatRate),
     lineSubtotal: fromDecimalString(item.lineSubtotal),
     lineVat: fromDecimalString(item.lineVat),
@@ -35,6 +37,8 @@ function mapInvoiceRow(inv: InvoiceRow, items: InvoiceItemRow[]): InvoiceRecord 
     id: asInvoiceId(inv.id),
     companyId: asCompanyId(inv.companyId),
     customerId: asCustomerId(inv.customerId),
+    templateId: inv.templateId || "simple_red",
+    invoiceType: inv.invoiceType,
     invoiceNumber: inv.invoiceNumber,
     status: inv.status,
     issueDate: inv.issueDate,
@@ -43,6 +47,7 @@ function mapInvoiceRow(inv: InvoiceRow, items: InvoiceItemRow[]): InvoiceRecord 
     subtotal: fromDecimalString(inv.subtotal),
     vatAmount: fromDecimalString(inv.vatAmount),
     total: fromDecimalString(inv.total),
+    terms: inv.terms,
     notes: inv.notes,
     qrPayload: inv.qrPayload,
     issuedAt: inv.issuedAt ? inv.issuedAt.toISOString() : null,
@@ -65,6 +70,8 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
         .values({
           companyId: input.companyId,
           customerId: input.customerId,
+          templateId: input.templateId || "simple_red",
+          invoiceType: input.invoiceType,
           invoiceNumber: null,
           status: "draft",
           issueDate: input.issueDate,
@@ -73,6 +80,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           subtotal: toDecimalString(input.subtotal),
           vatAmount: toDecimalString(input.vatAmount),
           total: toDecimalString(input.total),
+          terms: input.terms,
           notes: input.notes,
           qrPayload: null,
           issuedAt: null,
@@ -89,10 +97,12 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
         .values(
           input.items.map((item) => ({
             invoiceId: inv.id,
+            savedProductId: item.savedProductId ?? null,
             position: item.position,
             description: item.description,
             quantity: String(item.quantity),
             unitPrice: toDecimalString(item.unitPrice),
+            discountAmount: toDecimalString(item.discountAmount),
             vatRate: String(item.vatRate),
             lineSubtotal: toDecimalString(item.lineSubtotal),
             lineVat: toDecimalString(item.lineVat),
@@ -103,6 +113,95 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
 
       return mapInvoiceRow(inv, itemRows);
     });
+  }
+
+  async updateDraft(
+    id: InvoiceId,
+    input: CreateDraftInvoiceInput,
+    now: Date,
+  ): Promise<InvoiceRecord> {
+    return this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, id));
+
+      if (!existing) {
+        throw new NotFoundError("Invoice not found");
+      }
+      if (existing.status !== "draft") {
+        throw new InvalidTransitionError(
+          "لا يمكن تعديل الفاتورة بعد اعتمادها وإصدارها وفقاً لاشتراطات هيئة الزكاة والضريبة والجمارك",
+        );
+      }
+
+      const [updatedInv] = await tx
+        .update(invoices)
+        .set({
+          companyId: input.companyId,
+          customerId: input.customerId,
+          templateId: input.templateId || existing.templateId || "simple_red",
+          invoiceType: input.invoiceType,
+          issueDate: input.issueDate,
+          dueDate: input.dueDate,
+          currency: input.currency,
+          subtotal: toDecimalString(input.subtotal),
+          vatAmount: toDecimalString(input.vatAmount),
+          total: toDecimalString(input.total),
+          terms: input.terms,
+          notes: input.notes,
+          updatedAt: now,
+        })
+        .where(eq(invoices.id, id))
+        .returning();
+
+
+      if (!updatedInv) {
+        throw new NotFoundError("Invoice not found");
+      }
+
+      // Delete existing items and insert new ones
+      await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, id));
+
+      const newItemRows = await tx
+        .insert(invoiceItems)
+        .values(
+          input.items.map((item) => ({
+            invoiceId: id,
+            savedProductId: item.savedProductId ?? null,
+            position: item.position,
+            description: item.description,
+            quantity: String(item.quantity),
+            unitPrice: toDecimalString(item.unitPrice),
+            discountAmount: toDecimalString(item.discountAmount),
+            vatRate: String(item.vatRate),
+            lineSubtotal: toDecimalString(item.lineSubtotal),
+            lineVat: toDecimalString(item.lineVat),
+            lineTotal: toDecimalString(item.lineTotal),
+          })),
+        )
+        .returning();
+
+      return mapInvoiceRow(updatedInv, newItemRows);
+    });
+  }
+
+  async deleteDraft(id: InvoiceId): Promise<void> {
+    const [existing] = await this.db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
+
+    if (!existing) {
+      throw new NotFoundError("Invoice not found");
+    }
+    if (existing.status !== "draft") {
+      throw new InvalidTransitionError(
+        "لا يمكن حذف الفاتورة بعد اعتمادها وإصدارها وفقاً لاشتراطات هيئة الزكاة والضريبة والجمارك",
+      );
+    }
+
+    await this.db.delete(invoices).where(eq(invoices.id, id));
   }
 
   async findByIdWithItems(

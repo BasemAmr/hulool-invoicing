@@ -1,12 +1,14 @@
-﻿import type { CompanyId, CustomerId, Halalas, InvoiceId } from "@/domain/branding";
+import type { CompanyId, CustomerId, Halalas, InvoiceId } from "@/domain/branding";
 import type { DocumentStatus } from "@/domain/value-objects/document-status";
 import type { Tx } from "../tx";
 
 export interface InvoiceItemRecord {
+  savedProductId?: string | null;
   position: number;
   description: string;
   quantity: number;
   unitPrice: Halalas;
+  discountAmount: Halalas;
   vatRate: number;
   lineSubtotal: Halalas;
   lineVat: Halalas;
@@ -17,6 +19,8 @@ export interface InvoiceRecord {
   id: InvoiceId;
   companyId: CompanyId;
   customerId: CustomerId;
+  templateId: string;
+  invoiceType: 'standard' | 'simplified';
   invoiceNumber: string | null;
   status: DocumentStatus;
   issueDate: string;
@@ -25,6 +29,7 @@ export interface InvoiceRecord {
   subtotal: Halalas;
   vatAmount: Halalas;
   total: Halalas;
+  terms: string | null;
   notes: string | null;
   qrPayload: string | null;
   issuedAt: string | null;
@@ -36,8 +41,11 @@ export interface InvoiceRecord {
 export interface CreateDraftInvoiceInput {
   companyId: CompanyId;
   customerId: CustomerId;
+  templateId?: string;
+  invoiceType: 'standard' | 'simplified';
   issueDate: string;
   dueDate: string | null;
+  terms: string | null;
   notes: string | null;
   currency: string;
   subtotal: Halalas;
@@ -45,6 +53,7 @@ export interface CreateDraftInvoiceInput {
   total: Halalas;
   items: InvoiceItemRecord[];
 }
+
 
 export interface MarkIssuedInput {
   invoiceNumber: string;
@@ -61,6 +70,12 @@ export interface InvoiceRepository {
     input: CreateDraftInvoiceInput,
     now: Date,
   ): Promise<InvoiceRecord>;
+  updateDraft(
+    id: InvoiceId,
+    input: CreateDraftInvoiceInput,
+    now: Date,
+  ): Promise<InvoiceRecord>;
+  deleteDraft(id: InvoiceId): Promise<void>;
   /** Pass a Tx inside use-case transactions; omit for plain reads. */
   findByIdWithItems(id: InvoiceId, tx?: Tx): Promise<InvoiceRecord | null>;
   markIssued(

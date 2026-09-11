@@ -50,3 +50,18 @@ export class ValidationError extends DomainError {
     this.name = "ValidationError";
   }
 }
+
+export class AuthenticationError extends DomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthenticationError";
+  }
+}
+
+export class ForbiddenError extends DomainError {
+  constructor(message: string) {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+

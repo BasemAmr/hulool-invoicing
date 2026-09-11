@@ -12,6 +12,7 @@ export type Brand<T, B extends string> = T & { readonly __brand: B };
 export type CompanyId = Brand<string, "CompanyId">;
 export type CustomerId = Brand<string, "CustomerId">;
 export type InvoiceId = Brand<string, "InvoiceId">;
+export type UserId = Brand<string, "UserId">;
 export type Halalas = Brand<number, "Halalas">;
 
 export function asCompanyId(value: string): CompanyId {
@@ -25,3 +26,8 @@ export function asCustomerId(value: string): CustomerId {
 export function asInvoiceId(value: string): InvoiceId {
   return value as InvoiceId;
 }
+
+export function asUserId(value: string): UserId {
+  return value as UserId;
+}
+

@@ -1,4 +1,4 @@
-﻿import { asCompanyId, asCustomerId } from "@/domain/branding";
+import { asCompanyId, asCustomerId } from "@/domain/branding";
 import { halalas } from "@/domain/value-objects/money";
 import { CURRENCY } from "@/domain/constants";
 import { invoiceCreateSchema } from "@/domain/contracts";
@@ -29,6 +29,7 @@ export class CreateDraftInvoice {
     const totalsInput = data.items.map((item) => ({
       unitPrice: halalas(item.unitPrice),
       quantity: item.quantity,
+      discountAmount: halalas(item.discountAmount ?? 0),
       vatRate: item.vatRate,
     }));
     const totals = calculateTotals(totalsInput);
@@ -36,13 +37,15 @@ export class CreateDraftInvoice {
     const items: InvoiceItemRecord[] = data.items.map((item, i) => {
       const line = totals.lines[i];
       if (line === undefined) {
-        throw new Error("Totals line count mismatch â€” internal error");
+        throw new Error("Totals line count mismatch — internal error");
       }
       return {
+        savedProductId: item.savedProductId ?? null,
         position: i + 1,
         description: item.description,
         quantity: item.quantity,
         unitPrice: halalas(item.unitPrice),
+        discountAmount: halalas(item.discountAmount ?? 0),
         vatRate: item.vatRate,
         lineSubtotal: line.lineSubtotal,
         lineVat: line.lineVat,
@@ -55,8 +58,11 @@ export class CreateDraftInvoice {
       {
         companyId: asCompanyId(data.companyId),
         customerId: asCustomerId(data.customerId),
+        templateId: data.templateId || "simple_red",
+        invoiceType: data.invoiceType,
         issueDate: data.issueDate,
         dueDate: data.dueDate ?? null,
+        terms: data.terms ?? null,
         notes: data.notes ?? null,
         currency: CURRENCY,
         subtotal: totals.subtotal,
@@ -66,6 +72,7 @@ export class CreateDraftInvoice {
       },
       now,
     );
+
     return toInvoiceDto(record);
   }
 }

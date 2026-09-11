@@ -1,12 +1,12 @@
-import { desc, eq, ilike, or } from "drizzle-orm";
+import { desc, eq, ilike, or, sql } from "drizzle-orm";
 
-import { asCustomerId } from "@/domain/branding";
+import { asCustomerId, type CustomerId } from "@/domain/branding";
 import type {
   CustomerRecord,
   CustomerRepository,
 } from "@/application/ports/customer-repository";
 import type { Database } from "@/application/tx";
-import { customers } from "../schema";
+import { customers, invoices } from "../schema";
 
 type CustomerRow = typeof customers.$inferSelect;
 
@@ -16,10 +16,12 @@ function mapCustomerRow(row: CustomerRow): CustomerRecord {
     nameAr: row.nameAr,
     nameEn: row.nameEn,
     vatNumber: row.vatNumber,
+    unifiedNumber: row.unifiedNumber,
     phone: row.phone,
     email: row.email,
     addressCity: row.addressCity,
     addressStreet: row.addressStreet,
+    addressPostalCode: row.addressPostalCode,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -33,10 +35,12 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       nameAr: string;
       nameEn: string | null;
       vatNumber: string | null;
+      unifiedNumber?: string | null;
       phone: string | null;
       email: string | null;
       addressCity: string | null;
       addressStreet: string | null;
+      addressPostalCode?: string | null;
     },
     now: Date,
   ): Promise<CustomerRecord> {
@@ -46,10 +50,12 @@ export class CustomerRepositoryImpl implements CustomerRepository {
         nameAr: input.nameAr,
         nameEn: input.nameEn,
         vatNumber: input.vatNumber,
+        unifiedNumber: input.unifiedNumber ?? null,
         phone: input.phone,
         email: input.email,
         addressCity: input.addressCity,
         addressStreet: input.addressStreet,
+        addressPostalCode: input.addressPostalCode ?? null,
         createdAt: now,
         updatedAt: now,
       })
@@ -60,7 +66,56 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     return mapCustomerRow(row);
   }
 
-  async findById(id: ReturnType<typeof asCustomerId>): Promise<CustomerRecord | null> {
+  async update(
+    id: CustomerId,
+    input: {
+      nameAr: string;
+      nameEn: string | null;
+      vatNumber: string | null;
+      unifiedNumber?: string | null;
+      phone: string | null;
+      email: string | null;
+      addressCity: string | null;
+      addressStreet: string | null;
+      addressPostalCode?: string | null;
+    },
+    now: Date,
+  ): Promise<CustomerRecord> {
+    const [row] = await this.db
+      .update(customers)
+      .set({
+        nameAr: input.nameAr,
+        nameEn: input.nameEn,
+        vatNumber: input.vatNumber,
+        unifiedNumber: input.unifiedNumber !== undefined ? input.unifiedNumber : undefined,
+        phone: input.phone,
+        email: input.email,
+        addressCity: input.addressCity,
+        addressStreet: input.addressStreet,
+        addressPostalCode: input.addressPostalCode !== undefined ? input.addressPostalCode : undefined,
+        updatedAt: now,
+      })
+      .where(eq(customers.id, id))
+      .returning();
+    if (!row) {
+      throw new Error("Failed to update customer — customer not found");
+    }
+    return mapCustomerRow(row);
+  }
+
+  async delete(id: CustomerId): Promise<void> {
+    await this.db.delete(customers).where(eq(customers.id, id));
+  }
+
+  async countInvoices(id: CustomerId): Promise<number> {
+    const [result] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(invoices)
+      .where(eq(invoices.customerId, id));
+    return result?.count ?? 0;
+  }
+
+  async findById(id: CustomerId): Promise<CustomerRecord | null> {
     const [row] = await this.db
       .select()
       .from(customers)
@@ -79,6 +134,10 @@ export class CustomerRepositoryImpl implements CustomerRepository {
           ilike(customers.nameAr, `%${search}%`),
           ilike(customers.nameEn, `%${search}%`),
           ilike(customers.phone, `%${search}%`),
+          ilike(customers.vatNumber, `%${search}%`),
+          ilike(customers.unifiedNumber, `%${search}%`),
+          ilike(customers.addressCity, `%${search}%`),
+          ilike(customers.addressPostalCode, `%${search}%`),
         )
       : undefined;
 
