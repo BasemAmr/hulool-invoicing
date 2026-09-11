@@ -62,5 +62,11 @@
     "typescript": "^5",
     "vitest": "^2.1.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
+  },
   "packageManager": "pnpm@11.22.0"
 }
