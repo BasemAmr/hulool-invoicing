@@ -38,9 +38,10 @@ export async function loginAction(
     const result = await useCase.execute({ email, password });
 
     const cookieStore = await cookies();
+    const isHttps = process.env.COOLIFY_URL?.startsWith("https://") || false;
     cookieStore.set(SESSION_COOKIE_NAME, result.session.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       expires: result.session.expiresAt,
       path: "/",
