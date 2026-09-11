@@ -60,10 +60,6 @@
     "tailwindcss": "^4",
     "tsx": "^4.19.3",
     "typescript": "^5",
-    "vitest": "^2.1.0"
   },
-  "packageManager": "pnpm@11.22.0",
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "unrs-resolver"]
-  }
+  "packageManager": "pnpm@11.22.0"
 }
