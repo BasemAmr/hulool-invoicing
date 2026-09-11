@@ -7,7 +7,7 @@ WORKDIR /app
 # Install pnpm directly (bypasses broken corepack)
 RUN npm install -g pnpm@11.22.0
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 # ---- Builder ----
