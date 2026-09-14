@@ -14,7 +14,13 @@ async function main() {
   
   const workbook = xlsx.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    throw new Error("No sheets found in the Excel file");
+  }
   const sheet = workbook.Sheets[sheetName];
+  if (!sheet) {
+    throw new Error("Sheet not found");
+  }
   const data = xlsx.utils.sheet_to_json(sheet) as any[];
 
   console.log(`[Seed Products] Found ${data.length} rows in the first sheet.`);
