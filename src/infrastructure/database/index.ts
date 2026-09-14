@@ -4,7 +4,20 @@ import { Pool } from "pg";
 import { getEnv } from "../config/env";
 import * as schema from "./schema";
 
-const pool = new Pool({ connectionString: getEnv().DATABASE_URL });
+const pool = new Pool({
+  connectionString: getEnv().DATABASE_URL,
+  // Recycle idle clients + TCP keepalive so a stale pooled connection
+  // (DB restart, NAT/firewall idle kill) surfaces as a discarded client
+  // instead of an ECONNRESET on the next query.
+  keepAlive: true,
+  connectionTimeoutMillis: 10_000,
+  idleTimeoutMillis: 30_000,
+});
+
+// A dead backend would otherwise emit an unhandled 'error' on the idle client.
+pool.on("error", (err) => {
+  console.error("Unexpected pg pool client error (client will be discarded):", err);
+});
 
 export const db = drizzle(pool, { schema });
 

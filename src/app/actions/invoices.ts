@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 
 import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
+import { invoices } from "@/infrastructure/database/schema";
+import { TEMPLATES_REGISTRY } from "@/infrastructure/pdf/templates/registry";
 import { CreateDraftInvoice } from "@/application/use-cases/create-draft-invoice";
 import { IssueInvoice } from "@/application/use-cases/issue-invoice";
 import { DomainError, ValidationError } from "@/domain/errors";
@@ -267,6 +270,43 @@ function parseItemsFromFormData(formData: FormData): RawItem[] {
   return items;
 }
 
+
+/**
+ * Persist a template change from the invoice preview template picker.
+ * Presentation-only: safe for both draft and issued invoices (totals untouched).
+ */
+export async function updateInvoiceTemplateAction(
+  invoiceId: string,
+  templateId: string,
+  companyId?: string,
+): Promise<ActionState> {
+  if (!invoiceId) {
+    return { status: "error", message: "معرّف الفاتورة مفقود" };
+  }
+  if (!templateId || !(templateId in TEMPLATES_REGISTRY)) {
+    return { status: "error", message: "القالب المختار غير معروف" };
+  }
+
+  try {
+    const updated = await db
+      .update(invoices)
+      .set({ templateId, updatedAt: new Date() })
+      .where(eq(invoices.id, invoiceId))
+      .returning({ id: invoices.id });
+    if (updated.length === 0) {
+      return { status: "error", message: "الفاتورة غير موجودة" };
+    }
+  } catch {
+    return { status: "error", message: "تعذر حفظ القالب المختار" };
+  }
+
+  if (companyId) {
+    revalidatePath(`/c/${companyId}/invoices`);
+    revalidatePath(`/c/${companyId}/invoices/${invoiceId}`);
+  }
+  revalidatePath(`/invoices/${invoiceId}`);
+  return { status: "ok" };
+}
 
 export async function deleteDraftInvoiceAction(id: string): Promise<{ status: "success" } | { status: "error"; message: string }> {
   if (!id) {

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Download,
@@ -24,6 +25,7 @@ import { TemplateBrowserDrawer } from "@/components/drawers/template-browser-dra
 import { getTemplateById } from "@/infrastructure/pdf/templates/registry";
 import { formatIsoDate, formatMoney } from "@/lib/format";
 import { useToast } from "@/components/ui/toaster";
+import { updateInvoiceTemplateAction } from "@/app/actions/invoices";
 import { asCustomerId } from "@/domain/branding";
 import type { InvoiceDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
@@ -48,6 +50,7 @@ export function InvoicePreviewClient({
   qrDataUrl,
 }: InvoicePreviewClientProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [customer, setCustomer] = useState<CustomerRecord>(initialCustomer);
   const [templateId, setTemplateId] = useState<string>(
     invoice.templateId || "simple_red"
@@ -439,13 +442,31 @@ export function InvoicePreviewClient({
         open={templateDrawerOpen}
         onClose={() => setTemplateDrawerOpen(false)}
         selectedTemplateId={templateId}
-        onSelectTemplate={(newTemplateId) => {
+        onSelectTemplate={async (newTemplateId) => {
+          if (newTemplateId === templateId) return;
+          const previousTemplateId = templateId;
+          // Optimistic preview while the choice is persisted.
           setTemplateId(newTemplateId);
-          setRefreshKey(Date.now()); // Trigger PDF refresh with new template
-          toast({
-            title: "تم تغيير القالب",
-            message: `تم تفعيل قالب "${getTemplateById(newTemplateId).nameAr}" بنجاح.`,
-          });
+          setRefreshKey(Date.now());
+          const result = await updateInvoiceTemplateAction(
+            invoice.id,
+            newTemplateId,
+            companyId,
+          );
+          if (result.status === "error") {
+            setTemplateId(previousTemplateId);
+            setRefreshKey(Date.now());
+            toast({
+              title: "تعذر حفظ القالب",
+              message: result.message,
+            });
+          } else {
+            router.refresh();
+            toast({
+              title: "تم حفظ القالب",
+              message: `تم اعتماد قالب "${getTemplateById(newTemplateId).nameAr}" وحفظه لهذه الفاتورة.`,
+            });
+          }
         }}
       />
     </div>

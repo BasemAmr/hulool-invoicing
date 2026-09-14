@@ -24,6 +24,10 @@ import { MatajerAlSaifTemplate } from "./templates/matajer-al-saif-template";
 import { ManahirPosTemplate } from "./templates/manahir-pos-template";
 import { HasaniahFoamTemplate } from "./templates/hasaniah-foam-template";
 import { TopTownTemplate } from "./templates/top-town-template";
+import { MasdarBuildingMaterialsTemplate } from "./templates/masdar-materials-template";
+import { AldailCeramicsTemplate } from "./templates/aldail-ceramics-template";
+import { BazreaPlasticsTemplate } from "./templates/bazrea-plastics-template";
+import { SaAlkoufiTemplate } from "./templates/sa-alkoufi-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -41,7 +45,7 @@ export interface InvoiceDocumentProps {
 
 /**
  * Universal PDF Invoice Document Dispatcher.
- * Selects the matching template from the 17-template registry and renders with pixel-perfect fidelity.
+ * Selects the matching template from the registry and renders with pixel-perfect fidelity.
  */
 export function InvoiceDocument({
   invoice,
@@ -58,7 +62,8 @@ export function InvoiceDocument({
   const chosenTemplateId =
     templateId ||
     invoice.templateId ||
-    (company.templateConfig as any)?.templateId ||
+    settings?.defaultTemplateId ||
+    (company.templateConfig as { templateId?: string } | null)?.templateId ||
     "simple_red";
 
   const templateDef: TemplateDefinition = getTemplateById(chosenTemplateId);
@@ -123,6 +128,24 @@ export function InvoiceDocument({
   }
   if (templateDef.id === "top_town") {
     return <TopTownTemplate {...props} />;
+  }
+  if (templateDef.id === "aldail_ceramics") {
+    return <AldailCeramicsTemplate {...props} />;
+  }
+  if (templateDef.id === "bazrea_plastics") {
+    return <BazreaPlasticsTemplate {...props} />;
+  }
+  if (templateDef.id === "sa_alkoufi") {
+    return <SaAlkoufiTemplate {...props} />;
+  }
+  if (templateDef.id === "masdar_materials_terms") {
+    return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
+  }
+  if (templateDef.id === "masdar_materials_no_terms") {
+    return <MasdarBuildingMaterialsTemplate {...props} withTerms={false} />;
+  }
+  if (templateDef.id === "masdar_materials") {
+    return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
   }
 
   switch (templateDef.category) {

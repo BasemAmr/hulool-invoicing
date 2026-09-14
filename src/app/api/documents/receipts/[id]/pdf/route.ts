@@ -84,7 +84,7 @@ export async function GET(
     customer,
     invoice,
     settings,
-    templateId: settings?.defaultReceiptTemplateId,
+    templateId: settings?.defaultReceiptTemplateId ?? "receipt_standard",
     logoDataUrl,
     backgroundDataUrl,
     signatureDataUrl,

@@ -55,6 +55,7 @@ export function JoyInvoiceTemplate({
   company,
   customer,
   settings,
+  qrDataUrl,
   backgroundDataUrl,
   isPurchase = false,
 }: JoyInvoiceTemplateProps) {
@@ -91,8 +92,6 @@ export function JoyInvoiceTemplate({
   const vatVal = Number(invoice.vatAmount || 0);
   const totalVal = Number(invoice.total || 0);
 
-  // 1D Barcode Simulation
-  const barcodeBars = [3, 1, 2, 1, 4, 1, 2, 3, 1, 2, 1, 4, 2, 1, 3, 1, 2, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2, 1, 4, 2, 1, 3, 1, 2, 1, 3, 2, 1, 4];
 
   return (
     <Document
@@ -111,24 +110,13 @@ export function JoyInvoiceTemplate({
           <Text style={styles.headerTitleText}>{titleText}</Text>
         </View>
 
-        {/* ─── 2. BARCODE & METADATA SECTION ─── */}
+        {/* ─── 2. QR CODE & METADATA SECTION ─── */}
         <View style={styles.metaSection}>
-          {/* Left: 1D Linear Barcode */}
+          {/* Left: Real QR Code */}
           <View style={styles.barcodeBox}>
-            <View style={styles.barcodeLinesWrap}>
-              {barcodeBars.map((width, idx) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.barcodeBar,
-                    {
-                      width,
-                      backgroundColor: idx % 2 === 0 ? "#000000" : "#FFFFFF",
-                    },
-                  ]}
-                />
-              ))}
-            </View>
+            {qrDataUrl ? (
+              <Image src={qrDataUrl} style={styles.qrImage} />
+            ) : null}
           </View>
 
           {/* Right: Invoice Metadata */}
@@ -383,17 +371,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   barcodeBox: {
-    width: 140,
-    height: 48,
+    width: 64,
+    height: 64,
     justifyContent: "center",
+    alignItems: "center",
   },
-  barcodeLinesWrap: {
-    flexDirection: "row",
-    height: 44,
-    alignItems: "stretch",
-  },
-  barcodeBar: {
-    height: "100%",
+  qrImage: {
+    width: 64,
+    height: 64,
+    objectFit: "contain",
   },
   metaInfoBox: {
     alignItems: "flex-end",
