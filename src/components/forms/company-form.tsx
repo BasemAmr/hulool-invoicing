@@ -8,6 +8,7 @@ import type { CompanyRecord } from "@/application/ports/company-repository";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { generateDefaultCompanyPrefix } from "@/lib/format";
 
 import { ImageUploadInput } from "./image-upload-input";
 
@@ -61,19 +62,23 @@ export function CompanyForm({
           <Field
             label="بادئة الترقيم *"
             name="prefix"
-            defaultValue={initialCompany?.prefix}
+            defaultValue={initialCompany?.prefix ?? generateDefaultCompanyPrefix()}
             placeholder="INV"
             required
             hint="2-6 أحرف كبيرة، تظهر في أرقام الفواتير"
           />
-          <div className="sm:col-span-2">
-            <Field
-              label="رقم السجل التجاري (اختياري)"
-              name="crNumber"
-              defaultValue={initialCompany?.crNumber ?? ""}
-              placeholder="1010xxxxxx"
-            />
-          </div>
+          <Field
+            label="رقم السجل التجاري (اختياري)"
+            name="crNumber"
+            defaultValue={initialCompany?.crNumber ?? ""}
+            placeholder="1010xxxxxx"
+          />
+          <Field
+            label="تابع للعميل"
+            name="clientEmployee"
+            defaultValue={initialCompany?.clientEmployee ?? ""}
+            placeholder="تابع للعميل"
+          />
         </div>
       </div>
 

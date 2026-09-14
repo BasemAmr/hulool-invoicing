@@ -499,19 +499,14 @@ function buildModernStyles(primary: string, accent: string) {
       gap: 8,
     },
     qrBox: {
-      width: 64,
-      height: 64,
-      borderWidth: 1,
-      borderColor: "#cbd5e1",
-      padding: 2,
-      backgroundColor: "#ffffff",
+      width: 76,
       alignItems: "center",
       justifyContent: "center",
       shrink: 0,
     },
     qrImage: {
-      width: 54,
-      height: 54,
+      width: 76,
+      height: 76,
     },
     notesContainer: {
       flex: 1,

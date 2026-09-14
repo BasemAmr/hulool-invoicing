@@ -23,6 +23,7 @@ export async function createCompanyAction(
     vatNumber: String(formData.get("vatNumber") ?? ""),
     crNumber: nonEmpty(formData.get("crNumber")),
     prefix: String(formData.get("prefix") ?? "").toUpperCase(),
+    clientEmployee: nonEmpty(formData.get("clientEmployee")),
     addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
@@ -73,6 +74,7 @@ export async function updateCompanyAction(
     vatNumber: String(formData.get("vatNumber") ?? ""),
     crNumber: nonEmpty(formData.get("crNumber")),
     prefix: String(formData.get("prefix") ?? "").toUpperCase(),
+    clientEmployee: nonEmpty(formData.get("clientEmployee")),
     addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
@@ -129,6 +131,7 @@ export async function createCompanyDirectAction(data: {
   vatNumber: string;
   crNumber?: string;
   prefix: string;
+  clientEmployee?: string;
   addressBuildingNumber?: string;
   addressStreet?: string;
   addressDistrict?: string;
@@ -174,6 +177,7 @@ export async function updateCompanyDirectAction(
     vatNumber: string;
     crNumber?: string;
     prefix: string;
+    clientEmployee?: string;
     addressBuildingNumber?: string;
     addressStreet?: string;
     addressDistrict?: string;

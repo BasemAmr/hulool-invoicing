@@ -23,7 +23,7 @@ export function InvoiceTableActions({ invoice, companyId }: InvoiceTableActionsP
   const basePath = activeCompanyId ? `/c/${activeCompanyId}/invoices` : "/invoices";
 
   const downloadUrl = `/api/documents/${invoice.id}/pdf?download=true`;
-  const filename = `invoice-${invoice.invoiceNumber ?? invoice.id}.pdf`;
+  const filename = `فاتورة ضريبية رقم ${invoice.invoiceNumber ?? invoice.id}.pdf`;
 
   return (
     <div className="inline-flex items-center justify-end gap-1">

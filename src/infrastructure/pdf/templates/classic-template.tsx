@@ -431,18 +431,13 @@ function buildClassicStyles(primary: string) {
       alignItems: "flex-start",
     },
     qrBox: {
-      width: 60,
-      height: 60,
-      borderWidth: 1,
-      borderColor: "#cbd5e1",
-      padding: 2,
-      backgroundColor: "#ffffff",
+      width: 76,
       alignItems: "center",
       justifyContent: "center",
     },
     qrImage: {
-      width: 50,
-      height: 50,
+      width: 76,
+      height: 76,
     },
     signatureBox: {
       alignItems: "center",

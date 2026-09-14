@@ -356,7 +356,7 @@ export function BilingualZatcaTemplate({
             </View>
             <View style={[styles.totalsRow, styles.totalsRowGrand]}>
               <Text style={[styles.totalsKey, styles.grandTotalKey]}>
-                إجمالي المبلغ المستحق / Total Due
+                إجمالي المبلغ / Total Amount
               </Text>
               <Text style={[styles.totalsVal, styles.grandTotalVal]}>
                 {formatMoneyWithSettings(invoice.total, settings)}
@@ -613,19 +613,14 @@ function buildZatcaStyles(primary: string, accent: string) {
       gap: 6,
     },
     qrBox: {
-      width: 72,
-      height: 72,
-      borderWidth: 1,
-      borderColor: "#cbd5e1",
-      padding: 2,
-      backgroundColor: "#ffffff",
+      width: 76,
       alignItems: "center",
       justifyContent: "center",
       shrink: 0,
     },
     qrImage: {
-      width: 66,
-      height: 66,
+      width: 76,
+      height: 76,
     },
     draftWatermark: {
       fontSize: 10,

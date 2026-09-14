@@ -142,11 +142,10 @@ export function InvoiceWizardForm({
     return customersList.find((c) => c.id === selectedCustomerId);
   }, [customersList, selectedCustomerId]);
 
-  // Invoice Number Simulation for new invoices
+  // Invoice Number Simulation for new invoices (new norm: PREFIX-00001, no year)
   const simulatedInvoiceNumber = useMemo(() => {
-    const year = new Date().getFullYear();
-    const prefix = activeCompany?.prefix || "22";
-    return `${prefix}-${year}-00001`;
+    const prefix = activeCompany?.prefix || "INV";
+    return `${prefix}-00001`;
   }, [activeCompany]);
 
   const [invoiceNumber, setInvoiceNumber] = useState(
@@ -161,7 +160,7 @@ export function InvoiceWizardForm({
   }, [activeCompany, simulatedInvoiceNumber, initialInvoice]);
 
   const [invoiceStatus, setInvoiceStatus] = useState<"draft" | "issued">(
-    initialInvoice?.status === "issued" ? "issued" : "draft"
+    initialInvoice ? (initialInvoice.status === "issued" ? "issued" : "draft") : "issued"
   );
   const [templateId, setTemplateId] = useState(
     initialInvoice?.templateId || defaultTemplateId || "simple_red"
@@ -1018,7 +1017,7 @@ export function InvoiceWizardForm({
             </div>
 
             <div className="flex items-center justify-between pt-0.5 font-bold text-sm text-foreground">
-              <span>الإجمالي الكلي المطلوب:</span>
+              <span>الإجمالي الكلي:</span>
               <span className="font-mono text-base text-primary">
                 {formatMoney(totals.total)} SAR
               </span>

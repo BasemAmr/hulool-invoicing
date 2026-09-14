@@ -84,12 +84,15 @@ export async function GET(
     customer,
     invoice,
     settings,
+    templateId: settings?.defaultReceiptTemplateId,
     logoDataUrl,
     backgroundDataUrl,
     signatureDataUrl,
   });
 
-  const filename = `receipt-${voucher.voucherNumber}.pdf`;
+  const invNum = invoice?.invoiceNumber ?? voucher.voucherNumber;
+  const rawFilename = `سند القبض فاتورة رقم ${invNum}.pdf`;
+  const encodedFilename = encodeURIComponent(rawFilename);
   const body = new Uint8Array(bytes.byteLength);
   body.set(bytes);
 
@@ -99,7 +102,7 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${dispositionType}; filename="${filename}"`,
+      "Content-Disposition": `${dispositionType}; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
       "Cache-Control": "private, no-store",
       "X-Frame-Options": "SAMEORIGIN",
       "Content-Security-Policy": "frame-ancestors 'self'",

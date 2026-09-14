@@ -72,7 +72,7 @@ export function InvoicePreviewClient({
   const handleDownloadPdf = () => {
     const link = document.createElement("a");
     link.href = pdfDownloadUrl;
-    link.download = `invoice-${invoice.invoiceNumber ?? invoice.id}.pdf`;
+    link.download = `فاتورة ضريبية رقم ${invoice.invoiceNumber ?? invoice.id}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -82,7 +82,7 @@ export function InvoicePreviewClient({
     if (!receiptVoucher) return;
     const link = document.createElement("a");
     link.href = `/api/documents/receipts/${receiptVoucher.id}/pdf?download=true`;
-    link.download = `receipt-${receiptVoucher.voucherNumber}.pdf`;
+    link.download = `سند القبض فاتورة رقم ${invoice.invoiceNumber ?? receiptVoucher.voucherNumber}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

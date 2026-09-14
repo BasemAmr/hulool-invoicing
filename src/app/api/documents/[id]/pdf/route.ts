@@ -111,7 +111,8 @@ export async function GET(
 
 
   const isDownload = url.searchParams.get("download") === "true";
-  const filename = invoice.invoiceNumber ? `invoice-${invoice.invoiceNumber}.pdf` : "tax-invoice.pdf";
+  const rawFilename = `فاتورة ضريبية رقم ${invoice.invoiceNumber ?? invoice.id}.pdf`;
+  const encodedFilename = encodeURIComponent(rawFilename);
   // Copy into a fresh ArrayBuffer-backed Uint8Array so BodyInit accepts it.
   const body = new Uint8Array(bytes.byteLength);
   body.set(bytes);
@@ -122,7 +123,7 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${dispositionType}; filename="${filename}"`,
+      "Content-Disposition": `${dispositionType}; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
       "Cache-Control": "private, no-store",
       "X-Frame-Options": "SAMEORIGIN",
       "Content-Security-Policy": "frame-ancestors 'self'",

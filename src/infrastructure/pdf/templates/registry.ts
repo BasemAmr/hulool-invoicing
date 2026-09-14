@@ -1,8 +1,29 @@
+export type TemplateParentCategory = "system_default" | "company_chosen";
+
+export const PARENT_CATEGORY_LABELS: Record<
+  TemplateParentCategory,
+  { ar: string; en: string; badgeAr: string; badgeEn: string }
+> = {
+  system_default: {
+    ar: "قوالب النظام الافتراضية",
+    en: "System Default Templates",
+    badgeAr: "قالب نظام معتمد",
+    badgeEn: "System Default",
+  },
+  company_chosen: {
+    ar: "قوالب المنشأة المختارة",
+    en: "Company Chosen Templates",
+    badgeAr: "قالب مخصص للمنشأة",
+    badgeEn: "Company Chosen",
+  },
+};
+
 export interface TemplateDefinition {
   id: string;
   nameAr: string;
   nameEn: string;
-  category: "simple" | "modern" | "pos" | "classic" | "bilingual";
+  parentCategory: TemplateParentCategory;
+  category: "simple" | "modern" | "pos" | "classic" | "bilingual" | "contracting";
   primaryColor: string;
   accentColor: string;
   isBilingual: boolean;
@@ -15,6 +36,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_red",
     nameAr: "نموذج بسيط أحمر",
     nameEn: "Simple Red",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#991B1B",
     accentColor: "#7F1D1D",
@@ -25,6 +47,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_gray",
     nameAr: "نموذج بسيط رمادي",
     nameEn: "Simple Gray",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#475569",
     accentColor: "#334155",
@@ -35,6 +58,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_clean",
     nameAr: "الشكل البسيط",
     nameEn: "Simple Clean",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#1E293B",
     accentColor: "#0F172A",
@@ -45,6 +69,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "modern_red",
     nameAr: "أحمر حديث",
     nameEn: "Modern Red",
+    parentCategory: "system_default",
     category: "modern",
     primaryColor: "#E11D48",
     accentColor: "#BE123C",
@@ -55,6 +80,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "classic",
     nameAr: "نموذج كلاسيكي",
     nameEn: "Classic Traditional",
+    parentCategory: "system_default",
     category: "classic",
     primaryColor: "#1E3A8A",
     accentColor: "#172554",
@@ -65,6 +91,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "pos_color",
     nameAr: "نموذج لون نقطة البيع",
     nameEn: "POS Color Receipt",
+    parentCategory: "system_default",
     category: "pos",
     primaryColor: "#0284C7",
     accentColor: "#0369A1",
@@ -76,6 +103,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "bilingual_zatca",
     nameAr: "فاتورة إلكترونية ثنائية اللغة",
     nameEn: "Bilingual ZATCA E-Invoice",
+    parentCategory: "system_default",
     category: "bilingual",
     primaryColor: "#0F766E",
     accentColor: "#134E4A",
@@ -86,6 +114,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "modern_positive_red",
     nameAr: "حديث أحمر إيجابي",
     nameEn: "Modern Positive Red",
+    parentCategory: "system_default",
     category: "modern",
     primaryColor: "#DC2626",
     accentColor: "#991B1B",
@@ -96,6 +125,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "modern_sky_blue",
     nameAr: "حديث أزرق سماوي",
     nameEn: "Modern Sky Blue",
+    parentCategory: "system_default",
     category: "modern",
     primaryColor: "#0284C7",
     accentColor: "#0369A1",
@@ -106,6 +136,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_blue",
     nameAr: "نموذج بسيط أزرق",
     nameEn: "Simple Blue",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#2563EB",
     accentColor: "#1D4ED8",
@@ -116,6 +147,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_white",
     nameAr: "نموذج بسيط أبيض",
     nameEn: "Simple White",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#0F172A",
     accentColor: "#334155",
@@ -126,6 +158,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_yellow",
     nameAr: "نموذج بسيط أصفر",
     nameEn: "Simple Yellow",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#D97706",
     accentColor: "#B45309",
@@ -136,6 +169,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "modern_green",
     nameAr: "نموذج حديث أخضر",
     nameEn: "Modern Green",
+    parentCategory: "system_default",
     category: "modern",
     primaryColor: "#059669",
     accentColor: "#047857",
@@ -146,6 +180,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "pos_monochrome",
     nameAr: "نموذج نقطة بيع أحادي اللون",
     nameEn: "POS Monochrome Thermal",
+    parentCategory: "system_default",
     category: "pos",
     primaryColor: "#000000",
     accentColor: "#111827",
@@ -157,6 +192,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "simple_black",
     nameAr: "نموذج بسيط أسود",
     nameEn: "Simple Black",
+    parentCategory: "system_default",
     category: "simple",
     primaryColor: "#000000",
     accentColor: "#18181B",
@@ -167,6 +203,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "modern_orange",
     nameAr: "نموذج حديث برتقالي",
     nameEn: "Modern Orange",
+    parentCategory: "system_default",
     category: "modern",
     primaryColor: "#EA580C",
     accentColor: "#C2410C",
@@ -177,11 +214,191 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     id: "modern_gray",
     nameAr: "نموذج حديث رمادي",
     nameEn: "Modern Slate Gray",
+    parentCategory: "system_default",
     category: "modern",
     primaryColor: "#4B5563",
     accentColor: "#374151",
     isBilingual: false,
     descriptionAr: "تصميم رمادي حديث متوازن يجمع بين الطابع الرسمي والجمالي",
+  },
+  contracting_advance: {
+    id: "contracting_advance",
+    nameAr: "فاتورة مقاولات معتمدة",
+    nameEn: "Contracting Tax Invoice",
+    parentCategory: "company_chosen",
+    category: "contracting",
+    primaryColor: "#000000",
+    accentColor: "#374151",
+    isBilingual: true,
+    descriptionAr: "تصميم مقاولات حصري ثنائي اللغة مع باركود بهيئة الزكاة وجدول تفصيلي وتقسيم للمدفوع والرصيد المستحق",
+  },
+  sahm_coral: {
+    id: "sahm_coral",
+    nameAr: "فاتورة سهم الجيل (مرجاني)",
+    nameEn: "Sahm Coral Invoice",
+    parentCategory: "company_chosen",
+    category: "contracting",
+    primaryColor: "#E26D5C",
+    accentColor: "#C85A4A",
+    isBilingual: false,
+    descriptionAr: "تصميم مقاولات معتمد بشريط مرجاني وترويسة مخصصة ومربع عميل تفصيلي وتقسيم دقيق للإجماليات وطريقة الدفع",
+  },
+  mahala_pos: {
+    id: "mahala_pos",
+    nameAr: "فاتورة إيصال نقطة بيع (رول)",
+    nameEn: "Thermal POS Roll Receipt",
+    parentCategory: "company_chosen",
+    category: "pos",
+    primaryColor: "#000000",
+    accentColor: "#111827",
+    isBilingual: false,
+    isRoll: true,
+    descriptionAr: "تصميم إيصال نقطة بيع حراري 80 مم معتمد بترويسة مركزية وتفاصيل العميل وجدول أصناف مفصل وكود QR بدون باركود خطي",
+  },
+  structured_bilingual: {
+    id: "structured_bilingual",
+    nameAr: "فاتورة تفصيلية معتمدة (ثنائية اللغة)",
+    nameEn: "Structured Bilingual Tax Invoice",
+    parentCategory: "company_chosen",
+    category: "bilingual",
+    primaryColor: "#1F2937",
+    accentColor: "#4B5563",
+    isBilingual: true,
+    descriptionAr: "تصميم تفصيلي متقدم ثنائي اللغة ببطاقتي التاجر والعميل بالعناوين الوطنية وجدول سلع مفصل وتقسيم إجماليات ثنائي",
+  },
+  kuwait_landmarks: {
+    id: "kuwait_landmarks",
+    nameAr: "فاتورة معالم الكويت التجارية",
+    nameEn: "Commercial Landmarks Invoice",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#1E3A8A",
+    isBilingual: true,
+    descriptionAr: "تصميم تجاري تفصيلي كلاسيكي مع باركود علوي وصندوق تواريخ تفصيلي وجدول محاسبي من 12 عموداً وتفقيط مالي دقيق",
+  },
+  shami_trading: {
+    id: "shami_trading",
+    nameAr: "فاتورة الشامي للتجارة",
+    nameEn: "Al-Shami Trading Invoice",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#111827",
+    isBilingual: false,
+    descriptionAr: "تصميم تجاري كلاسيكي مع ترويسة مركزية وباركود QR في المنتصف ومربع تواريخ مستقل وتقسيم مدفوع كامل",
+  },
+  bawazeer_plastics: {
+    id: "bawazeer_plastics",
+    nameAr: "فاتورة باوزير للبلاستيك",
+    nameEn: "Bawazeer Plastics Invoice",
+    parentCategory: "company_chosen",
+    category: "bilingual",
+    primaryColor: "#1F2937",
+    accentColor: "#B91C1C",
+    isBilingual: true,
+    descriptionAr: "تصميم تجاري تفصيلي ثنائي اللغة مع باركود QR في الترويسة وبطاقتي المورد والعميل بالعناوين الوطنية وجدول سلع مفصل وتفقيط وإجمالي كمية ملون",
+  },
+  joy_purchase_invoice: {
+    id: "joy_purchase_invoice",
+    nameAr: "فاتورة مشتريات لمسة فرح",
+    nameEn: "Joy Purchase Invoice",
+    parentCategory: "company_chosen",
+    category: "modern",
+    primaryColor: "#0284C7",
+    accentColor: "#0369A1",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة مشتريات معتمد بباركود علوي وجدول سماوي وحقول دفع وتفاصيل الأصناف المشتراة",
+  },
+  joy_sales_invoice: {
+    id: "joy_sales_invoice",
+    nameAr: "فاتورة مبيعات ضريبية لمسة فرح",
+    nameEn: "Joy Sales Tax Invoice",
+    parentCategory: "company_chosen",
+    category: "modern",
+    primaryColor: "#0284C7",
+    accentColor: "#0369A1",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة مبيعات وضريبية معتمد مع باركود وجدول سماوي وتقسيم تفصيلي للمدفوعات",
+  },
+  shawager_investment: {
+    id: "shawager_investment",
+    nameAr: "فاتورة الشواجر للاستثمار",
+    nameEn: "El-Shawager Investment Invoice",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#800000",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة مبيعات كلاسيكي بشبكة بيانات عنابية وجدول تفصيلي من 12 عموداً وشعار مدمج وتفقيط مالي وباركود QR مركزي",
+  },
+  madina_plastics: {
+    id: "madina_plastics",
+    nameAr: "فاتورة شركة المدينة الفاخرة للبلاستيك",
+    nameEn: "Al-Madinah Al-Fakhira Plastics Invoice",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#4A4A4A",
+    accentColor: "#222222",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة ضريبية مبسطة ببيانات المنشأة والعميل وجدول 8 أعمدة ورمز QR كبير وملاحظة استبدال البضاعة",
+  },
+  coffee_ideas: {
+    id: "coffee_ideas",
+    nameAr: "فاتورة مؤسسة أفكار القهوة التجارية",
+    nameEn: "Coffee Ideas Trading Est Invoice",
+    parentCategory: "company_chosen",
+    category: "modern",
+    primaryColor: "#333333",
+    accentColor: "#111111",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة ضريبية أفقي بإطار دائري للترويسة وجدول 9 أعمدة وخانة الحساب البنكي والآيبان والتفقيط وتواقيع المندوب والمستلم",
+  },
+  matajer_al_saif: {
+    id: "matajer_al_saif",
+    nameAr: "فاتورة كاشير متاجر السيف (حراري)",
+    nameEn: "Matajer Al-Saif POS Receipt",
+    parentCategory: "company_chosen",
+    category: "pos",
+    primaryColor: "#4E1A24",
+    accentColor: "#3B141C",
+    isBilingual: true,
+    isRoll: true,
+    descriptionAr: "تصميم إيصال حراري لنقاط البيع بترويسة عنابية داكنة وشريط باركود ورمز QR وخانات تفصيلية للضريبة والإجمالي",
+  },
+  manahir_pos: {
+    id: "manahir_pos",
+    nameAr: "فاتورة مناحر بن منصر للمواد الغذائية (حراري)",
+    nameEn: "Manahir Bin Mansar POS Receipt",
+    parentCategory: "company_chosen",
+    category: "pos",
+    primaryColor: "#111111",
+    accentColor: "#333333",
+    isBilingual: true,
+    isRoll: true,
+    descriptionAr: "تصميم إيصال نقاط بيع حراري مع باركود ورمز QR وتفاصيل الوردية والكاشير والمخزن وجدول الأصناف وحساب المدفوع والمتبقي",
+  },
+  hasaniah_foam: {
+    id: "hasaniah_foam",
+    nameAr: "فاتورة مصنع الحسنية للإسفنج",
+    nameEn: "Al-Hasaniah Foam Factory Invoice",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#154273",
+    accentColor: "#FCEADE",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة مبيعات مميز بإطارات كبسولية زرقاء، ترويسة ثنائية مع شعار مصنع الحسنية، شريط رقم أحمر، جدول أحجام السلع وباركود QR وتواقيع متعددة",
+  },
+  top_town: {
+    id: "top_town",
+    nameAr: "فاتورة مصنع البيت الأمين (توب تاون)",
+    nameEn: "Al Bait Al Amin (Top Town) Invoice",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#4A4A4A",
+    accentColor: "#A68050",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة مبيعات أنيق بشعار وعلامة مائية مذهبة، بطاقات بيانات ثلاثية، جدول أصناف تفصيلي مع حساب البنك الأهلي الجانبي وتفقيط مالي",
   },
 };
 
@@ -196,5 +413,141 @@ export function getTemplateById(id?: string | null): TemplateDefinition {
   return DEFAULT_TEMPLATE;
 }
 
+// ─── Receipt Voucher Templates Registry (سندات القبض) ──────────────────────────
 
+export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
+  receipt_standard: {
+    id: "receipt_standard",
+    nameAr: "سند قبض قياسي أزرق",
+    nameEn: "Standard Blue Receipt",
+    parentCategory: "system_default",
+    category: "simple",
+    primaryColor: "#0284C7",
+    accentColor: "#0369A1",
+    isBilingual: true,
+    descriptionAr: "تصميم سند قبض رسمي معتمد ثنائي اللغة بتنسيق أنيق ولون أزرق قياسي",
+  },
+  receipt_classic_navy: {
+    id: "receipt_classic_navy",
+    nameAr: "سند قبض كلاسيكي كحلي",
+    nameEn: "Classic Navy Receipt",
+    parentCategory: "system_default",
+    category: "classic",
+    primaryColor: "#1E3A8A",
+    accentColor: "#172554",
+    isBilingual: true,
+    descriptionAr: "تصميم رسمي وقور باللون الكحلي الداكن مع تفاصيل مالية محاسبية دقيقة",
+  },
+  receipt_emerald: {
+    id: "receipt_emerald",
+    nameAr: "سند قبض زمردي سعودي",
+    nameEn: "Saudi Emerald Receipt",
+    parentCategory: "system_default",
+    category: "modern",
+    primaryColor: "#0F766E",
+    accentColor: "#134E4A",
+    isBilingual: true,
+    descriptionAr: "تصميم أنيق باللون الأخضر الزمردي المتوافق مع الهوية الرسمية",
+  },
+  receipt_ruby: {
+    id: "receipt_ruby",
+    nameAr: "سند قبض أحمر عنابي",
+    nameEn: "Ruby Wine Receipt",
+    parentCategory: "system_default",
+    category: "simple",
+    primaryColor: "#991B1B",
+    accentColor: "#7F1D1D",
+    isBilingual: true,
+    descriptionAr: "تصميم بلون عنابي فاخر مخصص للسندات والتوثيق المالي",
+  },
+  receipt_amber: {
+    id: "receipt_amber",
+    nameAr: "سند قبض ذهبي عنبري",
+    nameEn: "Amber Gold Receipt",
+    parentCategory: "system_default",
+    category: "modern",
+    primaryColor: "#D97706",
+    accentColor: "#B45309",
+    isBilingual: true,
+    descriptionAr: "تصميم بألوان عنبرية ذهبية دافئة تعطي طابعاً احترافياً للمقبوضات",
+  },
+  receipt_slate: {
+    id: "receipt_slate",
+    nameAr: "سند قبض رمادي رسمي",
+    nameEn: "Formal Slate Receipt",
+    parentCategory: "system_default",
+    category: "classic",
+    primaryColor: "#334155",
+    accentColor: "#1E293B",
+    isBilingual: true,
+    descriptionAr: "تصميم رمادي فحمي كلاسيكي عالي الرسمية للمؤسسات والشركات",
+  },
+  receipt_design_work: {
+    id: "receipt_design_work",
+    nameAr: "سند قبض أعمال التصميم (كلاسيكي)",
+    nameEn: "Design Work Classic Voucher",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#B91C1C",
+    isBilingual: true,
+    descriptionAr: "تصميم سند قبض كلاسيكي أفقي بإطار مزدوج، رقم السند باللون الأحمر، تفقيط مالي، خيارات طريقة الدفع بمربعات اختيار، وثلاثة تواقيع معتمدة",
+  },
+  receipt_joy_payment: {
+    id: "receipt_joy_payment",
+    nameAr: "سند صرف لمسة فرح",
+    nameEn: "Joy Payment Voucher",
+    parentCategory: "company_chosen",
+    category: "modern",
+    primaryColor: "#1E3A5F",
+    accentColor: "#DC2626",
+    isBilingual: true,
+    descriptionAr: "تصميم سند صرف رسمي أفقي مع أسطر منقطة، جدول هللات وريالات، رقم السند بالأحمر، وشريط كحلي",
+  },
+  receipt_joy_receipt: {
+    id: "receipt_joy_receipt",
+    nameAr: "سند قبض لمسة فرح",
+    nameEn: "Joy Receipt Voucher",
+    parentCategory: "company_chosen",
+    category: "modern",
+    primaryColor: "#1E3A5F",
+    accentColor: "#DC2626",
+    isBilingual: true,
+    descriptionAr: "تصميم سند قبض رسمي أفقي مع أسطر منقطة، جدول هللات وريالات، رقم السند بالأحمر، وشريط كحلي",
+  },
+};
 
+export const RECEIPT_TEMPLATES_LIST: TemplateDefinition[] = Object.values(RECEIPT_TEMPLATES_REGISTRY);
+export const DEFAULT_RECEIPT_TEMPLATE: TemplateDefinition = RECEIPT_TEMPLATES_REGISTRY.receipt_standard!;
+
+export function getReceiptTemplateById(id?: string | null): TemplateDefinition {
+  if (id && id in RECEIPT_TEMPLATES_REGISTRY) {
+    const found = RECEIPT_TEMPLATES_REGISTRY[id];
+    if (found) return found;
+  }
+  return DEFAULT_RECEIPT_TEMPLATE;
+}
+
+// ─── Helpers for Grouping by Parent Category ───────────────────────────────────
+
+export function groupTemplatesByParentCategory(templates: TemplateDefinition[]): {
+  systemDefault: TemplateDefinition[];
+  companyChosen: TemplateDefinition[];
+} {
+  return {
+    systemDefault: templates.filter((t) => t.parentCategory === "system_default"),
+    companyChosen: templates.filter((t) => t.parentCategory === "company_chosen"),
+  };
+}
+
+export function getTemplatesByParentCategory(
+  parentCategory: TemplateParentCategory = "system_default"
+): TemplateDefinition[] {
+  return TEMPLATES_LIST.filter((t) => t.parentCategory === parentCategory);
+}
+
+export function getReceiptTemplatesByParentCategory(
+  parentCategory: TemplateParentCategory = "system_default"
+): TemplateDefinition[] {
+  return RECEIPT_TEMPLATES_LIST.filter((t) => t.parentCategory === parentCategory);
+}

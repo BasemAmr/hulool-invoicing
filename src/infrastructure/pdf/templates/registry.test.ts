@@ -7,9 +7,9 @@ import {
 } from "./registry";
 
 describe("Templates Registry", () => {
-  it("contains exactly 17 registered templates", () => {
-    expect(Object.keys(TEMPLATES_REGISTRY)).toHaveLength(17);
-    expect(TEMPLATES_LIST).toHaveLength(17);
+  it("contains registered templates (17 system default + company chosen)", () => {
+    expect(Object.keys(TEMPLATES_REGISTRY)).toHaveLength(33);
+    expect(TEMPLATES_LIST).toHaveLength(33);
   });
 
   it("contains all requested template IDs", () => {
@@ -31,6 +31,22 @@ describe("Templates Registry", () => {
       "simple_black",
       "modern_orange",
       "modern_gray",
+      "contracting_advance",
+      "sahm_coral",
+      "mahala_pos",
+      "structured_bilingual",
+      "kuwait_landmarks",
+      "shami_trading",
+      "bawazeer_plastics",
+      "joy_purchase_invoice",
+      "joy_sales_invoice",
+      "shawager_investment",
+      "madina_plastics",
+      "coffee_ideas",
+      "matajer_al_saif",
+      "manahir_pos",
+      "hasaniah_foam",
+      "top_town",
     ];
 
     for (const id of expectedIds) {

@@ -24,6 +24,7 @@ function mapCompanySettingsRow(
     paperSize: row.paperSize as "A4" | "Letter",
     paperOrientation: row.paperOrientation as "portrait" | "landscape",
     defaultTemplateId: row.defaultTemplateId || "simple_red",
+    defaultReceiptTemplateId: row.defaultReceiptTemplateId || "receipt_standard",
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -59,6 +60,7 @@ export class CompanySettingsRepositoryImpl implements CompanySettingsRepository 
         paperSize: input.paperSize,
         paperOrientation: input.paperOrientation,
         defaultTemplateId: input.defaultTemplateId || "simple_red",
+        defaultReceiptTemplateId: input.defaultReceiptTemplateId || "receipt_standard",
       })
       .onConflictDoUpdate({
         target: companySettings.companyId,
@@ -74,6 +76,7 @@ export class CompanySettingsRepositoryImpl implements CompanySettingsRepository 
           paperSize: input.paperSize,
           paperOrientation: input.paperOrientation,
           defaultTemplateId: input.defaultTemplateId || "simple_red",
+          defaultReceiptTemplateId: input.defaultReceiptTemplateId || "receipt_standard",
           updatedAt: new Date(),
         },
       })

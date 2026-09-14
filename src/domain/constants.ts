@@ -10,8 +10,8 @@ export const INVOICE_NUMBER_SEQ_PAD = 5;
 export const INVOICE_NUMBER_PREFIX_MIN = 2;
 export const INVOICE_NUMBER_PREFIX_MAX = 6;
 
-/** `PREFIX-YYYY-nnnnn` — 2-6 uppercase alphanumerics, 4-digit year, 5-digit seq. */
-export const INVOICE_NUMBER_PATTERN = /^[A-Z0-9]{2,6}-\d{4}-\d{5}$/;
+/** Standard invoice number: `PREFIX-nnnnn` (starts with company prefix, single dash, no year) or legacy `PREFIX-YYYY-nnnnn`. */
+export const INVOICE_NUMBER_PATTERN = /^[A-Z0-9]{2,6}(-\d{4})?-\d{5,}$/;
 
 /** Saudi VAT number: 15 digits starting with '3'. */
 export const VAT_NUMBER_PATTERN = /^3\d{14}$/;

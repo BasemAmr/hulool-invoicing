@@ -3,20 +3,21 @@ import { ValidationError } from "../errors";
 
 export interface ParsedInvoiceNumber {
   prefix: string;
-  year: number;
+  year?: number;
   sequence: number;
 }
 
 /**
- * Format an invoice number as `PREFIX-YYYY-nnnnn`
- * (5-digit zero-padded sequence).
+ * Format an invoice number started by the company prefix:
+ * `PREFIX-nnnnn` (no year date, single dash, unique sequential number).
  */
 export function formatInvoiceNumber(
   prefix: string,
-  year: number,
-  sequence: number,
+  yearOrSeq: number,
+  maybeSeq?: number,
 ): string {
-  return `${prefix}-${year}-${String(sequence).padStart(
+  const sequence = maybeSeq !== undefined ? maybeSeq : yearOrSeq;
+  return `${prefix}-${String(sequence).padStart(
     INVOICE_NUMBER_SEQ_PAD,
     "0",
   )}`;
@@ -27,7 +28,8 @@ export function isValidInvoiceNumber(s: string): boolean {
 }
 
 /**
- * Parse a `PREFIX-YYYY-nnnnn` string into its components.
+ * Parse an invoice number into its components.
+ * Supports both `PREFIX-nnnnn` and legacy `PREFIX-YYYY-nnnnn`.
  * Throws ValidationError on malformed input.
  */
 export function parseInvoiceNumber(s: string): ParsedInvoiceNumber {
@@ -35,15 +37,18 @@ export function parseInvoiceNumber(s: string): ParsedInvoiceNumber {
     throw new ValidationError(`Invalid invoice number: "${s}"`);
   }
   const parts = s.split("-");
-  const prefix = parts[0];
-  const yearStr = parts[1];
-  const seqStr = parts[2];
-  if (prefix === undefined || yearStr === undefined || seqStr === undefined) {
-    throw new ValidationError(`Invalid invoice number: "${s}"`);
+  if (parts.length === 3) {
+    return {
+      prefix: parts[0]!,
+      year: parseInt(parts[1]!, 10),
+      sequence: parseInt(parts[2]!, 10),
+    };
   }
-  return {
-    prefix,
-    year: parseInt(yearStr, 10),
-    sequence: parseInt(seqStr, 10),
-  };
+  if (parts.length === 2) {
+    return {
+      prefix: parts[0]!,
+      sequence: parseInt(parts[1]!, 10),
+    };
+  }
+  throw new ValidationError(`Invalid invoice number: "${s}"`);
 }

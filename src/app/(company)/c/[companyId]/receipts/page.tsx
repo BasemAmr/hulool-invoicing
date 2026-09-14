@@ -102,7 +102,7 @@ export default async function ReceiptVouchersPage({
           <TableBody>
             {receipts.map((receipt) => {
               const downloadUrl = `/api/documents/receipts/${receipt.id}/pdf?download=true`;
-              const filename = `receipt-${receipt.voucherNumber}.pdf`;
+              const filename = `سند القبض فاتورة رقم ${receipt.voucherNumber}.pdf`;
 
               return (
                 <TableRow key={receipt.id}>

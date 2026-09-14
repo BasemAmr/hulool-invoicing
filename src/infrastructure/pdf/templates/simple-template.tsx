@@ -72,9 +72,6 @@ export function SimpleTemplate({
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
 
-        {/* Top Accent Line */}
-        <View style={styles.topBar} />
-
         {/* 1. Header: Document Title & Meta Box (Left) + Company Info & Logo (Right) */}
         <View style={styles.headerBox}>
           {/* Left: Invoice Title & Meta Box */}
@@ -99,7 +96,7 @@ export function SimpleTemplate({
               <View style={[styles.metaTableRow, styles.metaTableRowLast]}>
                 <Text style={styles.metaTableKey}>المبلغ المستحق</Text>
                 <Text style={[styles.metaTableVal, styles.boldText]}>
-                  {formatMoneyWithSettings(invoice.total, settings)}
+                  {formatMoneyWithSettings("0.00", settings)}
                 </Text>
               </View>
             </View>
@@ -325,7 +322,7 @@ export function SimpleTemplate({
             </View>
             <View style={[styles.totalsRow, styles.totalsRowGrand]}>
               <Text style={[styles.totalsKey, styles.grandTotalKey]}>
-                إجمالي المبلغ المستحق
+                إجمالي المبلغ
               </Text>
               <Text style={[styles.totalsVal, styles.grandTotalVal]}>
                 {formatMoneyWithSettings(invoice.total, settings)}
@@ -576,25 +573,20 @@ function buildSimpleStyles(primary: string, accent: string) {
       gap: 8,
     },
     qrBox: {
-      width: 68,
-      height: 68,
-      borderWidth: 1,
-      borderColor: "#cbd5e1",
-      padding: 2,
-      backgroundColor: "#ffffff",
+      width: 76,
       alignItems: "center",
       justifyContent: "center",
       shrink: 0,
     },
     qrImage: {
-      width: 56,
-      height: 56,
+      width: 76,
+      height: 76,
     },
     qrCaption: {
       fontSize: 5.5,
       color: "#64748b",
       textAlign: "center",
-      marginTop: 1,
+      marginTop: 2,
     },
     draftText: {
       fontSize: 8,

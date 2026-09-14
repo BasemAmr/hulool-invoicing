@@ -117,3 +117,9 @@ export const PAYMENT_METHOD_LABELS_AR = {
   bank_transfer: "تحويل بنكي",
   other: "أخرى",
 } as const;
+
+/** Generate default random company prefix in format INV### (e.g. INV742). */
+export function generateDefaultCompanyPrefix(): string {
+  const num = Math.floor(100 + Math.random() * 900);
+  return `INV${num}`;
+}

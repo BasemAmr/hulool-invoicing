@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { CustomerRecord } from "@/application/ports/customer-repository";
 import type { CompanySettingsRecord } from "@/application/ports/company-settings-repository";
+import type { ReceiptVoucherRecord } from "@/application/ports/receipt-voucher-repository";
 
 const container = createContainer(db);
 
@@ -56,33 +57,33 @@ export async function GET(request: Request) {
     }
 
     // Fallback sample company
-    if (!company) {
-      company = {
-        id: asCompanyId("00000000-0000-0000-0000-000000000001"),
-        nameAr: "شركة حلول التقنية المتقدمة",
-        nameEn: "Hulool Advanced Tech Co.",
-        vatNumber: "31111111111123",
-        crNumber: "1010998877",
-        prefix: "HL",
-        phone: "0501234567",
-        email: "billing@hulool.sa",
-        website: "https://hulool.sa",
-        logoUrl: null,
-        logoFileId: null,
-        backgroundFileId: null,
-        signatureFileId: null,
-        footerText: "شركة سعودية مسجلة — الرقم الضريبي: 31111111111123",
-        templateConfig: null,
-        addressBuildingNumber: "7421",
-        addressStreet: "طريق الملك فهد",
-        addressDistrict: "العليا",
-        addressCity: "الرياض",
-        addressPostalCode: "12214",
-        addressAdditionalNumber: "1234",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
+    const validCompany: CompanyRecord = company ?? {
+      id: asCompanyId("00000000-0000-0000-0000-000000000001"),
+      nameAr: "شركة حلول التقنية المتقدمة",
+      nameEn: "Hulool Advanced Tech Co.",
+      vatNumber: "31111111111123",
+      crNumber: "1010998877",
+      prefix: "HL",
+      clientEmployee: null,
+      phone: "0501234567",
+      email: "billing@hulool.sa",
+      website: "https://hulool.sa",
+      logoUrl: null,
+      logoFileId: null,
+      backgroundFileId: null,
+      signatureFileId: null,
+      footerText: "شركة سعودية مسجلة — الرقم الضريبي: 31111111111123",
+      templateConfig: null,
+      addressBuildingNumber: "7421",
+      addressStreet: "طريق الملك فهد",
+      addressDistrict: "العليا",
+      addressCity: "الرياض",
+      addressPostalCode: "12214",
+      addressAdditionalNumber: "1234",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    company = validCompany;
 
     // Fallback sample customer
     if (!customer) {
@@ -103,58 +104,57 @@ export async function GET(request: Request) {
     }
 
     // If no existing invoice, create a clean realistic sample invoice
-    if (!invoiceDto) {
-      invoiceDto = {
-        id: "preview-sample",
-        companyId: company.id as string,
-        customerId: customer.id as string,
-        invoiceNumber: `${company.prefix || "INV"}-2026-00001`,
-        invoiceType: "simplified",
-        status: "issued",
-        issueDate: new Date().toISOString().slice(0, 10),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        currency: "SAR",
-        subtotal: "5000.00",
-        vatAmount: "750.00",
-        total: "5750.00",
-        notes: "شكراً لتعاملكم معنا. الدفع خلال 30 يوماً من تاريخ الفاتورة.",
-        terms: "البضاعة المباعة لا ترد ولا تستبدل إلا وفق الشروط المعتمدة.",
-        templateId,
-        qrPayload: "AQZIdWxvb2wCCzMxMTExMTExMTExMAMTMjAyNi0wOC0yM1QwNDowMDowMFoEBTAwMC4wBQE3NTAuMDA=",
-        issuedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        items: [
-          {
-            position: 1,
-            description: "خدمات تصميم وتطوير المنظومة السحابية",
-            quantity: 1,
-            unitPrice: "3500.00",
-            discountAmount: "0.00",
-            vatRate: 0.15,
-            lineSubtotal: "3500.00",
-            lineVat: "525.00",
-            lineTotal: "4025.00",
-          },
-          {
-            position: 2,
-            description: "استشارات دعم فني وصيانة دورية سنوية",
-            quantity: 1,
-            unitPrice: "1500.00",
-            discountAmount: "0.00",
-            vatRate: 0.15,
-            lineSubtotal: "1500.00",
-            lineVat: "225.00",
-            lineTotal: "1725.00",
-          },
-        ],
-      };
-    }
+    const validInvoiceDto: InvoiceDto = invoiceDto ?? {
+      id: "preview-sample",
+      companyId: validCompany.id as string,
+      customerId: customer.id as string,
+      invoiceNumber: `${validCompany.prefix || "INV"}-00001`,
+      invoiceType: "simplified",
+      status: "issued",
+      issueDate: new Date().toISOString().slice(0, 10),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      currency: "SAR",
+      subtotal: "5000.00",
+      vatAmount: "750.00",
+      total: "5750.00",
+      notes: "شكراً لتعاملكم معنا. الدفع خلال 30 يوماً من تاريخ الفاتورة.",
+      terms: "البضاعة المباعة لا ترد ولا تستبدل إلا وفق الشروط المعتمدة.",
+      templateId,
+      qrPayload: "AQZIdWxvb2wCCzMxMTExMTExMTExMAMTMjAyNi0wOC0yM1QwNDowMDowMFoEBTAwMC4wBQE3NTAuMDA=",
+      issuedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      items: [
+        {
+          position: 1,
+          description: "خدمات تصميم وتطوير المنظومة السحابية",
+          quantity: 1,
+          unitPrice: "3500.00",
+          discountAmount: "0.00",
+          vatRate: 0.15,
+          lineSubtotal: "3500.00",
+          lineVat: "525.00",
+          lineTotal: "4025.00",
+        },
+        {
+          position: 2,
+          description: "استشارات دعم فني وصيانة دورية سنوية",
+          quantity: 1,
+          unitPrice: "1500.00",
+          discountAmount: "0.00",
+          vatRate: 0.15,
+          lineSubtotal: "1500.00",
+          lineVat: "225.00",
+          lineTotal: "1725.00",
+        },
+      ],
+    };
+    invoiceDto = validInvoiceDto;
 
     let settings: CompanySettingsRecord | null = null;
     try {
-      if (company.id && company.id !== "00000000-0000-0000-0000-000000000001") {
-        settings = await container.companySettingsRepository.getByCompanyId(company.id as any);
+      if (validCompany.id && validCompany.id !== "00000000-0000-0000-0000-000000000001") {
+        settings = await container.companySettingsRepository.getByCompanyId(validCompany.id as any);
       }
     } catch {
       settings = null;
@@ -162,7 +162,7 @@ export async function GET(request: Request) {
 
     if (!settings) {
       settings = {
-        companyId: company.id as string,
+        companyId: validCompany.id as string,
         numberFormat: "en",
         dateFormat: "YYYY-MM-DD",
         currencyCode: "SAR",
@@ -174,32 +174,66 @@ export async function GET(request: Request) {
         paperSize: "A4",
         paperOrientation: "portrait",
         defaultTemplateId: templateId || "simple_red",
+        defaultReceiptTemplateId: "receipt_standard",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
     }
 
     const [logoDataUrl, backgroundDataUrl, signatureDataUrl] = await Promise.all([
-      safeLoadFileAsDataUrl(company.logoFileId),
-      safeLoadFileAsDataUrl(company.backgroundFileId),
-      safeLoadFileAsDataUrl(company.signatureFileId),
+      safeLoadFileAsDataUrl(validCompany.logoFileId),
+      safeLoadFileAsDataUrl(validCompany.backgroundFileId),
+      safeLoadFileAsDataUrl(validCompany.signatureFileId),
     ]);
 
-    const qrDataUrl = invoiceDto.qrPayload
-      ? await QRCode.toDataURL(invoiceDto.qrPayload, { margin: 1, width: 256 })
+    const qrDataUrl = validInvoiceDto.qrPayload
+      ? await QRCode.toDataURL(validInvoiceDto.qrPayload, { margin: 1, width: 256 })
       : null;
 
-    const bytes = await container.pdfRenderer.renderInvoicePdf({
-      invoice: invoiceDto,
-      company,
-      customer,
-      templateId,
-      settings,
-      qrDataUrl,
-      logoDataUrl,
-      backgroundDataUrl,
-      signatureDataUrl,
-    });
+    const isReceipt = url.searchParams.get("type") === "receipt";
+
+    let bytes: Uint8Array;
+    if (isReceipt) {
+      const sampleVoucher: ReceiptVoucherRecord = {
+        id: "preview-receipt",
+        companyId: validCompany.id as string,
+        customerId: customer.id as string,
+        invoiceId: null,
+        voucherNumber: `${validCompany.prefix || "INV"}-REC-00001`,
+        voucherDate: new Date().toISOString().slice(0, 10),
+        amount: 575000 as any,
+        paymentMethod: "bank_transfer",
+        reference: "TRX-987654321",
+        notes: "سند قبض مالي معتمد لقاء الفاتورة الضريبية.",
+        qrPayload: validInvoiceDto.qrPayload,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      bytes = await container.pdfRenderer.renderReceiptVoucherPdf({
+        voucher: sampleVoucher,
+        company: validCompany,
+        customer,
+        invoice: validInvoiceDto,
+        settings,
+        templateId,
+        logoDataUrl,
+        backgroundDataUrl,
+        signatureDataUrl,
+      });
+    } else {
+      bytes = await container.pdfRenderer.renderInvoicePdf({
+        invoice: validInvoiceDto,
+        company: validCompany,
+        customer,
+        templateId,
+        settings,
+        qrDataUrl,
+        logoDataUrl,
+        backgroundDataUrl,
+        signatureDataUrl,
+      });
+    }
 
     const body = new Uint8Array(bytes.byteLength);
     body.set(bytes);

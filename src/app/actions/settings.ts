@@ -24,6 +24,7 @@ export async function updateCompanySettingsAction(
   const paperSize = formData.get("paperSize")?.toString() as "A4" | "Letter";
   const paperOrientation = formData.get("paperOrientation")?.toString() as "portrait" | "landscape";
   const defaultTemplateId = formData.get("defaultTemplateId")?.toString() || "simple_red";
+  const defaultReceiptTemplateId = formData.get("defaultReceiptTemplateId")?.toString() || "receipt_standard";
 
   const parsed = companySettingsSchema.safeParse({
     companyId,
@@ -38,6 +39,7 @@ export async function updateCompanySettingsAction(
     paperSize,
     paperOrientation,
     defaultTemplateId,
+    defaultReceiptTemplateId,
   });
 
   if (!parsed.success) {

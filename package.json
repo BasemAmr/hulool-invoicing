@@ -14,7 +14,8 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "seed:admin": "node --import=tsx src/infrastructure/database/seed-admin.ts"
+    "seed:admin": "node --import=tsx src/infrastructure/database/seed-admin.ts",
+    "seed:products": "node --import=tsx src/infrastructure/database/seed-products.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -60,7 +61,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.19.3",
     "typescript": "^5",
-    "vitest": "^2.1.0"
+    "vitest": "^2.1.0",
+    "xlsx": "^0.18.5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

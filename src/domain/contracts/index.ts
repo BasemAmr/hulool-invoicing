@@ -34,6 +34,7 @@ export const companyCreateSchema = z.object({
       "prefix must be 2-6 uppercase alphanumerics",
     ),
   crNumber: z.string().optional(),
+  clientEmployee: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   website: z.string().optional(),
@@ -153,6 +154,7 @@ export const companySettingsSchema = z.object({
   paperSize: z.enum(["A4", "Letter"]).default("A4"),
   paperOrientation: z.enum(["portrait", "landscape"]).default("portrait"),
   defaultTemplateId: z.string().default("simple_red"),
+  defaultReceiptTemplateId: z.string().default("receipt_standard"),
 });
 export type CompanySettingsInput = z.infer<typeof companySettingsSchema>;
 

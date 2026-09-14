@@ -46,6 +46,6 @@ export class PostgresSequenceService implements SequencePort {
         `Failed to allocate sequence for company ${companyId}, year ${year}`,
       );
     }
-    return formatInvoiceNumber(prefix, year, lastValue);
+    return formatInvoiceNumber(prefix, lastValue);
   }
 }

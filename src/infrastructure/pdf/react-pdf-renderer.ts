@@ -21,12 +21,17 @@ let fontsRegistered = false;
 function ensureFontsRegistered(): void {
   if (fontsRegistered) return;
   const fontsDir = path.join(process.cwd(), "public", "fonts");
+  const amiriFonts = [
+    { src: path.join(fontsDir, "Amiri-Regular.ttf"), fontWeight: "normal" as const },
+    { src: path.join(fontsDir, "Amiri-Bold.ttf"), fontWeight: "bold" as const },
+  ];
   Font.register({
     family: "Amiri",
-    fonts: [
-      { src: path.join(fontsDir, "Amiri-Regular.ttf"), fontWeight: "normal" },
-      { src: path.join(fontsDir, "Amiri-Bold.ttf"), fontWeight: "bold" },
-    ],
+    fonts: amiriFonts,
+  });
+  Font.register({
+    family: "Tajawal",
+    fonts: amiriFonts,
   });
   // Disable hyphenation — Arabic + short English labels don't need it,
   // and the default English hyphenator mis-breaks Arabic words.
@@ -69,6 +74,7 @@ export class ReactPdfRenderer implements PdfRenderer {
       invoice: input.invoice,
       settings: input.settings,
       template,
+      templateId: input.templateId,
       logoDataUrl: input.logoDataUrl ?? null,
       backgroundDataUrl: input.backgroundDataUrl ?? input.stampDataUrl ?? null,
       signatureDataUrl: input.signatureDataUrl ?? null,

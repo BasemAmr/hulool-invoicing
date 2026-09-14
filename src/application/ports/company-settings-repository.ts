@@ -14,6 +14,7 @@ export interface CompanySettingsRecord {
   paperSize: "A4" | "Letter";
   paperOrientation: "portrait" | "landscape";
   defaultTemplateId: string;
+  defaultReceiptTemplateId: string;
   createdAt: string;
   updatedAt: string;
 }

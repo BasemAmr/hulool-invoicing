@@ -9,6 +9,7 @@ export interface CompanyRecord {
   vatNumber: string;
   crNumber: string | null;
   prefix: string;
+  clientEmployee: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -36,6 +37,7 @@ export interface CompanyRepository {
       vatNumber: string;
       crNumber: string | null;
       prefix: string;
+      clientEmployee?: string | null;
       phone: string | null;
       email: string | null;
       website: string | null;
@@ -61,6 +63,7 @@ export interface CompanyRepository {
       vatNumber: string;
       crNumber: string | null;
       prefix: string;
+      clientEmployee?: string | null;
       phone: string | null;
       email: string | null;
       website: string | null;

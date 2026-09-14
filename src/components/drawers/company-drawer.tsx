@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SheetDrawer } from "./sheet-drawer";
 import { createCompanyDirectAction, updateCompanyDirectAction } from "@/app/actions/companies";
 import { useToast } from "@/components/ui/toaster";
-import { toWesternDigits } from "@/lib/format";
+import { toWesternDigits, generateDefaultCompanyPrefix } from "@/lib/format";
 import { ImageUploadInput } from "../forms/image-upload-input";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 
@@ -36,7 +36,8 @@ export function CompanyDrawer({
   const [nameEn, setNameEn] = useState("");
   const [vatNumber, setVatNumber] = useState("");
   const [crNumber, setCrNumber] = useState("");
-  const [prefix, setPrefix] = useState("INV");
+  const [prefix, setPrefix] = useState(() => generateDefaultCompanyPrefix());
+  const [clientEmployee, setClientEmployee] = useState("");
   const [addressBuildingNumber, setAddressBuildingNumber] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressDistrict, setAddressDistrict] = useState("");
@@ -60,6 +61,7 @@ export function CompanyDrawer({
       setVatNumber(company.vatNumber || "");
       setCrNumber(company.crNumber || "");
       setPrefix(company.prefix || "INV");
+      setClientEmployee(company.clientEmployee || "");
       setAddressBuildingNumber(company.addressBuildingNumber || "");
       setAddressStreet(company.addressStreet || "");
       setAddressDistrict(company.addressDistrict || "");
@@ -78,7 +80,8 @@ export function CompanyDrawer({
       setNameEn("");
       setVatNumber("");
       setCrNumber("");
-      setPrefix("INV");
+      setPrefix(generateDefaultCompanyPrefix());
+      setClientEmployee("");
       setAddressBuildingNumber("");
       setAddressStreet("");
       setAddressDistrict("");
@@ -120,6 +123,7 @@ export function CompanyDrawer({
       vatNumber: toWesternDigits(vatNumber.trim()),
       crNumber: crNumber.trim() ? toWesternDigits(crNumber.trim()) : undefined,
       prefix: prefix.trim().toUpperCase(),
+      clientEmployee: clientEmployee.trim() || undefined,
       addressBuildingNumber: addressBuildingNumber.trim() || undefined,
       addressStreet: addressStreet.trim() || undefined,
       addressDistrict: addressDistrict.trim() || undefined,
@@ -237,7 +241,7 @@ export function CompanyDrawer({
               />
             </div>
 
-            <div className="sm:col-span-2 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <Label className="text-xs font-medium text-muted-foreground">رقم السجل التجاري (اختياري)</Label>
               <Input
                 value={crNumber}
@@ -246,6 +250,16 @@ export function CompanyDrawer({
                 dir="ltr"
                 maxLength={10}
                 className="text-xs font-mono tabular-nums h-8"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs font-medium text-muted-foreground">تابع للعميل</Label>
+              <Input
+                value={clientEmployee}
+                onChange={(e) => setClientEmployee(e.target.value)}
+                placeholder="تابع للعميل"
+                className="text-xs h-8"
               />
             </div>
           </div>

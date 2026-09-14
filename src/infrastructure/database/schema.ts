@@ -62,6 +62,8 @@ export const companies = pgTable("companies", {
   vatNumber: text("vat_number").notNull().unique(),
   crNumber: text("cr_number"),
   prefix: text("prefix").notNull().unique(),
+  /** The assigned employee/representative for this organization ("تابع للعميل"). */
+  clientEmployee: text("client_employee"),
   /** @deprecated — use logoFileId instead. Kept for backward compat. */
   logoUrl: text("logo_url"),
   phone: text("phone"),
@@ -206,6 +208,7 @@ export const companySettings = pgTable("company_settings", {
   paperSize: text("paper_size").notNull().default("A4"),
   paperOrientation: text("paper_orientation").notNull().default("portrait"),
   defaultTemplateId: text("default_template_id").notNull().default("simple_red"),
+  defaultReceiptTemplateId: text("default_receipt_template_id").notNull().default("receipt_standard"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

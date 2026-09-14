@@ -14,6 +14,10 @@ import { Button } from "@/components/ui/button";
 import {
   TEMPLATES_LIST,
   getTemplateById,
+  RECEIPT_TEMPLATES_LIST,
+  getReceiptTemplateById,
+  PARENT_CATEGORY_LABELS,
+  groupTemplatesByParentCategory,
 } from "@/infrastructure/pdf/templates/registry";
 
 export interface TemplateBrowserDrawerProps {
@@ -23,6 +27,7 @@ export interface TemplateBrowserDrawerProps {
   onSelectTemplate: (templateId: string) => void;
   companyId?: string;
   invoiceId?: string;
+  mode?: "invoice" | "receipt";
 }
 
 export function TemplateBrowserDrawer({
@@ -32,32 +37,45 @@ export function TemplateBrowserDrawer({
   onSelectTemplate,
   companyId,
   invoiceId,
+  mode = "invoice",
 }: TemplateBrowserDrawerProps) {
+  const isReceipt = mode === "receipt";
+  const templatesList = isReceipt ? RECEIPT_TEMPLATES_LIST : TEMPLATES_LIST;
+  const defaultFallbackId = isReceipt ? "receipt_standard" : "simple_red";
+
   const [currentTemplateId, setCurrentTemplateId] = useState<string>(
-    selectedTemplateId || "simple_red"
+    selectedTemplateId || defaultFallbackId
   );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (selectedTemplateId) {
       setCurrentTemplateId(selectedTemplateId);
+    } else {
+      setCurrentTemplateId(defaultFallbackId);
     }
-  }, [selectedTemplateId, open]);
+  }, [selectedTemplateId, open, defaultFallbackId]);
 
   const currentIndex = useMemo(() => {
-    const idx = TEMPLATES_LIST.findIndex((t) => t.id === currentTemplateId);
+    const idx = templatesList.findIndex((t) => t.id === currentTemplateId);
     return idx >= 0 ? idx : 0;
-  }, [currentTemplateId]);
+  }, [currentTemplateId, templatesList]);
 
   const activeDef = useMemo(() => {
-    return getTemplateById(currentTemplateId);
-  }, [currentTemplateId]);
+    return isReceipt
+      ? getReceiptTemplateById(currentTemplateId)
+      : getTemplateById(currentTemplateId);
+  }, [currentTemplateId, isReceipt]);
 
   if (!open) return null;
 
-  const pdfPreviewUrl = `/api/documents/preview/pdf?templateId=${currentTemplateId}${
-    companyId ? `&companyId=${companyId}` : ""
-  }${invoiceId ? `&invoiceId=${invoiceId}` : ""}`;
+  const pdfPreviewUrl = isReceipt
+    ? `/api/documents/preview/pdf?type=receipt&templateId=${currentTemplateId}${
+        companyId ? `&companyId=${companyId}` : ""
+      }`
+    : `/api/documents/preview/pdf?templateId=${currentTemplateId}${
+        companyId ? `&companyId=${companyId}` : ""
+      }${invoiceId ? `&invoiceId=${invoiceId}` : ""}`;
 
   const handleApply = () => {
     onSelectTemplate(currentTemplateId);
@@ -66,8 +84,8 @@ export function TemplateBrowserDrawer({
 
   const handlePrev = () => {
     const prevIdx =
-      currentIndex > 0 ? currentIndex - 1 : TEMPLATES_LIST.length - 1;
-    const prevItem = TEMPLATES_LIST[prevIdx];
+      currentIndex > 0 ? currentIndex - 1 : templatesList.length - 1;
+    const prevItem = templatesList[prevIdx];
     if (prevItem) {
       setLoading(true);
       setCurrentTemplateId(prevItem.id);
@@ -76,8 +94,8 @@ export function TemplateBrowserDrawer({
 
   const handleNext = () => {
     const nextIdx =
-      currentIndex < TEMPLATES_LIST.length - 1 ? currentIndex + 1 : 0;
-    const nextItem = TEMPLATES_LIST[nextIdx];
+      currentIndex < templatesList.length - 1 ? currentIndex + 1 : 0;
+    const nextItem = templatesList[nextIdx];
     if (nextItem) {
       setLoading(true);
       setCurrentTemplateId(nextItem.id);
@@ -94,16 +112,19 @@ export function TemplateBrowserDrawer({
             <LayoutTemplate className="size-4 text-primary shrink-0" />
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-xs sm:text-sm text-foreground">
-                معاينة القوالب
+                {isReceipt ? "معاينة قوالب سند القبض" : "معاينة قوالب الفواتير"}
               </span>
               <span className="text-[11px] font-mono text-muted-foreground">
-                ({currentIndex + 1}/17)
+                ({currentIndex + 1}/{templatesList.length})
               </span>
               <span
                 className="size-2.5 rounded-full inline-block border border-black/20"
                 style={{ backgroundColor: activeDef.primaryColor }}
                 title={`اللون الرئيسي: ${activeDef.primaryColor}`}
               />
+              <span className="px-1.5 py-0.2 rounded-xs text-[9px] font-semibold border border-primary/25 bg-primary/10 text-primary">
+                {PARENT_CATEGORY_LABELS[activeDef.parentCategory]?.badgeAr || "قالب نظام معتمد"}
+              </span>
             </div>
           </div>
 
@@ -129,7 +150,7 @@ export function TemplateBrowserDrawer({
               </button>
             </div>
 
-            {/* Template Select Dropdown */}
+            {/* Template Select Dropdown with Parent Category Optgroups */}
             <select
               value={currentTemplateId}
               onChange={(e) => {
@@ -138,11 +159,22 @@ export function TemplateBrowserDrawer({
               }}
               className="h-7.5 bg-background border border-input px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[170px] sm:min-w-[220px]"
             >
-              {TEMPLATES_LIST.map((t, idx) => (
-                <option key={t.id} value={t.id}>
-                  {idx + 1}. {t.nameAr} ({t.nameEn})
-                </option>
-              ))}
+              {groupTemplatesByParentCategory(templatesList).companyChosen.length > 0 && (
+                <optgroup label="قوالب المنشأة المختارة (Company Chosen)">
+                  {groupTemplatesByParentCategory(templatesList).companyChosen.map((t, idx) => (
+                    <option key={t.id} value={t.id}>
+                      ★ {t.nameAr} ({t.nameEn})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="قوالب النظام الافتراضية (System Default)">
+                {groupTemplatesByParentCategory(templatesList).systemDefault.map((t, idx) => (
+                  <option key={t.id} value={t.id}>
+                    {idx + 1}. {t.nameAr} ({t.nameEn})
+                  </option>
+                ))}
+              </optgroup>
             </select>
 
             {/* Save / Apply Button */}

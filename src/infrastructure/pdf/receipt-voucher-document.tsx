@@ -15,6 +15,9 @@ import type { ReceiptVoucherRecord } from "@/application/ports/receipt-voucher-r
 import type { InvoiceDto } from "@/application/dto";
 import type { CompanySettingsRecord } from "@/application/ports/company-settings-repository";
 import { formatMoneyWithSettings } from "@/lib/format";
+import { getReceiptTemplateById } from "./templates/registry";
+import { DesignWorkReceiptTemplate } from "./templates/design-work-receipt-template";
+import { JoyPaymentVoucherTemplate } from "./templates/joy-payment-voucher-template";
 
 export interface ReceiptVoucherDocumentProps {
   voucher: ReceiptVoucherRecord;
@@ -23,6 +26,7 @@ export interface ReceiptVoucherDocumentProps {
   invoice?: InvoiceDto | null;
   settings?: CompanySettingsRecord | null;
   template?: DocumentTemplateConfig | null;
+  templateId?: string | null;
   logoDataUrl: string | null;
   backgroundDataUrl?: string | null;
   signatureDataUrl: string | null;
@@ -43,12 +47,68 @@ export function ReceiptVoucherDocument({
   invoice,
   settings,
   template,
+  templateId,
   logoDataUrl,
   backgroundDataUrl,
   signatureDataUrl,
 }: ReceiptVoucherDocumentProps) {
-  const primaryColor = template?.primaryColor || "#0284C7";
-  const accentColor = template?.accentColor || "#0369A1";
+  const receiptDef = templateId ? getReceiptTemplateById(templateId) : null;
+
+  if (receiptDef?.id === "receipt_design_work" || templateId === "receipt_design_work") {
+    return (
+      <DesignWorkReceiptTemplate
+        voucher={voucher}
+        company={company}
+        customer={customer}
+        invoice={invoice}
+        settings={settings}
+        template={receiptDef || template}
+        templateId={templateId}
+        logoDataUrl={logoDataUrl}
+        backgroundDataUrl={backgroundDataUrl}
+        signatureDataUrl={signatureDataUrl}
+      />
+    );
+  }
+
+  if (receiptDef?.id === "receipt_joy_payment" || templateId === "receipt_joy_payment") {
+    return (
+      <JoyPaymentVoucherTemplate
+        voucher={voucher}
+        company={company}
+        customer={customer}
+        invoice={invoice}
+        settings={settings}
+        template={receiptDef || template}
+        templateId={templateId}
+        logoDataUrl={logoDataUrl}
+        backgroundDataUrl={backgroundDataUrl}
+        signatureDataUrl={signatureDataUrl}
+        mode="payment"
+      />
+    );
+  }
+
+  if (receiptDef?.id === "receipt_joy_receipt" || templateId === "receipt_joy_receipt") {
+    return (
+      <JoyPaymentVoucherTemplate
+        voucher={voucher}
+        company={company}
+        customer={customer}
+        invoice={invoice}
+        settings={settings}
+        template={receiptDef || template}
+        templateId={templateId}
+        logoDataUrl={logoDataUrl}
+        backgroundDataUrl={backgroundDataUrl}
+        signatureDataUrl={signatureDataUrl}
+        mode="receipt"
+      />
+    );
+  }
+
+  const primaryColor = receiptDef?.primaryColor || template?.primaryColor || "#0284C7";
+  const accentColor = receiptDef?.accentColor || template?.accentColor || "#0369A1";
   const styles = buildStyles(primaryColor, accentColor);
 
   const amountStr = (voucher.amount / 100).toFixed(2);

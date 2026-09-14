@@ -101,8 +101,9 @@ export function CompaniesViewClient({
 
   const handleExportCsv = () => {
     const headers = [
-      "الاسم العربي",
+      "اسم المنشأة",
       "الاسم الإنجليزي",
+      "تابع للعميل",
       "الرقم الضريبي",
       "السجل التجاري",
       "بادئة الترقيم",
@@ -113,6 +114,7 @@ export function CompaniesViewClient({
     const rows = filteredCompanies.map((c) => [
       `"${c.nameAr}"`,
       `"${c.nameEn || ""}"`,
+      `"${c.clientEmployee || ""}"`,
       `"${c.vatNumber}"`,
       `"${c.crNumber || ""}"`,
       `"${c.prefix}"`,
@@ -143,6 +145,7 @@ export function CompaniesViewClient({
         (c) =>
           c.nameAr.toLowerCase().includes(q) ||
           (c.nameEn && c.nameEn.toLowerCase().includes(q)) ||
+          (c.clientEmployee && c.clientEmployee.toLowerCase().includes(q)) ||
           c.vatNumber.includes(q) ||
           (c.crNumber && c.crNumber.includes(q)) ||
           c.prefix.toLowerCase().includes(q) ||
@@ -273,13 +276,13 @@ export function CompaniesViewClient({
           <table className="w-full text-xs text-center border-collapse">
             <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground text-[11px]">
               <tr>
-                <th className="p-2 text-center w-9">تثبيت</th>
                 <th className="p-2 text-center min-w-[200px]">اسم المنشأة</th>
+                <th className="p-2 text-center min-w-[130px]">تابع للعميل</th>
                 <th className="p-2 text-center w-20">البادئة</th>
                 <th className="p-2 text-center w-40">الرقم الضريبي</th>
                 <th className="p-2 text-center w-28">السجل التجاري</th>
                 <th className="p-2 text-center w-24">المدينة</th>
-                <th className="p-2 text-center w-44">الإجراءات السريعة</th>
+                <th className="p-2 text-center w-48">الإجراءات السريعة</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -294,26 +297,7 @@ export function CompaniesViewClient({
                       isPinned ? "bg-primary/[0.02]" : "odd:bg-card even:bg-muted/15"
                     }`}
                   >
-                    {/* Pin Column */}
-                    <td
-                      className="p-2 text-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        type="button"
-                        onClick={(e) => togglePin(company.id, e)}
-                        className={`inline-flex items-center justify-center p-1 rounded transition-colors cursor-pointer ${
-                          isPinned
-                            ? "text-primary"
-                            : "text-muted-foreground/30 hover:text-muted-foreground group-hover:opacity-100"
-                        }`}
-                        title={isPinned ? "إلغاء التثبيت" : "تثبيت في المقدمة"}
-                      >
-                        <Pin className={`size-3 ${isPinned ? "fill-primary" : ""}`} />
-                      </button>
-                    </td>
-
-                    {/* Company Name & Logo */}
+                    {/* 1. Company Name & Logo (First field) */}
                     <td className="p-2 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <div className="size-6.5 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-[10px] shrink-0 overflow-hidden">
@@ -329,9 +313,16 @@ export function CompaniesViewClient({
                           )}
                         </div>
                         <div className="flex flex-col items-center min-w-0">
-                          <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                            {company.nameAr}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                              {company.nameAr}
+                            </span>
+                            {isPinned && (
+                              <span title="منشأة مثبتة">
+                                <Pin className="size-3 text-primary fill-primary shrink-0 rotate-45" />
+                              </span>
+                            )}
+                          </div>
                           {company.nameEn && (
                             <span
                               className="text-[10px] font-mono text-muted-foreground truncate"
@@ -344,14 +335,25 @@ export function CompaniesViewClient({
                       </div>
                     </td>
 
-                    {/* Prefix */}
+                    {/* 2. Client Employee / Representative (تابع للعميل) */}
+                    <td className="p-2 text-center">
+                      {company.clientEmployee ? (
+                        <span className="inline-block px-2 py-0.5 bg-muted/70 text-foreground font-semibold text-[11px] border border-border/60">
+                          {company.clientEmployee}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/40 font-mono">—</span>
+                      )}
+                    </td>
+
+                    {/* 3. Prefix */}
                     <td className="p-2 text-center font-mono font-bold text-[11px]">
                       <span className="px-1.5 py-0.5 bg-muted border border-border">
                         {company.prefix}
                       </span>
                     </td>
 
-                    {/* VAT Number with 1-click Copy */}
+                    {/* 4. VAT Number with 1-click Copy */}
                     <td
                       className="p-2 text-center font-mono tabular-nums text-foreground"
                       dir="ltr"
@@ -374,7 +376,7 @@ export function CompaniesViewClient({
                       </div>
                     </td>
 
-                    {/* CR Number */}
+                    {/* 5. CR Number */}
                     <td
                       className="p-2 text-center font-mono tabular-nums text-muted-foreground"
                       dir="ltr"
@@ -382,18 +384,31 @@ export function CompaniesViewClient({
                       {company.crNumber || "—"}
                     </td>
 
-                    {/* City */}
+                    {/* 6. City */}
                     <td className="p-2 text-center text-muted-foreground">
                       {company.addressCity || "—"}
                     </td>
 
-                    {/* Quick Action Buttons */}
-
+                    {/* 7. Quick Action Buttons (including accessible Pin toggle) */}
                     <td
                       className="p-2 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="inline-flex items-center justify-center gap-1">
+                        {/* Accessible Pin Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => togglePin(company.id, e)}
+                          className={`p-1 transition-colors cursor-pointer ${
+                            isPinned
+                              ? "text-primary bg-primary/10 hover:bg-primary/20"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                          title={isPinned ? "إلغاء التثبيت" : "تثبيت المنشأة في المقدمة"}
+                        >
+                          <Pin className={`size-3.5 ${isPinned ? "fill-primary" : ""}`} />
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
