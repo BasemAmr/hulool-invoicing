@@ -88,6 +88,25 @@ const createEmptyLine = (defaultVat = VAT_RATE): LineItemDraft => ({
   saveToProducts: true,
 });
 
+// InvoiceDto money fields are DECIMAL strings ("175.00"), not halalas
+// integers. Parsing them with parseInt ("175.00" -> 175) displayed every
+// saved line at 1/100th of its stored price on edit/duplicate open — and a
+// save from that state wrote the mangled price back, compounding /100 each
+// round-trip. Parse exactly; the numeric branch only guards hypothetical
+// non-DTO callers passing raw halalas counts (never guess units from shape).
+function dtoDecimalToHalalas(v: string | number | null | undefined): number {
+  if (typeof v === "number") {
+    return Number.isInteger(v) && v >= 0 ? v : Math.max(0, Math.round(v));
+  }
+  const s = String(v ?? "0").trim();
+  try {
+    const h = fromDecimalString(s);
+    return h >= 0 ? h : 0;
+  } catch {
+    return parseInt(s, 10) || 0;
+  }
+}
+
 export interface DuplicatePrefill {
   customerId?: string;
   issueDate?: string;
@@ -229,8 +248,10 @@ export function InvoiceWizardForm({
     if (sourceItems) {
       return sourceItems.map((item) => {
         const qty = item.quantity || 1;
-        const priceHalalas = parseInt(item.unitPrice, 10) || 0;
-        const discountHalalas = parseInt(item.discountAmount, 10) || 0;
+        // Both sources (initialInvoice.items, duplicatePrefill.items) are
+        // InvoiceDto items with decimal-string money — see dtoDecimalToHalalas.
+        const priceHalalas = dtoDecimalToHalalas(item.unitPrice);
+        const discountHalalas = dtoDecimalToHalalas(item.discountAmount);
         const lineBase = (priceHalalas * qty) / 100;
         const discSar = discountHalalas / 100;
         const discPct =
