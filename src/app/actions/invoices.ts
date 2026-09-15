@@ -76,22 +76,21 @@ export async function createDraftInvoiceAction(
     ).execute(input);
     invoiceId = draft.id;
 
-    const actionValue = formData.get("_action");
-    if (actionValue === "issue" || formData.get("status") === "issued") {
-      try {
-        await new IssueInvoice(
-          container.invoiceRepository,
-          container.companyRepository,
-          container.sequenceService,
-          container.clock,
-          container.idempotencyStore,
-          container.db,
-          container.receiptVoucherRepository,
-        ).execute({ invoiceId });
-      } catch (issueError) {
-        console.error("Failed to issue invoice immediately:", issueError);
-      }
-    }
+    // Business rule (2026-09): every invoice is published immediately.
+    // The draft toggle was removed from the UI, so issuance is mandatory
+    // here — and its error must surface instead of silently leaving a
+    // draft behind (the old silent catch is what made new invoices appear
+    // to "reuse" INV-00001: the issue failed, the draft kept a null number,
+    // and the form's cosmetic PREFIX-00001 never advanced).
+    await new IssueInvoice(
+      container.invoiceRepository,
+      container.companyRepository,
+      container.sequenceService,
+      container.clock,
+      container.idempotencyStore,
+      container.db,
+      container.receiptVoucherRepository,
+    ).execute({ invoiceId });
   } catch (error) {
     if (error instanceof ValidationError) {
       return { status: "error", message: error.message };
@@ -194,23 +193,71 @@ export async function updateDraftInvoiceAction(
   };
 
   try {
+    // Snapshot status before update: drafts get issued after saving,
+    // already-issued invoices stay issued but need QR + receipt refresh
+    // because totals/customer may have changed.
+    const { asInvoiceId } = await import("@/domain/branding");
+    const before = await container.invoiceRepository.findByIdWithItems(
+      asInvoiceId(invoiceId),
+    );
+    const wasIssued = before?.status === "issued";
+
     const { UpdateDraftInvoice } = await import("@/application/use-cases/update-draft-invoice");
     await new UpdateDraftInvoice(container.invoiceRepository).execute(input);
 
-    const actionValue = formData.get("_action");
-    if (actionValue === "issue" || formData.get("status") === "issued") {
+    if (!wasIssued) {
+      // Former draft (or legacy draft rows): publish it now. Errors surface.
+      await new IssueInvoice(
+        container.invoiceRepository,
+        container.companyRepository,
+        container.sequenceService,
+        container.clock,
+        container.idempotencyStore,
+        container.db,
+        container.receiptVoucherRepository,
+      ).execute({ invoiceId });
+    } else {
+      // Issued invoice was edited: rebuild ZATCA QR (totals changed) and
+      // sync the linked receipt voucher amount. Best-effort but logged —
+      // the totals edit itself already succeeded above.
       try {
-        await new IssueInvoice(
-          container.invoiceRepository,
-          container.companyRepository,
-          container.sequenceService,
-          container.clock,
-          container.idempotencyStore,
-          container.db,
-          container.receiptVoucherRepository,
-        ).execute({ invoiceId });
-      } catch (issueError) {
-        console.error("Failed to issue invoice on update:", issueError);
+        const { buildQrPayload } = await import("@/domain/services/zatca-qr-service");
+        const after = await container.invoiceRepository.findByIdWithItems(
+          asInvoiceId(invoiceId),
+        );
+        const company = after
+          ? await container.companyRepository.findById(after.companyId)
+          : null;
+        if (after && company) {
+          const qrPayload = buildQrPayload({
+            sellerName: company.nameAr,
+            vatNumber: company.vatNumber,
+            timestampIso: new Date().toISOString(),
+            invoiceTotal: after.total,
+            vatTotal: after.vatAmount,
+          });
+          await db
+            .update(invoices)
+            .set({ qrPayload, updatedAt: new Date() })
+            .where(eq(invoices.id, invoiceId));
+          const voucher =
+            await container.receiptVoucherRepository.findByInvoiceId(invoiceId);
+          if (voucher) {
+            await container.receiptVoucherRepository.delete(voucher.id);
+            await container.receiptVoucherRepository.create({
+              companyId: after.companyId as unknown as string,
+              customerId: after.customerId as unknown as string,
+              invoiceId,
+              voucherDate: after.issueDate,
+              amount: after.total as unknown as number,
+              paymentMethod: "other",
+              reference: after.invoiceNumber ?? undefined,
+              notes: `سند قبض للفاتورة رقم ${after.invoiceNumber ?? ""}`,
+            } as never);
+          }
+        }
+      } catch (qrError) {
+        console.error("Failed to refresh QR/receipt after editing issued invoice:", qrError);
       }
     }
   } catch (error) {
@@ -308,14 +355,31 @@ export async function updateInvoiceTemplateAction(
   return { status: "ok" };
 }
 
-export async function deleteDraftInvoiceAction(id: string): Promise<{ status: "success" } | { status: "error"; message: string }> {
+export async function deleteDraftInvoiceAction(
+  id: string,
+  companyId?: string,
+): Promise<{ status: "success" } | { status: "error"; message: string }> {
   if (!id) {
     return { status: "error", message: "معرّف الفاتورة مفقود" };
   }
 
   try {
+    // Remove the linked receipt voucher first so no orphan voucher keeps a
+    // stale reference to the deleted invoice number.
+    try {
+      const voucher =
+        await container.receiptVoucherRepository.findByInvoiceId(id);
+      if (voucher) {
+        await container.receiptVoucherRepository.delete(voucher.id);
+      }
+    } catch {
+      // Best-effort: continue with invoice deletion even if voucher lookup fails.
+    }
     const { DeleteDraftInvoice } = await import("@/application/use-cases/delete-draft-invoice");
     await new DeleteDraftInvoice(container.invoiceRepository).execute({ id });
+    if (companyId) {
+      revalidatePath(`/c/${companyId}/invoices`);
+    }
     revalidatePath("/invoices");
     return { status: "success" };
   } catch (error) {
@@ -325,6 +389,10 @@ export async function deleteDraftInvoiceAction(id: string): Promise<{ status: "s
     return { status: "error", message: "تعذر حذف الفاتورة" };
   }
 }
+
+/** Alias with published-invoice naming; same implementation, kept so both
+ *  old (`deleteDraftInvoiceAction`) and new call sites work after merge. */
+export const deleteInvoiceAction = deleteDraftInvoiceAction;
 
 function nonEmpty(value: FormDataEntryValue | null): string | undefined {
   const str = typeof value === "string" ? value.trim() : "";

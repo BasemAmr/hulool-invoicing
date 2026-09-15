@@ -59,25 +59,25 @@ export default async function InvoicePreviewPage({
 
           <div className="flex items-center justify-between border-b border-border pb-3">
             <span className="font-mono font-bold text-sm text-foreground">
-              {dto.invoiceNumber ?? "مسودة"}
+              {dto.invoiceNumber ?? "بانتظار الترقيم"}
             </span>
             <StatusBadge status={dto.status} />
           </div>
 
           <div className="flex flex-col gap-2">
             {dto.status === "draft" && (
-              <>
-                <IssueInvoiceButton invoiceId={dto.id} />
-                <InvoiceDraftActions
-                  invoice={{
-                    id: dto.id,
-                    invoiceNumber: dto.invoiceNumber,
-                    status: dto.status,
-                  }}
-                  redirectAfterDelete
-                />
-              </>
+              <IssueInvoiceButton invoiceId={dto.id} />
             )}
+
+            {/* Every invoice is published and fully editable/deletable. */}
+            <InvoiceDraftActions
+              invoice={{
+                id: dto.id,
+                invoiceNumber: dto.invoiceNumber,
+                status: dto.status,
+              }}
+              redirectAfterDelete
+            />
 
             {dto.status === "issued" && (
               <Button
@@ -105,6 +105,8 @@ export default async function InvoicePreviewPage({
                 customerName: customer?.nameAr || "العميل",
                 customerPhone: customer?.phone,
                 customerEmail: customer?.email,
+                companyId: dto.companyId,
+                customerId: dto.customerId,
               }}
             />
           </div>
@@ -163,7 +165,7 @@ export default async function InvoicePreviewPage({
               <span className="text-lg sm:text-xl font-bold text-primary">{titleAr}</span>
               <span className="text-[11px] font-bold text-muted-foreground tracking-wider">{titleEn}</span>
               <span className="text-sm font-mono font-bold mt-1 text-foreground">
-                {dto.invoiceNumber ?? "DRAFT"}
+                {dto.invoiceNumber ?? "—"}
               </span>
             </div>
 
@@ -235,7 +237,7 @@ export default async function InvoicePreviewPage({
                 <img src={qrDataUrl} alt="QR Code" className="size-28 border border-border p-1 bg-white" />
               ) : (
                 <div className="size-28 border border-dashed border-border flex items-center justify-center text-muted-foreground text-xs">
-                  مسودة
+                  بانتظار الإصدار
                 </div>
               )}
             </div>

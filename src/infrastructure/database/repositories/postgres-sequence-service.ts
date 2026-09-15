@@ -1,37 +1,78 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import type { SequencePort } from "@/application/ports/sequence-port";
 import type { Tx } from "@/application/tx";
 import type { CompanyId } from "@/domain/branding";
 import { SequenceError } from "@/domain/errors";
 import { formatInvoiceNumber } from "@/domain/value-objects/invoice-number";
-import { companySequences } from "../schema";
+import { companySequences, invoices } from "../schema";
 
 /**
  * Postgres implementation of SequencePort.
  *
- * Uses a single atomic UPSERT statement:
- *   INSERT INTO company_sequences (company_id, year, last_value)
- *   VALUES ($1, $2, 1)
- *   ON CONFLICT (company_id, year)
- *   DO UPDATE SET last_value = company_sequences.last_value + 1
- *   RETURNING last_value
+ * Invoice numbers are `PREFIX-nnnnn` with NO year segment, so the counter
+ * MUST be global per company. The legacy implementation bucketed by
+ * (company_id, year), which restarts at 1 every January and inevitably
+ * collides with the unique(company_id, invoice_number) constraint.
  *
- * This guarantees gap-free sequence allocation under concurrent access
- * because the UPDATE acquires a row-level lock on the conflicting row.
+ * We now allocate from a single sentinel row per company (year = 0).
+ * On first use the sentinel is backfilled to max(existing invoice seq)
+ * so pre-existing invoices never collide with newly issued numbers.
+ *
+ * Allocation itself stays a single atomic UPSERT (row-level lock on the
+ * conflicting sentinel row), so concurrent issues cannot get the same
+ * number. The `year` argument is kept for interface compatibility but is
+ * intentionally ignored — the number format has no year in it.
  */
+export const INVOICE_SEQUENCE_SENTINEL_YEAR = 0;
+
 export class PostgresSequenceService implements SequencePort {
   async nextInvoiceNumber(
     tx: Tx,
     companyId: CompanyId,
     prefix: string,
-    year: number,
+    _year: number,
   ): Promise<string> {
+    // Backfill once: seed the sentinel with the highest sequence already
+    // stored in invoices for this company (parses trailing digits of
+    // `PREFIX-nnnnn` and legacy `PREFIX-YYYY-nnnnn`). Runs as INSERT ...
+    // ON CONFLICT DO NOTHING so concurrent first-calls are safe: exactly
+    // one wins, the rest keep the existing sentinel value.
+    try {
+      const existing = await tx
+        .select({ invoiceNumber: invoices.invoiceNumber })
+        .from(invoices)
+        .where(eq(invoices.companyId, companyId));
+      let maxSeq = 0;
+      for (const row of existing) {
+        const num = row.invoiceNumber;
+        if (!num) continue;
+        const m = num.match(/-(\d+)$/);
+        if (m) {
+          const seq = parseInt(m[1]!, 10);
+          if (Number.isFinite(seq) && seq > maxSeq) maxSeq = seq;
+        }
+      }
+      await tx
+        .insert(companySequences)
+        .values({
+          companyId: companyId,
+          year: INVOICE_SEQUENCE_SENTINEL_YEAR,
+          lastValue: maxSeq,
+        })
+        .onConflictDoNothing({
+          target: [companySequences.companyId, companySequences.year],
+        });
+    } catch {
+      // Backfill is best-effort: if the invoices table is unreachable here,
+      // fall through to plain allocation rather than blocking issuance.
+    }
+
     const result = await tx
       .insert(companySequences)
       .values({
         companyId: companyId,
-        year: year,
+        year: INVOICE_SEQUENCE_SENTINEL_YEAR,
         lastValue: 1,
       })
       .onConflictDoUpdate({
@@ -43,7 +84,7 @@ export class PostgresSequenceService implements SequencePort {
     const lastValue = result[0]?.lastValue;
     if (lastValue === undefined) {
       throw new SequenceError(
-        `Failed to allocate sequence for company ${companyId}, year ${year}`,
+        `Failed to allocate sequence for company ${companyId}`,
       );
     }
     return formatInvoiceNumber(prefix, lastValue);

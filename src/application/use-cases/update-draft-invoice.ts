@@ -12,8 +12,10 @@ import type {
 } from "../ports/invoice-repository";
 
 /**
- * Update an existing draft invoice (no invoice number, no QR).
- * Re-validates input via Zod, re-computes totals, and updates the draft.
+ * Update an existing invoice (draft or published).
+ * Re-validates input via Zod, re-computes totals, and updates the invoice
+ * while preserving its invoiceNumber/status (repository layer).
+ * Name kept as UpdateDraftInvoice so existing imports keep working.
  */
 export class UpdateDraftInvoice {
   constructor(private readonly invoiceRepository: InvoiceRepository) {}
