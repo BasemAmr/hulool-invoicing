@@ -23,9 +23,11 @@ import {
 
 export interface DraftInvoicePreviewItem {
   description: string;
-  quantity: number;
-  unitPrice: number;
-  discountAmount?: number;
+  // Raw decimal strings (full precision) or legacy numbers — the preview
+  // route sanitizes both and runs exact multiply-then-round-once math.
+  quantity: number | string;
+  unitPrice: number | string;
+  discountAmount?: number | string;
   vatRate?: number;
 }
 

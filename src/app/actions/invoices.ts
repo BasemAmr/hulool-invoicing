@@ -11,19 +11,33 @@ import { TEMPLATES_REGISTRY } from "@/infrastructure/pdf/templates/registry";
 import { CreateDraftInvoice } from "@/application/use-cases/create-draft-invoice";
 import { IssueInvoice } from "@/application/use-cases/issue-invoice";
 import { DomainError, ValidationError } from "@/domain/errors";
+import { halalas, priceStringToHalalas } from "@/domain/value-objects/money";
 import type { ActionState } from "./types";
 
 const container = createContainer(db);
 
-/** Serialized line item coming from the client builder (unitPrice in halalas). */
+/**
+ * Serialized line item coming from the client builder.
+ * unitPrice is the full-precision SAR decimal string from the hidden input
+ * (e.g. "17.95319") — NOT halalas. Legacy numeric JSON payloads may still
+ * carry halalas integers; the Zod union in contracts accepts both.
+ */
 interface RawItem {
   savedProductId?: string;
   saveToProducts?: boolean;
   description: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice: string | number;
   vatRate: number;
   discountAmount: number;
+}
+
+/** Convert a RawItem unit price to halalas for the products catalog (numeric(15,2)). */
+function rawUnitPriceToHalalas(unitPrice: string | number): number {
+  if (typeof unitPrice === "string") {
+    return priceStringToHalalas(unitPrice.trim() || "0");
+  }
+  return halalas(unitPrice);
 }
 
 export async function createDraftInvoiceAction(
@@ -41,7 +55,7 @@ export async function createDraftInvoiceAction(
       try {
         const saved = await container.savedProductRepository.create({
           nameAr: item.description,
-          unitPrice: item.unitPrice,
+          unitPrice: rawUnitPriceToHalalas(item.unitPrice),
           vatRate: item.vatRate,
           isActive: true,
         });
@@ -163,7 +177,7 @@ export async function updateDraftInvoiceAction(
       try {
         const saved = await container.savedProductRepository.create({
           nameAr: item.description,
-          unitPrice: item.unitPrice,
+          unitPrice: rawUnitPriceToHalalas(item.unitPrice),
           vatRate: item.vatRate,
           isActive: true,
         });
@@ -296,7 +310,11 @@ function parseItemsFromFormData(formData: FormData): RawItem[] {
     const description = String(formData.get(`items[${idx}].description`) ?? "").trim();
     if (description) {
       const quantity = parseFloat(String(formData.get(`items[${idx}].quantity`) ?? "1")) || 1;
-      const unitPrice = parseInt(String(formData.get(`items[${idx}].unitPrice`) ?? "0"), 10) || 0;
+      // Full-precision SAR string straight from the hidden input — NEVER
+      // parseFloat/toFixed(2) here: that was the 5368-vs-5367.05 truncation
+      // (17.95319 → 17.95 before ×260). Exact rounding happens once, in the
+      // use-case via lineSubtotalHalalasExact/priceStringToHalalas.
+      const unitPrice = String(formData.get(`items[${idx}].unitPrice`) ?? "").trim() || "0";
       const discountAmount = parseInt(String(formData.get(`items[${idx}].discountAmount`) ?? "0"), 10) || 0;
       const vatRate = parseFloat(String(formData.get(`items[${idx}].vatRate`) ?? "0.15")) || 0.15;
       const savedProductId = nonEmpty(formData.get(`items[${idx}].savedProductId`));

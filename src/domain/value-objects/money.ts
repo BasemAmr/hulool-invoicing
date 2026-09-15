@@ -138,6 +138,33 @@ function pow10(n: number): bigint {
 }
 
 /**
+ * Round a full-precision SAR decimal string to integer halalas (half-up).
+ *
+ * WHY: unit prices may carry 3+ decimals (e.g. "17.95319") which cannot be
+ * represented as integer halalas. The line SUBTOTAL must still be computed
+ * from the full-precision string via lineSubtotalHalalasExact() (round once,
+ * after multiply). This helper is ONLY for the storage/display boundary —
+ * invoice_items.unit_price is numeric(15,2), so the persisted unit price is
+ * the half-up-rounded halala value while totals stay exact.
+ */
+export function priceStringToHalalas(priceStr: string): Halalas {
+  const price = parseDecimalExact(priceStr || "0");
+  const ZERO = BigInt(0);
+  if (price.int < ZERO) {
+    throw new RangeError("price must be non-negative");
+  }
+  // halalas = round(price * 100) half-up in one BigInt step:
+  // (int * 100 + den/2) / den, where den = 10^scale.
+  const numerator = price.int * BigInt(100);
+  const denominator = pow10(price.scale);
+  const rounded = (numerator + denominator / BigInt(2)) / denominator;
+  if (rounded > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new RangeError("price exceeds safe integer range");
+  }
+  return Number(rounded) as Halalas;
+}
+
+/**
  * Exact line subtotal in halalas from full-precision price/qty strings.
  *
  * WHY this exists: the old wizard did `parseFloat(price).toFixed(2)` BEFORE

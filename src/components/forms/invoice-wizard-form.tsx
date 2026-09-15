@@ -431,16 +431,18 @@ export function InvoiceWizardForm({
   // Live preview draft for the template picker: the drawer's POST path renders
   // these real lines/totals instead of the hardcoded sample items. Null when
   // no usable lines exist so the route's sample fallback keeps the picker
-  // useful on an empty new form. Numbers are passed through raw (NaN serializes
-  // as null) — the preview route sanitizes everything server-side.
+  // useful on an empty new form. Prices/quantities travel as RAW decimal
+  // strings (already western-digit normalized on input) so the preview route
+  // can run the same exact multiply-then-round-once math as display + save —
+  // parseFloat here would reintroduce the 5368-vs-5367 truncation.
   const draftPreview: DraftInvoicePreview | null = useMemo(() => {
     const items = lines
       .filter((l) => l.description.trim().length > 0)
       .map((l) => ({
         description: l.description.trim(),
-        quantity: parseFloat(l.quantity),
-        unitPrice: parseFloat(l.unitPrice),
-        discountAmount: parseFloat(l.discountAmount),
+        quantity: toWesternDigits((l.quantity || "1").trim()) || "1",
+        unitPrice: toWesternDigits((l.unitPrice || "0").trim()) || "0",
+        discountAmount: toWesternDigits((l.discountAmount || "0").trim()) || "0",
         vatRate: l.vatRate,
       }));
     if (items.length === 0) return null;
@@ -969,14 +971,17 @@ export function InvoiceWizardForm({
                       <input
                         type="hidden"
                         name={`items[${idx}].quantity`}
-                        value={line.quantity || "1"}
+                        value={toWesternDigits((line.quantity || "1").trim()) || "1"}
                       />
                       <input
                         type="hidden"
                         name={`items[${idx}].unitPrice`}
-                        value={fromDecimalString(
-                          (parseFloat(line.unitPrice) || 0).toFixed(2)
-                        ).toString()}
+                        // Full-precision raw price string (western digits):
+                        // the server multiplies BEFORE rounding (round once
+                        // at the end). NEVER toFixed(2)/parseFloat here —
+                        // that pre-multiply truncation was the 5368-vs-5367
+                        // bug (17.95319 → 17.95 before ×260).
+                        value={toWesternDigits((line.unitPrice || "0").trim()) || "0"}
                       />
                       <input
                         type="hidden"

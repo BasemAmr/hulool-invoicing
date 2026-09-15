@@ -91,7 +91,19 @@ const invoiceItemSchema = z.object({
   saveToProducts: z.boolean().optional(),
   description: z.string().min(1, "description is required"),
   quantity: quantitySchema,
-  unitPrice: z.number().int().positive("unitPrice must be a positive integer (halalas)"),
+  // Full-precision SAR decimal string (e.g. "17.95319") from the wizard's
+  // hidden inputs, OR a legacy halalas integer (numeric JSON callers).
+  // WHY the union: the form now transports the raw price string so the
+  // server can multiply BEFORE rounding (round once at the end). Integer
+  // numbers keep working for older JSON payloads that already send halalas.
+  unitPrice: z.union([
+    z.number().int().positive("unitPrice must be a positive integer (halalas)"),
+    z
+      .string()
+      .trim()
+      .regex(/^\d+(\.\d+)?$/, "unitPrice must be a positive decimal string (SAR)")
+      .refine((s) => parseFloat(s) > 0, "unitPrice must be positive"),
+  ]),
   discountAmount: z.number().int().min(0).default(0),
   vatRate: z.number().min(0).max(1).default(VAT_RATE),
 });
