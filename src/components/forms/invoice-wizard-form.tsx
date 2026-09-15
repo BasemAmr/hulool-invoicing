@@ -37,6 +37,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { formatMoney, toWesternDigits } from "@/lib/format";
+import {
+  formatVatRatePercent,
+  isPresetVatRate,
+  parseVatPercentToRate,
+} from "@/lib/vat-rate";
 import { ClientCombobox, type ClientOption } from "./client-combobox";
 import { CustomerDrawer } from "@/components/drawers/customer-drawer";
 import { TemplateBrowserDrawer, type DraftInvoicePreview } from "@/components/drawers/template-browser-drawer";
@@ -105,6 +110,113 @@ function dtoDecimalToHalalas(v: string | number | null | undefined): number {
   } catch {
     return parseInt(s, 10) || 0;
   }
+}
+
+/**
+ * Compact per-line VAT editor: preset dropdown (0%/5%/15%) + "custom" option
+ * that reveals a small percent input. Same h-7/text-xs density as the
+ * neighbouring quantity/price inputs; the numeric box is dir="ltr" so digits
+ * stay LTR inside the RTL table.
+ *
+ * Custom typing never writes NaN into line state: invalid/empty text parses
+ * (via parseVatPercentToRate) back to the previous valid rate, and blur snaps
+ * the visible text back to the committed rate.
+ */
+function VatRateCell({
+  rate,
+  onRateChange,
+}: {
+  rate: number;
+  onRateChange: (nextRate: number) => void;
+}) {
+  const percentDisplay = formatVatRatePercent(rate);
+  const selectValue = isPresetVatRate(rate) ? percentDisplay : "custom";
+  // Text of the custom box. Seeded from the committed rate and re-synced
+  // below whenever the rate changes from outside (preset pick, product
+  // select) — unless the user's in-progress text already parses to that
+  // rate, so mid-edit typing ("7." while aiming for "7.5") is not clobbered.
+  const [customText, setCustomText] = useState(percentDisplay);
+
+  useEffect(() => {
+    setCustomText((prev) => {
+      const nextDisplay = formatVatRatePercent(rate);
+      if (prev === nextDisplay) return prev;
+      // Keep in-progress typing that already equals the new rate ("15.0" vs
+      // "15") so mid-edit keystrokes are not clobbered. Parsed manually (not
+      // via the fallback helper) so garbage text never compares equal just
+      // because the fallback happens to match the rate.
+      try {
+        const norm = toWesternDigits(prev)
+          .replace(/[٫]/g, ".")
+          .replace(/[٬]/g, "")
+          .replace(/,/g, ".")
+          .replace(/[٪%]/g, "")
+          .trim();
+        if (norm !== "") {
+          const p = parseFloat(norm);
+          if (Number.isFinite(p) && Math.min(100, Math.max(0, p)) / 100 === rate)
+            return prev;
+        }
+      } catch {
+        // Deliberate fall-through: unparseable text resets to the display.
+      }
+      return nextDisplay;
+    });
+  }, [rate]);
+
+  return (
+    <div className="flex flex-col items-stretch gap-1">
+      <select
+        value={selectValue}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "custom") {
+            // Reveal the box seeded with the current percent; the rate itself
+            // is untouched until the user types a valid value.
+            setCustomText(percentDisplay);
+            return;
+          }
+          // Preset strings are always valid, so this never hits the fallback.
+          onRateChange(parseVatPercentToRate(v, rate));
+        }}
+        aria-label="نسبة الضريبة للبند"
+        className="h-7 text-xs bg-background border border-input px-1 font-mono text-center text-foreground"
+      >
+        <option value="0">0%</option>
+        <option value="5">5%</option>
+        <option value="15">15%</option>
+        <option value="custom">مخصص…</option>
+      </select>
+      {selectValue === "custom" && (
+        <div className="flex items-center justify-center gap-0.5" dir="ltr">
+          <Input
+            type="text"
+            inputMode="decimal"
+            dir="ltr"
+            value={customText}
+            onChange={(e) => {
+              const nextText = e.target.value;
+              setCustomText(nextText);
+              // Deliberate no-NaN path: invalid/empty parses back to `rate`
+              // (previous valid), so the equality guard below skips the
+              // update and line state keeps the last good rate.
+              const nextRate = parseVatPercentToRate(nextText, rate);
+              if (nextRate !== rate) onRateChange(nextRate);
+            }}
+            onBlur={() => {
+              // Deliberate reset: garbage/empty text snaps back to the
+              // committed rate so the box never displays an uncommitted value.
+              setCustomText(formatVatRatePercent(rate));
+            }}
+            placeholder="7.5"
+            aria-label="نسبة ضريبة مخصصة (بالمئة)"
+            className="h-7 w-14 text-xs font-mono text-center px-1"
+          />
+          <span className="text-[10px] text-muted-foreground">%</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export interface DuplicatePrefill {
@@ -857,7 +969,7 @@ export function InvoiceWizardForm({
                 <th className="p-1.5 text-center w-16">الكمية *</th>
                 <th className="p-1.5 text-end w-20">السعر (ر.س) *</th>
                 <th className="p-1.5 text-end w-16">الخصم (ر.س)</th>
-                <th className="p-1.5 text-center w-14">الضريبة</th>
+                <th className="p-1.5 text-center w-24">الضريبة</th>
                 <th className="p-1.5 text-end w-24">الإجمالي</th>
                 <th className="p-1.5 text-center w-8">حذف</th>
               </tr>
@@ -962,9 +1074,19 @@ export function InvoiceWizardForm({
                       />
                     </td>
 
-                    {/* VAT Rate */}
-                    <td className="p-1.5 text-center font-mono font-medium text-muted-foreground text-[11px]">
-                      {(line.vatRate * 100).toFixed(0)}%
+                    {/* VAT Rate: preset dropdown + custom percent input.
+                        Writes straight into line.vatRate (0..1), so the row
+                        total above, the totals useMemo, and the hidden
+                        items[idx].vatRate input below all follow with no
+                        extra wiring. Product select still sets the product's
+                        own rate first; this control only overrides after. */}
+                    <td className="p-1.5">
+                      <VatRateCell
+                        rate={line.vatRate}
+                        onRateChange={(nextRate) =>
+                          updateLine(line.key, { vatRate: nextRate })
+                        }
+                      />
                     </td>
 
                     {/* Line Total */}

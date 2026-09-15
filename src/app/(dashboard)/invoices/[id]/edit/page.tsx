@@ -28,9 +28,13 @@ export default async function EditInvoiceDraftPage({
     notFound();
   }
 
-  const [companies, customers] = await Promise.all([
+  const [companies, customers, settings] = await Promise.all([
     container.companyRepository.list(100, 0),
     container.customerRepository.list(null, 100, 0),
+    // Company VAT/template defaults for the invoice's owning company: blank
+    // lines added mid-edit must inherit this (like the new page) instead of
+    // the hardcoded 15% fallback inside the wizard.
+    container.companySettingsRepository.getByCompanyId(invoice.companyId),
   ]);
 
   const companyOptions = companies.map((c) => ({
@@ -77,6 +81,8 @@ export default async function EditInvoiceDraftPage({
         companies={companyOptions}
         customers={customerOptions}
         initialInvoice={dto}
+        defaultVatRate={settings?.defaultVatRate ?? 0.15}
+        defaultTemplateId={settings?.defaultTemplateId ?? "simple_red"}
       />
     </div>
   );

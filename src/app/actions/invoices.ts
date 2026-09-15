@@ -257,17 +257,29 @@ export async function updateDraftInvoiceAction(
           const voucher =
             await container.receiptVoucherRepository.findByInvoiceId(invoiceId);
           if (voucher) {
-            await container.receiptVoucherRepository.delete(voucher.id);
-            await container.receiptVoucherRepository.create({
-              companyId: after.companyId as unknown as string,
-              customerId: after.customerId as unknown as string,
-              invoiceId,
-              voucherDate: after.issueDate,
-              amount: after.total as unknown as number,
-              paymentMethod: "other",
-              reference: after.invoiceNumber ?? undefined,
-              notes: `سند قبض للفاتورة رقم ${after.invoiceNumber ?? ""}`,
-            } as never);
+            // Atomic swap in ONE transaction: delete + recreate together.
+            // The old code deleted first and recreated after OUTSIDE a tx, so
+            // any recreate failure left the issued invoice with NO voucher
+            // and only a console.error behind.
+            // Failed deletes in prod ate vouchers the same way. If anything
+            // inside throws, the delete rolls back and the old voucher
+            // survives — a stale amount beats a missing voucher.
+            await db.transaction(async (tx) => {
+              await container.receiptVoucherRepository.delete(voucher.id, tx);
+              await container.receiptVoucherRepository.create(
+                {
+                  companyId: after.companyId as unknown as string,
+                  customerId: after.customerId as unknown as string,
+                  invoiceId,
+                  voucherDate: after.issueDate,
+                  amount: after.total as unknown as number,
+                  paymentMethod: "other",
+                  reference: after.invoiceNumber ?? undefined,
+                  notes: `سند قبض للفاتورة رقم ${after.invoiceNumber ?? ""}`,
+                } as never,
+                tx,
+              );
+            });
           }
         }
       } catch (qrError) {
@@ -316,7 +328,11 @@ function parseItemsFromFormData(formData: FormData): RawItem[] {
       // use-case via lineSubtotalHalalasExact/priceStringToHalalas.
       const unitPrice = String(formData.get(`items[${idx}].unitPrice`) ?? "").trim() || "0";
       const discountAmount = parseInt(String(formData.get(`items[${idx}].discountAmount`) ?? "0"), 10) || 0;
-      const vatRate = parseFloat(String(formData.get(`items[${idx}].vatRate`) ?? "0.15")) || 0.15;
+      // Never `|| 0.15` here: parseFloat("0") is 0 (falsy), so a legit 0% VAT
+      // line would silently become 15%. Only fall back when truly unparseable;
+      // out-of-range values (e.g. >1) are left for Zod (0..1) to reject.
+      const parsedVat = parseFloat(String(formData.get(`items[${idx}].vatRate`) ?? "0.15"));
+      const vatRate = Number.isFinite(parsedVat) ? parsedVat : 0.15;
       const savedProductId = nonEmpty(formData.get(`items[${idx}].savedProductId`));
       const saveToProducts = formData.get(`items[${idx}].saveToProducts`) === "true";
 
