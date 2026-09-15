@@ -156,13 +156,6 @@ export function MatajerAlSaifTemplate({
             </Text>
           </View>
         ) : null}
-        {company.clientEmployee ? (
-          <View style={styles.infoRowBox}>
-            <Text style={styles.infoRowText}>
-              البائع : {company.clientEmployee}
-            </Text>
-          </View>
-        ) : null}
 
         {/* ─── 7. ITEMS TABLE ─── */}
         <View style={styles.tableContainer}>

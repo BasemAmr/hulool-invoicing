@@ -130,7 +130,9 @@ export function HasaniahFoamTemplate({
     company.addressStreet,
   ].filter(Boolean).join(" - ");
 
-  const employeeName = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — signature fallbacks use per-invoice
+  // driver/cashier/salesman names only (blank when absent).
 
   return (
     <Document
@@ -490,7 +492,7 @@ export function HasaniahFoamTemplate({
           <View style={styles.sigBlock}>
             <Text style={styles.sigTitle}>السائق</Text>
             <Text style={styles.sigLine}>
-              الاسم : {(invoice as any).driverName || employeeName || ""}
+              الاسم : {(invoice as any).driverName || ""}
             </Text>
             <Text style={styles.sigLine}>التوقيع : ........................</Text>
           </View>
@@ -499,7 +501,7 @@ export function HasaniahFoamTemplate({
           <View style={styles.sigBlock}>
             <Text style={styles.sigTitle}>أمين الصندوق</Text>
             <Text style={styles.sigNameSingle}>
-              {(invoice as any).cashierName || employeeName || ""}
+              {(invoice as any).cashierName || ""}
             </Text>
           </View>
 
@@ -508,7 +510,7 @@ export function HasaniahFoamTemplate({
             <Text style={styles.sigTitle}>المبيعات</Text>
             <Text style={styles.sigSubTitle}>أعدت بواسطة</Text>
             <Text style={styles.sigNameSingle}>
-              {(invoice as any).salesmanName || employeeName || ""}
+              {(invoice as any).salesmanName || ""}
             </Text>
           </View>
         </View>

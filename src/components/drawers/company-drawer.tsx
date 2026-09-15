@@ -235,7 +235,7 @@ export function CompanyDrawer({
                 onChange={(e) => setPrefix(e.target.value.toUpperCase())}
                 placeholder="INV"
                 dir="ltr"
-                maxLength={6}
+                maxLength={12}
                 className="text-xs font-mono font-bold h-8 uppercase"
                 required
               />

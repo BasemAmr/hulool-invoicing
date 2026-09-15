@@ -14,11 +14,28 @@ import { Button } from "@/components/ui/button";
 import {
   TEMPLATES_LIST,
   getTemplateById,
+  getTemplateDisplayName,
   RECEIPT_TEMPLATES_LIST,
   getReceiptTemplateById,
   PARENT_CATEGORY_LABELS,
   groupTemplatesByParentCategory,
 } from "@/infrastructure/pdf/templates/registry";
+
+export interface DraftInvoicePreviewItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discountAmount?: number;
+  vatRate?: number;
+}
+
+export interface DraftInvoicePreview {
+  items: DraftInvoicePreviewItem[];
+  notes?: string;
+  terms?: string;
+  issueDate?: string;
+  dueDate?: string;
+}
 
 export interface TemplateBrowserDrawerProps {
   open: boolean;
@@ -27,6 +44,8 @@ export interface TemplateBrowserDrawerProps {
   onSelectTemplate: (templateId: string) => void;
   companyId?: string;
   invoiceId?: string;
+  customerId?: string;
+  draftInvoice?: DraftInvoicePreview | null;
   mode?: "invoice" | "receipt";
 }
 
@@ -37,6 +56,8 @@ export function TemplateBrowserDrawer({
   onSelectTemplate,
   companyId,
   invoiceId,
+  customerId,
+  draftInvoice,
   mode = "invoice",
 }: TemplateBrowserDrawerProps) {
   const isReceipt = mode === "receipt";
@@ -47,6 +68,7 @@ export function TemplateBrowserDrawer({
     selectedTemplateId || defaultFallbackId
   );
   const [loading, setLoading] = useState(false);
+  const [draftPdfUrl, setDraftPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedTemplateId) {
@@ -67,15 +89,103 @@ export function TemplateBrowserDrawer({
       : getTemplateById(currentTemplateId);
   }, [currentTemplateId, isReceipt]);
 
-  if (!open) return null;
+  // Live-preview signals (invoice mode only; receipt mode is always sample).
+  // invoiceId path already resolves its own customer server-side, so customerId
+  // / draft only matter when there is no invoiceId.
+  const hasLiveDraft =
+    !isReceipt &&
+    !invoiceId &&
+    !!draftInvoice &&
+    Array.isArray(draftInvoice.items) &&
+    draftInvoice.items.length > 0;
+  const hasLiveCustomer = !isReceipt && !invoiceId && !!customerId;
+  const isLivePreview = !isReceipt && (!!invoiceId || hasLiveDraft || hasLiveCustomer);
+
+  // Stable key for the draft payload: the wizard builds a fresh object every
+  // render, and depending on it directly would refetch the PDF in a loop.
+  const draftKey = useMemo(
+    () => (draftInvoice ? JSON.stringify(draftInvoice) : ""),
+    [draftInvoice]
+  );
 
   const pdfPreviewUrl = isReceipt
-    ? `/api/documents/preview/pdf?type=receipt&templateId=${currentTemplateId}${
-        companyId ? `&companyId=${companyId}` : ""
+    ? `/api/documents/preview/pdf?type=receipt&templateId=${encodeURIComponent(currentTemplateId)}${
+        companyId ? `&companyId=${encodeURIComponent(companyId)}` : ""
       }`
-    : `/api/documents/preview/pdf?templateId=${currentTemplateId}${
-        companyId ? `&companyId=${companyId}` : ""
-      }${invoiceId ? `&invoiceId=${invoiceId}` : ""}`;
+    : `/api/documents/preview/pdf?templateId=${encodeURIComponent(currentTemplateId)}${
+        companyId ? `&companyId=${encodeURIComponent(companyId)}` : ""
+      }${invoiceId ? `&invoiceId=${encodeURIComponent(invoiceId)}` : ""}${
+        !invoiceId && customerId ? `&customerId=${encodeURIComponent(customerId)}` : ""
+      }`;
+
+  // When live wizard items exist (unsaved invoice), render them via POST so the
+  // preview shows the real lines/totals instead of the hardcoded sample items.
+  // On any POST failure we clear the blob URL and fall back to the GET URL —
+  // the frame must never go blank.
+  useEffect(() => {
+    if (!open || isReceipt || invoiceId || !hasLiveDraft) {
+      setDraftPdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setLoading(true);
+    fetch("/api/documents/preview/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        templateId: currentTemplateId,
+        companyId,
+        customerId,
+        draft: draftInvoice,
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`preview POST failed: ${res.status}`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setDraftPdfUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+      })
+      .catch(() => {
+        // Fall back to the GET sample/customer URL (never a blank frame).
+        if (!cancelled) {
+          setDraftPdfUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+    // draftKey (not draftInvoice) keeps this from refetching every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentTemplateId, companyId, customerId, draftKey, invoiceId, isReceipt, hasLiveDraft]);
+
+  // Revoke the blob URL on unmount so repeated picker opens don't leak memory.
+  useEffect(() => {
+    return () => {
+      setDraftPdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, []);
+
+  if (!open) return null;
+
+  const iframeSrc = draftPdfUrl ?? pdfPreviewUrl;
 
   const handleApply = () => {
     onSelectTemplate(currentTemplateId);
@@ -125,6 +235,19 @@ export function TemplateBrowserDrawer({
               <span className="px-1.5 py-0.2 rounded-xs text-[9px] font-semibold border border-primary/25 bg-primary/10 text-primary">
                 {PARENT_CATEGORY_LABELS[activeDef.parentCategory]?.badgeAr || "قالب نظام معتمد"}
               </span>
+              {/* Preview-source badge: real invoice/live draft vs sample stub (invoice mode only; receipt mode always uses a sample voucher) */}
+              {!isReceipt && (
+                <span
+                  className={`px-1.5 py-0.2 rounded-xs text-[9px] font-semibold border ${
+                    isLivePreview
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-600"
+                  }`}
+                  title={isLivePreview ? "تُعاين بيانات الفاتورة الحالية" : "لا توجد فاتورة — تُعاين بيانات تجريبية"}
+                >
+                  {isLivePreview ? "معاينة الفاتورة الحالية" : "بيانات تجريبية"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -160,18 +283,18 @@ export function TemplateBrowserDrawer({
               className="h-7.5 bg-background border border-input px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[170px] sm:min-w-[220px]"
             >
               {groupTemplatesByParentCategory(templatesList).companyChosen.length > 0 && (
-                <optgroup label="قوالب المنشأة المختارة (Company Chosen)">
-                  {groupTemplatesByParentCategory(templatesList).companyChosen.map((t, idx) => (
+                <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
+                  {groupTemplatesByParentCategory(templatesList).companyChosen.map((t) => (
                     <option key={t.id} value={t.id}>
-                      ★ {t.nameAr} ({t.nameEn})
+                      ★ {getTemplateDisplayName(t)}
                     </option>
                   ))}
                 </optgroup>
               )}
-              <optgroup label="قوالب النظام الافتراضية (System Default)">
-                {groupTemplatesByParentCategory(templatesList).systemDefault.map((t, idx) => (
+              <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
+                {groupTemplatesByParentCategory(templatesList).systemDefault.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {idx + 1}. {t.nameAr} ({t.nameEn})
+                    {getTemplateDisplayName(t)}
                   </option>
                 ))}
               </optgroup>
@@ -204,13 +327,13 @@ export function TemplateBrowserDrawer({
           {loading && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-background/90 border border-border px-3 py-1 text-[11px] font-medium text-foreground flex items-center gap-1.5 shadow-md z-20">
               <Loader2 className="size-3 animate-spin text-primary" />
-              <span>جاري تحميل {activeDef.nameAr}...</span>
+              <span>جاري تحميل {getTemplateDisplayName(activeDef)}...</span>
             </div>
           )}
 
           <iframe
             key={currentTemplateId}
-            src={pdfPreviewUrl}
+            src={iframeSrc}
             title="معاينة قالب الفاتورة الفعلي"
             onLoad={() => setLoading(false)}
             className="w-full h-full border-0 bg-white"

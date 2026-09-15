@@ -70,7 +70,9 @@ export function StructuredBilingualTemplate({
   const sellerPostalCode = company.addressPostalCode || "";
   const sellerAdditionalNo = company.addressAdditionalNumber || "";
   const sellerVat = company.vatNumber || "";
-  const sellerOtherId = company.clientEmployee || company.crNumber || "";
+  // Admin-only clientEmployee ("تابع للعميل") must never print on PDFs —
+  // Other Seller ID falls back to the commercial registration only.
+  const sellerOtherId = company.crNumber || "";
 
   // Buyer Details
   const buyerName = customer.nameAr || "";

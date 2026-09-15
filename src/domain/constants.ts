@@ -8,16 +8,16 @@ export const CURRENCY = "SAR";
 
 export const INVOICE_NUMBER_SEQ_PAD = 5;
 export const INVOICE_NUMBER_PREFIX_MIN = 2;
-export const INVOICE_NUMBER_PREFIX_MAX = 6;
+export const INVOICE_NUMBER_PREFIX_MAX = 12;
 
 /** Standard invoice number: `PREFIX-nnnnn` (starts with company prefix, single dash, no year) or legacy `PREFIX-YYYY-nnnnn`. */
-export const INVOICE_NUMBER_PATTERN = /^[A-Z0-9]{2,6}(-\d{4})?-\d{5,}$/;
+export const INVOICE_NUMBER_PATTERN = /^[A-Z0-9]{2,12}(-\d{4})?-\d{5,}$/;
 
 /** Saudi VAT number: 15 digits starting with '3'. */
 export const VAT_NUMBER_PATTERN = /^3\d{14}$/;
 
-/** Company invoice-number prefix: 2-6 uppercase alphanumerics. */
-export const COMPANY_PREFIX_PATTERN = /^[A-Z0-9]{2,6}$/;
+/** Company invoice-number prefix: 2-12 uppercase alphanumerics. */
+export const COMPANY_PREFIX_PATTERN = /^[A-Z0-9]{2,12}$/;
 
 export const INVOICE_STATUSES = ["draft", "issued", "cancelled"] as const;
 export const PAYMENT_METHODS = ["cash", "bank_transfer", "other"] as const;

@@ -136,7 +136,8 @@ export function BawazeerPlasticsTemplate({
   const companyVatNo = company.vatNumber || "";
   const companyCrn = company.crNumber || "";
   const companyPhone1 = company.phone || "";
-  const companyEmployee = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — no seller/cashier line may use it.
 
   // Buyer Details
   const customerNameAr = customer.nameAr || "";
@@ -257,15 +258,6 @@ export function BawazeerPlasticsTemplate({
                     : "Cash / نقد"}
                 </Text>
               </View>
-
-              {companyEmployee ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabelEn}>Salesman</Text>
-                  <Text style={styles.metaLabelSlash}>/</Text>
-                  <Text style={styles.metaLabelAr}>البائع :</Text>
-                  <Text style={styles.metaValText}>{companyEmployee}</Text>
-                </View>
-              ) : null}
             </View>
           </View>
         </View>

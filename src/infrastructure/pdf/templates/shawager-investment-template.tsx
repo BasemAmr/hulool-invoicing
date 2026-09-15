@@ -147,7 +147,8 @@ export function ShawagerInvestmentTemplate({
   const companyAddress = [company.addressCity, company.addressDistrict ? `حي ${company.addressDistrict}` : "", company.addressStreet]
     .filter(Boolean)
     .join(" - ");
-  const companyEmployee = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — unused declaration removed.
 
   // Customer Details
   const customerName = customer.nameAr || "";

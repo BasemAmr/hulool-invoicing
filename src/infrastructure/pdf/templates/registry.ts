@@ -34,8 +34,8 @@ export interface TemplateDefinition {
 export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   simple_red: {
     id: "simple_red",
-    nameAr: "نموذج بسيط أحمر",
-    nameEn: "Simple Red",
+    nameAr: "نموذج 1",
+    nameEn: "Template 1",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#991B1B",
@@ -45,8 +45,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   simple_gray: {
     id: "simple_gray",
-    nameAr: "نموذج بسيط رمادي",
-    nameEn: "Simple Gray",
+    nameAr: "نموذج 2",
+    nameEn: "Template 2",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#475569",
@@ -56,8 +56,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   simple_clean: {
     id: "simple_clean",
-    nameAr: "الشكل البسيط",
-    nameEn: "Simple Clean",
+    nameAr: "نموذج 3",
+    nameEn: "Template 3",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#1E293B",
@@ -67,8 +67,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   modern_red: {
     id: "modern_red",
-    nameAr: "أحمر حديث",
-    nameEn: "Modern Red",
+    nameAr: "نموذج 4",
+    nameEn: "Template 4",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#E11D48",
@@ -78,8 +78,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   classic: {
     id: "classic",
-    nameAr: "نموذج كلاسيكي",
-    nameEn: "Classic Traditional",
+    nameAr: "نموذج 5",
+    nameEn: "Template 5",
     parentCategory: "system_default",
     category: "classic",
     primaryColor: "#1E3A8A",
@@ -89,8 +89,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   pos_color: {
     id: "pos_color",
-    nameAr: "نموذج لون نقطة البيع",
-    nameEn: "POS Color Receipt",
+    nameAr: "نموذج 6",
+    nameEn: "Template 6",
     parentCategory: "system_default",
     category: "pos",
     primaryColor: "#0284C7",
@@ -101,8 +101,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   bilingual_zatca: {
     id: "bilingual_zatca",
-    nameAr: "فاتورة إلكترونية ثنائية اللغة",
-    nameEn: "Bilingual ZATCA E-Invoice",
+    nameAr: "نموذج 7",
+    nameEn: "Template 7",
     parentCategory: "system_default",
     category: "bilingual",
     primaryColor: "#0F766E",
@@ -112,8 +112,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   modern_positive_red: {
     id: "modern_positive_red",
-    nameAr: "حديث أحمر إيجابي",
-    nameEn: "Modern Positive Red",
+    nameAr: "نموذج 8",
+    nameEn: "Template 8",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#DC2626",
@@ -123,8 +123,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   modern_sky_blue: {
     id: "modern_sky_blue",
-    nameAr: "حديث أزرق سماوي",
-    nameEn: "Modern Sky Blue",
+    nameAr: "نموذج 9",
+    nameEn: "Template 9",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#0284C7",
@@ -134,8 +134,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   simple_blue: {
     id: "simple_blue",
-    nameAr: "نموذج بسيط أزرق",
-    nameEn: "Simple Blue",
+    nameAr: "نموذج 10",
+    nameEn: "Template 10",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#2563EB",
@@ -145,8 +145,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   simple_white: {
     id: "simple_white",
-    nameAr: "نموذج بسيط أبيض",
-    nameEn: "Simple White",
+    nameAr: "نموذج 11",
+    nameEn: "Template 11",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#0F172A",
@@ -156,8 +156,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   simple_yellow: {
     id: "simple_yellow",
-    nameAr: "نموذج بسيط أصفر",
-    nameEn: "Simple Yellow",
+    nameAr: "نموذج 12",
+    nameEn: "Template 12",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#D97706",
@@ -167,8 +167,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   modern_green: {
     id: "modern_green",
-    nameAr: "نموذج حديث أخضر",
-    nameEn: "Modern Green",
+    nameAr: "نموذج 13",
+    nameEn: "Template 13",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#059669",
@@ -178,8 +178,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   pos_monochrome: {
     id: "pos_monochrome",
-    nameAr: "نموذج نقطة بيع أحادي اللون",
-    nameEn: "POS Monochrome Thermal",
+    nameAr: "نموذج 14",
+    nameEn: "Template 14",
     parentCategory: "system_default",
     category: "pos",
     primaryColor: "#000000",
@@ -190,8 +190,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   simple_black: {
     id: "simple_black",
-    nameAr: "نموذج بسيط أسود",
-    nameEn: "Simple Black",
+    nameAr: "نموذج 15",
+    nameEn: "Template 15",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#000000",
@@ -201,8 +201,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   modern_orange: {
     id: "modern_orange",
-    nameAr: "نموذج حديث برتقالي",
-    nameEn: "Modern Orange",
+    nameAr: "نموذج 16",
+    nameEn: "Template 16",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#EA580C",
@@ -212,8 +212,8 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   modern_gray: {
     id: "modern_gray",
-    nameAr: "نموذج حديث رمادي",
-    nameEn: "Modern Slate Gray",
+    nameAr: "نموذج 17",
+    nameEn: "Template 17",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#4B5563",
@@ -455,6 +455,17 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة ضريبية ببطاقتي المورد والعميل وجدول 7 أعمدة ديناميكي وملاحظات الفاتورة وملاحظة سياسة المنشأة",
   },
+  generic_delivery_21: {
+    id: "generic_delivery_21",
+    nameAr: "نموذج 21",
+    nameEn: "Template 21",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#111827",
+    isBilingual: true,
+    descriptionAr: "تصميم بيان تسليم بضاعة أحادي اللون بأسلوب الطباعة النقطية مع خانة المندوب وتوقيعي المندوب والعميل ورمز QR",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);
@@ -473,8 +484,8 @@ export function getTemplateById(id?: string | null): TemplateDefinition {
 export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   receipt_standard: {
     id: "receipt_standard",
-    nameAr: "سند قبض قياسي أزرق",
-    nameEn: "Standard Blue Receipt",
+    nameAr: "نموذج 1",
+    nameEn: "Receipt Template 1",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#0284C7",
@@ -484,8 +495,8 @@ export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   receipt_classic_navy: {
     id: "receipt_classic_navy",
-    nameAr: "سند قبض كلاسيكي كحلي",
-    nameEn: "Classic Navy Receipt",
+    nameAr: "نموذج 2",
+    nameEn: "Receipt Template 2",
     parentCategory: "system_default",
     category: "classic",
     primaryColor: "#1E3A8A",
@@ -495,8 +506,8 @@ export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   receipt_emerald: {
     id: "receipt_emerald",
-    nameAr: "سند قبض زمردي سعودي",
-    nameEn: "Saudi Emerald Receipt",
+    nameAr: "نموذج 3",
+    nameEn: "Receipt Template 3",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#0F766E",
@@ -506,8 +517,8 @@ export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   receipt_ruby: {
     id: "receipt_ruby",
-    nameAr: "سند قبض أحمر عنابي",
-    nameEn: "Ruby Wine Receipt",
+    nameAr: "نموذج 4",
+    nameEn: "Receipt Template 4",
     parentCategory: "system_default",
     category: "simple",
     primaryColor: "#991B1B",
@@ -517,8 +528,8 @@ export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   receipt_amber: {
     id: "receipt_amber",
-    nameAr: "سند قبض ذهبي عنبري",
-    nameEn: "Amber Gold Receipt",
+    nameAr: "نموذج 5",
+    nameEn: "Receipt Template 5",
     parentCategory: "system_default",
     category: "modern",
     primaryColor: "#D97706",
@@ -528,8 +539,8 @@ export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
   },
   receipt_slate: {
     id: "receipt_slate",
-    nameAr: "سند قبض رمادي رسمي",
-    nameEn: "Formal Slate Receipt",
+    nameAr: "نموذج 6",
+    nameEn: "Receipt Template 6",
     parentCategory: "system_default",
     category: "classic",
     primaryColor: "#334155",
@@ -581,6 +592,30 @@ export function getReceiptTemplateById(id?: string | null): TemplateDefinition {
     if (found) return found;
   }
   return DEFAULT_RECEIPT_TEMPLATE;
+}
+
+// ─── Display helpers: Arabic-only picker labels ─────────────────────────────
+// The template picker must show Arabic-only labels (e.g. "نموذج 1") with no
+// English "(...)" suffix. Template `id`s are the stable keys and are never
+// changed here — only human-readable labels. DB rows store only template IDs,
+// so no migration/seed re-run is needed for this cleanup.
+//
+// stripEnglishParenthetical removes "(...)" groups that contain Latin letters
+// (e.g. "(Thermal POS Roll Receipt)") but deliberately preserves meaningful
+// Arabic qualifiers such as "نموذج 17 (مع الشروط)" vs "نموذج 17 (بدون شروط)"
+// so those two variants never collapse into one ambiguous label.
+export function stripEnglishParenthetical(name: string): string {
+  return name
+    .replace(/\s*\([^()]*[A-Za-z][^()]*\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+// Single source of truth for what the picker renders per template row.
+export function getTemplateDisplayName(
+  template: Pick<TemplateDefinition, "nameAr">,
+): string {
+  return stripEnglishParenthetical(template.nameAr);
 }
 
 // ─── Helpers for Grouping by Parent Category ───────────────────────────────────

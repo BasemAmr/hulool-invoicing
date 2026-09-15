@@ -106,7 +106,8 @@ export function MahalaPosTemplate({
 
   const companyName = company.nameAr || "";
   const customerName = customer.nameAr || "";
-  const sellerEmployee = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — seller/cashier lines removed.
 
   return (
     <Document
@@ -148,11 +149,6 @@ export function MahalaPosTemplate({
           {company.vatNumber ? (
             <Text style={styles.centerLine}>
               رقم التعريف الضريبي: {company.vatNumber}
-            </Text>
-          ) : null}
-          {sellerEmployee ? (
-            <Text style={styles.centerLine}>
-              معرف آخر للبائع: {sellerEmployee}
             </Text>
           ) : null}
 
@@ -310,11 +306,6 @@ export function MahalaPosTemplate({
               <Text style={styles.paymentLabel}>الباقي</Text>
             </View>
           </View>
-
-          {/* Cashier Footer Line */}
-          {sellerEmployee ? (
-            <Text style={styles.cashierLine}>كان أمين الصندوق الخاص بك: {sellerEmployee}</Text>
-          ) : null}
         </View>
 
         {/* ─── 4. ZATCA QR CODE ONLY (NO LINEAR BARCODE AS REQUESTED) ─── */}

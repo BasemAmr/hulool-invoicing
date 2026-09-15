@@ -231,7 +231,8 @@ export function MasdarBuildingMaterialsTemplate({
                 <Text style={styles.cellHeaderAr}>البـــائــــع</Text>
               </View>
               <View style={styles.cellValRow}>
-                <Text style={styles.cellValText}>{company.clientEmployee || ""}</Text>
+                {/* Admin-only clientEmployee removed — salesperson cell intentionally blank. */}
+                <Text style={styles.cellValText}></Text>
               </View>
 
               {/* Delivery Date & Place of Supply */}
@@ -333,7 +334,8 @@ export function MasdarBuildingMaterialsTemplate({
             <View style={styles.sigRow}>
               <Text style={styles.sigLabelEn}>Prepared By</Text>
               <Text style={styles.sigLabelAr}>أعدها</Text>
-              <Text style={styles.sigVal}>{company.clientEmployee || ""}</Text>
+              {/* Admin-only clientEmployee removed — prepared-by intentionally blank. */}
+              <Text style={styles.sigVal}></Text>
             </View>
             <View style={styles.sigRow}>
               <Text style={styles.sigLabelEn}>Approved By</Text>

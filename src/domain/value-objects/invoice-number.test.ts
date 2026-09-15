@@ -42,6 +42,10 @@ describe("invoice-number — isValidInvoiceNumber", () => {
     expect(isValidInvoiceNumber("ABCDEF-00001")).toBe(true);
   });
 
+  it("accepts a 12-char prefix", () => {
+    expect(isValidInvoiceNumber("ABCDEFGHIJKL-00001")).toBe(true);
+  });
+
   it("accepts numeric prefix characters", () => {
     expect(isValidInvoiceNumber("A1-00001")).toBe(true);
   });
@@ -54,8 +58,8 @@ describe("invoice-number — isValidInvoiceNumber", () => {
     expect(isValidInvoiceNumber("A-00001")).toBe(false);
   });
 
-  it("rejects a 7-char prefix (too long)", () => {
-    expect(isValidInvoiceNumber("ABCDEFG-00001")).toBe(false);
+  it("rejects a 13-char prefix (too long)", () => {
+    expect(isValidInvoiceNumber("ABCDEFGHIJKLM-00001")).toBe(false);
   });
 
   it("rejects missing sequence padding", () => {

@@ -86,7 +86,8 @@ export function MadinaPlasticsTemplate({
     customer.addressPostalCode,
   ].filter(Boolean).join(" - ");
 
-  const cashierName = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — the Cashier line was removed.
 
   return (
     <Document
@@ -293,13 +294,6 @@ export function MadinaPlasticsTemplate({
             );
           })}
         </View>
-
-        {/* Cashier Info */}
-        {cashierName ? (
-          <View style={styles.cashierRow}>
-            <Text style={styles.cashierText}>كاشير : {cashierName}</Text>
-          </View>
-        ) : null}
 
         {/* ─── 5. SUMMARY & QR CODE (Totals Left, QR Center) ─── */}
         <View style={styles.summarySection}>

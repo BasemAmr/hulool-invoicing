@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
 import { asInvoiceId } from "@/domain/branding";
@@ -22,8 +22,10 @@ export default async function CompanyInvoiceEditPage({
     notFound();
   }
 
-  if (invoice.status !== "draft") {
-    redirect(`/c/${companyId}/invoices/${id}`);
+  // All invoices (draft or published) are editable — no redirect.
+  // Only cancelled invoices are locked.
+  if (invoice.status === "cancelled") {
+    notFound();
   }
 
   const [company, customers, products] = await Promise.all([
@@ -40,7 +42,7 @@ export default async function CompanyInvoiceEditPage({
     <div className="flex flex-col gap-4 max-w-5xl mx-auto">
       <div className="border-b border-border pb-3">
         <h1 className="text-xl font-bold tracking-tight text-foreground">
-          تعديل مسودة الفاتورة — {company.nameAr}
+          تعديل الفاتورة {invoice.invoiceNumber ? `— ${invoice.invoiceNumber}` : ""} — {company.nameAr}
         </h1>
         <p className="text-xs text-muted-foreground mt-0.5">
           قم بتعديل بيانات العميل أو البنود والأسعار وحفظ التغييرات

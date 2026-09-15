@@ -15,17 +15,22 @@ import {
   Copy,
   Calendar,
   Clock,
-  ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { IssueInvoiceButton } from "@/components/forms/issue-invoice-button";
+import { DeleteConfirmDialog } from "@/components/documents/delete-confirm-dialog";
+import { DuplicateInvoiceDialog } from "@/components/documents/duplicate-invoice-dialog";
 import { CustomerDrawer } from "@/components/drawers/customer-drawer";
 import { TemplateBrowserDrawer } from "@/components/drawers/template-browser-drawer";
 import { getTemplateById } from "@/infrastructure/pdf/templates/registry";
 import { formatIsoDate, formatMoney } from "@/lib/format";
 import { useToast } from "@/components/ui/toaster";
-import { updateInvoiceTemplateAction } from "@/app/actions/invoices";
+import {
+  deleteDraftInvoiceAction,
+  updateInvoiceTemplateAction,
+} from "@/app/actions/invoices";
 import { asCustomerId } from "@/domain/branding";
 import type { InvoiceDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
@@ -59,6 +64,8 @@ export function InvoicePreviewClient({
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
   const [templateDrawerOpen, setTemplateDrawerOpen] = useState(false);
   const [gearOpen, setGearOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const cPath = `/c/${companyId}`;
   const pdfPreviewUrl = `/api/documents/${invoice.id}/pdf?preview=true&template=${templateId}${
@@ -103,10 +110,9 @@ export function InvoicePreviewClient({
   };
 
   const handleCopyInvoice = () => {
-    toast({
-      title: "نسخ الفاتورة",
-      message: "تم نسخ الفاتورة، يمكنك إنشاء فاتورة جديدة بنفس البيانات.",
-    });
+    // Open the duplicate dialog (client + date, defaults: same client/today);
+    // confirming navigates to the create page prefilled with this invoice.
+    setDuplicateOpen(true);
     setGearOpen(false);
   };
 
@@ -127,24 +133,41 @@ export function InvoicePreviewClient({
           </Link>
           <span className="text-xs text-muted-foreground">/</span>
           <span className="text-xs font-mono font-bold text-foreground">
-            {invoice.invoiceNumber ?? "مسودة"}
+            {invoice.invoiceNumber ?? "فاتورة جديدة"}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <StatusBadge status={invoice.status} />
-          {invoice.status === "draft" && (
-            <Link href={`${cPath}/invoices/${invoice.id}/edit`}>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1.5 text-xs font-semibold"
-              >
-                <Edit2 className="size-3" />
-                <span>تعديل الفاتورة</span>
-              </Button>
-            </Link>
-          )}
+          {/* Every invoice is published and fully editable/deletable. */}
+          <Link href={`${cPath}/invoices/${invoice.id}/edit`}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-xs font-semibold"
+            >
+              <Edit2 className="size-3" />
+              <span>تعديل الفاتورة</span>
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDuplicateOpen(true)}
+            className="h-7 gap-1.5 text-xs font-semibold"
+          >
+            <Copy className="size-3" />
+            <span>تكرار</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDeleteOpen(true)}
+            className="h-7 gap-1.5 text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="size-3" />
+            <span>حذف</span>
+          </Button>
         </div>
       </div>
 
@@ -156,7 +179,7 @@ export function InvoicePreviewClient({
           <div className="bg-card border border-border p-3 flex flex-col gap-2.5 shadow-2xs">
             <div className="flex items-center justify-between border-b border-border pb-1.5">
               <span className="font-mono font-bold text-xs text-foreground">
-                {invoice.invoiceNumber ?? "مسودة غير معتمدة"}
+                {invoice.invoiceNumber ?? "بانتظار الترقيم"}
               </span>
               <span className="text-xs font-bold text-primary font-mono">
                 {formatMoney(invoice.total)} SAR
@@ -249,17 +272,26 @@ export function InvoicePreviewClient({
                         className="flex items-center gap-2 p-2 hover:bg-muted text-start text-foreground"
                       >
                         <Copy className="size-3.5" />
-                        <span>نسخ الفاتورة</span>
+                        <span>تكرار الفاتورة...</span>
                       </button>
-                      {invoice.status === "draft" && (
-                        <Link
-                          href={`${cPath}/invoices/${invoice.id}/edit`}
-                          className="flex items-center gap-2 p-2 hover:bg-muted text-start text-foreground border-t border-border"
-                        >
-                          <Edit2 className="size-3.5" />
-                          <span>تعديل المسودة</span>
-                        </Link>
-                      )}
+                      <Link
+                        href={`${cPath}/invoices/${invoice.id}/edit`}
+                        className="flex items-center gap-2 p-2 hover:bg-muted text-start text-foreground border-t border-border"
+                      >
+                        <Edit2 className="size-3.5" />
+                        <span>تعديل الفاتورة</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGearOpen(false);
+                          setDeleteOpen(true);
+                        }}
+                        className="flex items-center gap-2 p-2 hover:bg-destructive/10 text-start text-destructive border-t border-border"
+                      >
+                        <Trash2 className="size-3.5" />
+                        <span>حذف الفاتورة</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -302,12 +334,31 @@ export function InvoicePreviewClient({
               )}
             </div>
 
-            {/* Issue Button if Draft */}
+            {/* Legacy drafts (created before always-published) can still be issued. */}
             {invoice.status === "draft" && (
               <div className="pt-0.5">
                 <IssueInvoiceButton invoiceId={invoice.id} />
               </div>
             )}
+
+            <DuplicateInvoiceDialog
+              open={duplicateOpen}
+              onClose={() => setDuplicateOpen(false)}
+              invoiceId={invoice.id}
+              companyId={companyId}
+              defaultCustomerId={invoice.customerId}
+              itemName={invoice.invoiceNumber ?? undefined}
+            />
+
+            <DeleteConfirmDialog
+              open={deleteOpen}
+              onClose={() => setDeleteOpen(false)}
+              title="تأكيد حذف الفاتورة"
+              description="هل أنت متأكد من رغبتك في حذف هذه الفاتورة؟ سيتم حذف سند القبض المرتبط بها أيضاً."
+              itemName={invoice.invoiceNumber ?? `فاتورة #${invoice.id.slice(0, 8)}`}
+              onConfirm={() => deleteDraftInvoiceAction(invoice.id, companyId)}
+              onSuccess={() => router.push(`${cPath}/invoices`)}
+            />
           </div>
 
           {/* Client Details Card with Quick Action Pen Icon */}
@@ -442,6 +493,8 @@ export function InvoicePreviewClient({
         open={templateDrawerOpen}
         onClose={() => setTemplateDrawerOpen(false)}
         selectedTemplateId={templateId}
+        companyId={companyId}
+        invoiceId={invoice.id}
         onSelectTemplate={async (newTemplateId) => {
           if (newTemplateId === templateId) return;
           const previousTemplateId = templateId;

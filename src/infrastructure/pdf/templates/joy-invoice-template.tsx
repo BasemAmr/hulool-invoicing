@@ -318,10 +318,9 @@ export function JoyInvoiceTemplate({
         </View>
 
         {/* ─── 6. AUDIT / CREATOR FOOTER BOX ─── */}
+        {/* NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must
+            never appear on PDFs — creator line removed, date kept. */}
         <View style={styles.auditBox}>
-          {company.clientEmployee ? (
-            <Text style={styles.auditText}>تم الانشاء بواسطة : {company.clientEmployee}</Text>
-          ) : null}
           <Text style={styles.auditText}>تاريخ : {dateTimeStr}</Text>
         </View>
       </Page>
