@@ -39,7 +39,7 @@ import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { formatMoney, toWesternDigits } from "@/lib/format";
 import { ClientCombobox, type ClientOption } from "./client-combobox";
 import { CustomerDrawer } from "@/components/drawers/customer-drawer";
-import { TemplateBrowserDrawer } from "@/components/drawers/template-browser-drawer";
+import { TemplateBrowserDrawer, type DraftInvoicePreview } from "@/components/drawers/template-browser-drawer";
 import { ProductCombobox } from "./product-combobox";
 import {
   TEMPLATES_LIST,
@@ -427,6 +427,31 @@ export function InvoiceWizardForm({
   };
 
   const activeTemplateDef = getTemplateById(templateId);
+
+  // Live preview draft for the template picker: the drawer's POST path renders
+  // these real lines/totals instead of the hardcoded sample items. Null when
+  // no usable lines exist so the route's sample fallback keeps the picker
+  // useful on an empty new form. Numbers are passed through raw (NaN serializes
+  // as null) — the preview route sanitizes everything server-side.
+  const draftPreview: DraftInvoicePreview | null = useMemo(() => {
+    const items = lines
+      .filter((l) => l.description.trim().length > 0)
+      .map((l) => ({
+        description: l.description.trim(),
+        quantity: parseFloat(l.quantity),
+        unitPrice: parseFloat(l.unitPrice),
+        discountAmount: parseFloat(l.discountAmount),
+        vatRate: l.vatRate,
+      }));
+    if (items.length === 0) return null;
+    return {
+      items,
+      notes: notes || undefined,
+      terms: terms || undefined,
+      issueDate: issueDate || undefined,
+      dueDate: dueDate || undefined,
+    };
+  }, [lines, notes, terms, issueDate, dueDate]);
 
   const formattedCompanyAddress = [
     activeCompany?.addressBuildingNumber,
@@ -1131,6 +1156,8 @@ export function InvoiceWizardForm({
         selectedTemplateId={templateId}
         companyId={activeCompany?.id}
         invoiceId={initialInvoice?.id}
+        customerId={selectedCustomerId || undefined}
+        draftInvoice={draftPreview}
         onSelectTemplate={(id) => {
           setTemplateId(id);
           toast({
