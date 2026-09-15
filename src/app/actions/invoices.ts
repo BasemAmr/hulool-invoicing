@@ -11,6 +11,12 @@ import { TEMPLATES_REGISTRY } from "@/infrastructure/pdf/templates/registry";
 import { CreateDraftInvoice } from "@/application/use-cases/create-draft-invoice";
 import { IssueInvoice } from "@/application/use-cases/issue-invoice";
 import { DomainError, ValidationError } from "@/domain/errors";
+import {
+  DUPLICATE_INVOICE_NUMBER_MESSAGE,
+  MISSING_INVOICE_NUMBER_MESSAGE,
+  normalizeCustomInvoiceNumber,
+} from "@/domain/value-objects/invoice-number";
+import { asCompanyId } from "@/domain/branding";
 import { halalas, priceStringToHalalas } from "@/domain/value-objects/money";
 import type { ActionState } from "./types";
 
@@ -83,7 +89,28 @@ export async function createDraftInvoiceAction(
     items,
   };
 
-  let invoiceId: string;
+  // User-editable number (wizard `invoiceNumberCustom`; same name in edit
+  // mode). Server-side only from here: trimmed, validated, uniqueness-checked
+  // in IssueInvoice. Blank = today's auto-allocation, untouched.
+  const customInvoiceNumber = normalizeCustomInvoiceNumber(
+    formData.get("invoiceNumberCustom"),
+  );
+
+  // Early friendly reject BEFORE any write: the common duplicate case returns
+  // without inserting even the numberless draft. The IssueInvoice pre-check +
+  // unique-constraint mapping below remain the backstop for the race where a
+  // duplicate lands between this lookup and issuance.
+  if (customInvoiceNumber) {
+    const clash = await container.invoiceRepository.findByNumber(
+      asCompanyId(String(formData.get("companyId") ?? "")),
+      customInvoiceNumber,
+    );
+    if (clash) {
+      return { status: "error", message: DUPLICATE_INVOICE_NUMBER_MESSAGE };
+    }
+  }
+
+  let invoiceId = "";
   try {
     const draft = await new CreateDraftInvoice(
       container.invoiceRepository,
@@ -104,12 +131,36 @@ export async function createDraftInvoiceAction(
       container.idempotencyStore,
       container.db,
       container.receiptVoucherRepository,
-    ).execute({ invoiceId });
+    ).execute(
+      customInvoiceNumber
+        ? { invoiceId, customInvoiceNumber }
+        : { invoiceId },
+    );
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return { status: "error", message: error.message };
-    }
-    if (error instanceof DomainError) {
+    if (error instanceof ValidationError || error instanceof DomainError) {
+      // Orphan cleanup for the lost race: the early pre-check above passed
+      // but issuance hit the unique constraint, leaving the just-created
+      // numberless draft behind. Delete it best-effort so a rejected save
+      // writes nothing. Deliberate swallow: cleanup failure must never mask
+      // the friendly duplicate message; a leftover numberless draft is
+      // invisible (no number, excluded from numbering) and cleaned by normal
+      // draft flows.
+      if (
+        error instanceof ValidationError &&
+        error.message === DUPLICATE_INVOICE_NUMBER_MESSAGE &&
+        invoiceId
+      ) {
+        try {
+          const { DeleteDraftInvoice } = await import(
+            "@/application/use-cases/delete-draft-invoice"
+          );
+          await new DeleteDraftInvoice(container.invoiceRepository).execute({
+            id: invoiceId,
+          });
+        } catch {
+          // Deliberate swallow — see WHY above.
+        }
+      }
       return { status: "error", message: error.message };
     }
     throw error;
@@ -193,6 +244,16 @@ export async function updateDraftInvoiceAction(
     (formData.get("isSimplified") === "true" ? "simplified" : "standard");
   const templateId = String(formData.get("templateId") ?? "simple_red");
 
+  // Same `invoiceNumberCustom` name as the create form — the actions differ,
+  // so one name suffices (documented in the wizard). Tri-state: field absent
+  // (legacy callers) = preserve; blank = reject on issued (cannot go
+  // numberless), auto on drafts; value = rename with uniqueness enforcement.
+  const numberFieldPresent =
+    typeof formData.get("invoiceNumberCustom") === "string";
+  const requestedNumber = normalizeCustomInvoiceNumber(
+    formData.get("invoiceNumberCustom"),
+  );
+
   const input = {
     id: invoiceId,
     companyId: String(formData.get("companyId") ?? ""),
@@ -204,6 +265,9 @@ export async function updateDraftInvoiceAction(
     invoiceType,
     terms: nonEmpty(formData.get("terms")),
     items,
+    // Spread only when renaming: omitting the key keeps updateDraft's
+    // preserve path (undefined), so legacy/auto callers are untouched.
+    ...(requestedNumber ? { invoiceNumber: requestedNumber } : {}),
   };
 
   try {
@@ -216,11 +280,21 @@ export async function updateDraftInvoiceAction(
     );
     const wasIssued = before?.status === "issued";
 
+    // Blank-on-edit decision needs the status: issued + cleared number is a
+    // friendly reject BEFORE any write; draft + cleared falls through to the
+    // auto path (no rename, IssueInvoice allocates as today).
+    if (numberFieldPresent && !requestedNumber && wasIssued) {
+      return { status: "error", message: MISSING_INVOICE_NUMBER_MESSAGE };
+    }
+
     const { UpdateDraftInvoice } = await import("@/application/use-cases/update-draft-invoice");
     await new UpdateDraftInvoice(container.invoiceRepository).execute(input);
 
     if (!wasIssued) {
       // Former draft (or legacy draft rows): publish it now. Errors surface.
+      // Forward the same custom number so issuance reuses it instead of
+      // auto-allocating over the value updateDraft just stored (IssueInvoice
+      // excludes the issuing row itself from its duplicate pre-check).
       await new IssueInvoice(
         container.invoiceRepository,
         container.companyRepository,
@@ -229,7 +303,9 @@ export async function updateDraftInvoiceAction(
         container.idempotencyStore,
         container.db,
         container.receiptVoucherRepository,
-      ).execute({ invoiceId });
+      ).execute(
+        requestedNumber ? { invoiceId, customInvoiceNumber: requestedNumber } : { invoiceId },
+      );
     } else {
       // Issued invoice was edited: rebuild ZATCA QR (totals changed) and
       // sync the linked receipt voucher amount. Best-effort but logged —

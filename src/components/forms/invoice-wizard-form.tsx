@@ -248,7 +248,7 @@ export function InvoiceWizardForm({
   initialInvoice?: InvoiceDto;
   /** Prefill for "duplicate invoice" creates (new invoice, no id). */
   duplicatePrefill?: DuplicatePrefill;
-  /** Server-computed next number preview (max+1), shown read-only. */
+  /** Server-computed next number preview (max+1), used as the editable default for new invoices. */
   suggestedInvoiceNumber?: string;
   defaultVatRate?: number;
   defaultTemplateId?: string;
@@ -290,19 +290,18 @@ export function InvoiceWizardForm({
     return customersList.find((c) => c.id === selectedCustomerId);
   }, [customersList, selectedCustomerId]);
 
-  // Invoice number is allocated server-side on save (atomic per-company
-  // sequence). Never trust a client-side guess: show the server's max+1
-  // preview read-only for new invoices, and the real number when editing.
-  // The old `${prefix}-00001` simulation always showed ...-00001, which is
-  // why new invoices *looked* like they reused the same number.
-  const simulatedInvoiceNumber = useMemo(() => {
-    if (suggestedInvoiceNumber) return suggestedInvoiceNumber;
-    const prefix = activeCompany?.prefix || "INV";
-    return `${prefix}- (ترقيم تلقائي عند الحفظ)`;
-  }, [activeCompany, suggestedInvoiceNumber]);
-
-  const [invoiceNumber] = useState(
-    initialInvoice?.invoiceNumber || simulatedInvoiceNumber
+  // Invoice number is user-editable but server-authoritative: the value here
+  // is only the REQUESTED string — IssueInvoice / UpdateDraftInvoice
+  // re-validate it (trim, max 64) and enforce per-company uniqueness
+  // (friendly pre-check + unique-constraint backstop), so a hostile or stale
+  // client value can never create a duplicate. New invoices (and the
+  // duplicate flow, which is a NEW invoice) prefill the server's max+1
+  // suggestion; edits prefill the real number; numberless drafts prefill the
+  // suggestion when available, else empty (empty+draft → auto on save).
+  // Single field name `invoiceNumberCustom` for both modes: create and edit
+  // submit to different server actions, so no mode flag is needed.
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    initialInvoice?.invoiceNumber || suggestedInvoiceNumber || ""
   );
 
   // Every invoice is published immediately — no draft option.
@@ -819,24 +818,26 @@ export function InvoiceWizardForm({
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 text-xs">
-            {/* Invoice Number (read-only preview; server allocates atomically) */}
+            {/* Invoice Number (editable request; server enforces per-company uniqueness) */}
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] font-medium text-muted-foreground">
                 رقم الفاتورة
               </label>
               <Input
+                name="invoiceNumberCustom"
                 value={invoiceNumber}
-                readOnly
-                disabled
-                placeholder="ترقيم تلقائي"
-                title="يُخصَّص رقم الفاتورة تلقائياً عند الحفظ بتسلسل الشركة"
-                className="text-xs font-mono h-6.5 px-2 bg-muted/40"
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                maxLength={64}
+                dir="auto"
+                placeholder="ترقيم تلقائي عند الحفظ"
+                title="يمكنك تعديل الرقم — يجب أن يكون فريداً ضمن الشركة"
+                className="text-xs font-mono h-6.5 px-2"
               />
-              {!initialInvoice && (
-                <span className="text-[9px] text-muted-foreground">
-                  ترقيم تلقائي متسلسل — الرقم النهائي يُحجز عند الحفظ.
-                </span>
-              )}
+              <span className="text-[9px] text-muted-foreground">
+                {initialInvoice
+                  ? "قابل للتعديل — يجب أن يكون فريداً ضمن الشركة."
+                  : "عدّله أو اتركه للترقيم التلقائي — يجب أن يكون فريداً ضمن الشركة."}
+              </span>
             </div>
 
             {/* Template Selector Dropdown */}

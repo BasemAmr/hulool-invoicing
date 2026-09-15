@@ -5,6 +5,7 @@ import {
   VAT_NUMBER_PATTERN,
   VAT_RATE,
 } from "../constants";
+import { MAX_CUSTOM_INVOICE_NUMBER_LENGTH } from "../value-objects/invoice-number";
 
 /**
  * Zod contracts â€” single source of truth for both server-side validation
@@ -130,6 +131,21 @@ export const invoiceCreateSchema = z.object({
 export type InvoiceCreateInput = z.infer<typeof invoiceCreateSchema>;
 export const invoiceUpdateSchema = invoiceCreateSchema.extend({
   id: z.string().uuid(),
+  // Optional rename requested from the editable wizard field. Deliberately
+  // permissive (no auto-pattern enforcement) + optional: undefined preserves
+  // the stored number, "" is rejected with a dedicated message in
+  // UpdateDraftInvoice (an issued invoice cannot go numberless). The create
+  // schema is intentionally untouched — drafts stay numberless and the
+  // create-side custom value flows via IssueInvoiceInput.customInvoiceNumber.
+  // DB column is unbounded text (schema.ts), so 64 is an app-level guard.
+  invoiceNumber: z
+    .string()
+    .trim()
+    .max(
+      MAX_CUSTOM_INVOICE_NUMBER_LENGTH,
+      `رقم الفاتورة طويل جداً — الحد الأقصى ${MAX_CUSTOM_INVOICE_NUMBER_LENGTH} حرفاً`,
+    )
+    .optional(),
 });
 export type InvoiceUpdateInput = z.infer<typeof invoiceUpdateSchema>;
 
