@@ -74,6 +74,9 @@ export class CreateDraftInvoice {
         templateId: data.templateId || "simple_red",
         invoiceType: data.invoiceType,
         issueDate: data.issueDate,
+        // Missing (legacy callers/tests) → midnight; invalid is already
+        // rejected by the Zod HH:MM regex above, so this is a default, not a mask.
+        issueTime: data.issueTime ?? "00:00",
         dueDate: data.dueDate ?? null,
         terms: data.terms ?? null,
         notes: data.notes ?? null,

@@ -82,6 +82,9 @@ export async function createDraftInvoiceAction(
     customerId: String(formData.get("customerId") ?? ""),
     templateId,
     issueDate: String(formData.get("issueDate") ?? ""),
+    // HH:MM from the wizard time picker; validated by the Zod contract,
+    // normalized to "00:00" in the use case when absent (legacy callers).
+    issueTime: nonEmpty(formData.get("issueTime")),
     dueDate: nonEmpty(formData.get("dueDate")),
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
@@ -260,6 +263,8 @@ export async function updateDraftInvoiceAction(
     customerId: String(formData.get("customerId") ?? ""),
     templateId,
     issueDate: String(formData.get("issueDate") ?? ""),
+    // Same HH:MM contract as the create path above.
+    issueTime: nonEmpty(formData.get("issueTime")),
     dueDate: nonEmpty(formData.get("dueDate")),
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
@@ -312,6 +317,9 @@ export async function updateDraftInvoiceAction(
       // the totals edit itself already succeeded above.
       try {
         const { buildQrPayload } = await import("@/domain/services/zatca-qr-service");
+        const { invoiceDateTimeToUtcIso } = await import(
+          "@/domain/services/invoice-datetime"
+        );
         const after = await container.invoiceRepository.findByIdWithItems(
           asInvoiceId(invoiceId),
         );
@@ -319,10 +327,18 @@ export async function updateDraftInvoiceAction(
           ? await container.companyRepository.findById(after.companyId)
           : null;
         if (after && company) {
+          // Edit-path refresh uses the (possibly just-edited) invoice
+          // datetime read post-update — same source as the issue path. now()
+          // survives only as the corrupt-data fallback, never the timestamp.
+          const timestampIso = invoiceDateTimeToUtcIso(
+            after.issueDate,
+            after.issueTime ?? "00:00",
+            new Date(),
+          );
           const qrPayload = buildQrPayload({
             sellerName: company.nameAr,
             vatNumber: company.vatNumber,
-            timestampIso: new Date().toISOString(),
+            timestampIso,
             invoiceTotal: after.total,
             vatTotal: after.vatAmount,
           });
@@ -347,6 +363,7 @@ export async function updateDraftInvoiceAction(
                   companyId: after.companyId as unknown as string,
                   customerId: after.customerId as unknown as string,
                   invoiceId,
+                  // Receipt vouchers stay date-only: date part of the invoice datetime.
                   voucherDate: after.issueDate,
                   amount: after.total as unknown as number,
                   paymentMethod: "other",

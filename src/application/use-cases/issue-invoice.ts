@@ -6,6 +6,7 @@ import {
   ValidationError,
 } from "@/domain/errors";
 import { buildQrPayload } from "@/domain/services/zatca-qr-service";
+import { invoiceDateTimeToUtcIso } from "@/domain/services/invoice-datetime";
 import {
   DUPLICATE_INVOICE_NUMBER_MESSAGE,
   INVOICE_NUMBER_TOO_LONG_MESSAGE,
@@ -162,11 +163,21 @@ export class IssueInvoice {
       }
 
       // 5. Build ZATCA QR payload
+      // Root fix: Tag 3 is the INVOICE's own datetime (date + Riyadh
+      // wall-time → UTC instant), never server-now. `issuedAt` below stays
+      // the system issuance moment — a different concept. now() survives only
+      // as the corrupt-data fallback inside invoiceDateTimeToUtcIso, not the
+      // normal path.
       const now = this.clock.now();
+      const timestampIso = invoiceDateTimeToUtcIso(
+        invoice.issueDate,
+        invoice.issueTime ?? "00:00",
+        now,
+      );
       const qrPayload = buildQrPayload({
         sellerName: company.nameAr,
         vatNumber: company.vatNumber,
-        timestampIso: now.toISOString(),
+        timestampIso,
         invoiceTotal: invoice.total,
         vatTotal: invoice.vatAmount,
       });
@@ -204,6 +215,7 @@ export class IssueInvoice {
             companyId: invoice.companyId,
             customerId: invoice.customerId,
             invoiceId: invoice.id,
+            // Receipt vouchers stay date-only: feed the date part, not the time.
             voucherDate: invoice.issueDate,
             amount: invoice.total,
             paymentMethod: "other",

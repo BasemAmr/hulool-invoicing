@@ -12,6 +12,7 @@ import type {
 } from "@/application/ports/invoice-repository";
 import type { Database, Tx } from "@/application/tx";
 import { InvalidTransitionError, NotFoundError } from "@/domain/errors";
+import { normalizeIssueTime } from "@/domain/services/invoice-datetime";
 import { fromDecimalString, toDecimalString } from "@/domain/value-objects/money";
 import { invoices, invoiceItems, receiptVouchers } from "../schema";
 
@@ -43,6 +44,9 @@ function mapInvoiceRow(inv: InvoiceRow, items: InvoiceItemRow[]): InvoiceRecord 
     invoiceNumber: inv.invoiceNumber,
     status: inv.status,
     issueDate: inv.issueDate,
+    // Legacy rows predate the column: the DB default backfills "00:00", but
+    // null-guard here too so in-memory/older snapshots never leak undefined.
+    issueTime: inv.issueTime ?? "00:00",
     dueDate: inv.dueDate,
     currency: inv.currency,
     subtotal: fromDecimalString(inv.subtotal),
@@ -76,6 +80,9 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           invoiceNumber: null,
           status: "draft",
           issueDate: input.issueDate,
+          // Normalize at the DB boundary: legacy callers omitting the time
+          // (and any corrupt value) persist as midnight, never null/garbage.
+          issueTime: normalizeIssueTime(input.issueTime),
           dueDate: input.dueDate,
           currency: input.currency,
           subtotal: toDecimalString(input.subtotal),
@@ -146,6 +153,9 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           templateId: input.templateId || existing.templateId || "simple_red",
           invoiceType: input.invoiceType,
           issueDate: input.issueDate,
+          // Same midnight fallback as createDraft: an omitted time on edit
+          // (legacy callers) keeps a valid HH:MM instead of nulling the column.
+          issueTime: normalizeIssueTime(input.issueTime),
           dueDate: input.dueDate,
           currency: input.currency,
           subtotal: toDecimalString(input.subtotal),

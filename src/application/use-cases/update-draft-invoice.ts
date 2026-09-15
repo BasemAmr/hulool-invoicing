@@ -120,6 +120,9 @@ export class UpdateDraftInvoice {
           templateId: data.templateId || "simple_red",
           invoiceType: data.invoiceType,
           issueDate: data.issueDate,
+          // Same midnight default as CreateDraftInvoice: omitted on edit
+          // (legacy callers) must not null the stored time.
+          issueTime: data.issueTime ?? "00:00",
           dueDate: data.dueDate ?? null,
           terms: data.terms ?? null,
           notes: data.notes ?? null,

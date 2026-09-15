@@ -21,11 +21,18 @@ interface DuplicateInvoiceDialogProps {
   defaultCustomerId?: string;
   /** Defaults to today. */
   defaultIssueDate?: string;
+  /** Defaults to the current local time. */
+  defaultIssueTime?: string;
   itemName?: string;
 }
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function nowTimeHm(): string {
+  const n = new Date();
+  return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
 }
 
 /**
@@ -40,18 +47,23 @@ export function DuplicateInvoiceDialog({
   companyId,
   defaultCustomerId,
   defaultIssueDate,
+  defaultIssueTime,
   itemName,
 }: DuplicateInvoiceDialogProps) {
   const router = useRouter();
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customerId, setCustomerId] = useState(defaultCustomerId ?? "");
   const [issueDate, setIssueDate] = useState(defaultIssueDate ?? todayIso());
+  // Duplicate defaults to now (fresh QR instant), not the source time — the
+  // new invoice's QR must carry its own datetime.
+  const [issueTime, setIssueTime] = useState(defaultIssueTime ?? nowTimeHm());
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setCustomerId(defaultCustomerId ?? "");
     setIssueDate(defaultIssueDate ?? todayIso());
+    setIssueTime(defaultIssueTime ?? nowTimeHm());
     let cancelled = false;
     async function load() {
       setLoadingCustomers(true);
@@ -75,7 +87,7 @@ export function DuplicateInvoiceDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, defaultCustomerId, defaultIssueDate]);
+  }, [open, defaultCustomerId, defaultIssueDate, defaultIssueTime]);
 
   if (!open) return null;
 
@@ -85,6 +97,8 @@ export function DuplicateInvoiceDialog({
       duplicateFrom: invoiceId,
       customerId,
       issueDate,
+      // Prefill the wizard's time picker on the new page.
+      issueTime,
     });
     const target = companyId
       ? `/c/${companyId}/invoices/new?${params.toString()}`
@@ -152,11 +166,22 @@ export function DuplicateInvoiceDialog({
             <label className="text-[11px] font-semibold text-foreground">
               تاريخ الفاتورة الجديدة
             </label>
-            <DatePickerInput
-              value={issueDate}
-              onChange={(val) => setIssueDate(val)}
-              className="text-xs h-8"
-            />
+            <div className="flex items-center gap-1.5">
+              <DatePickerInput
+                value={issueDate}
+                onChange={(val) => setIssueDate(val)}
+                className="text-xs h-8 flex-1"
+              />
+              {/* Native HH:MM picker beside the date (DatePickerInput is date-only). */}
+              <input
+                type="time"
+                dir="ltr"
+                value={issueTime}
+                onChange={(e) => setIssueTime(e.target.value)}
+                aria-label="وقت الفاتورة الجديدة (HH:MM)"
+                className="h-8 text-xs font-mono tabular-nums bg-background border border-input px-1 text-foreground w-[86px]"
+              />
+            </div>
             <span className="text-[10px] text-muted-foreground">
               القيمة الافتراضية: تاريخ اليوم.
             </span>

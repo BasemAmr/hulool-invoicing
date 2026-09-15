@@ -24,6 +24,12 @@ export interface InvoiceRecord {
   invoiceNumber: string | null;
   status: DocumentStatus;
   issueDate: string;
+  /**
+   * HH:MM Riyadh wall-time (see invoice-datetime.ts). Optional so legacy
+   * in-memory fakes/tests omitting it keep compiling — readers normalize
+   * missing to "00:00" (midnight). The DB column itself is NOT NULL.
+   */
+  issueTime?: string;
   dueDate: string | null;
   currency: string;
   subtotal: Halalas;
@@ -44,6 +50,8 @@ export interface CreateDraftInvoiceInput {
   templateId?: string;
   invoiceType: 'standard' | 'simplified';
   issueDate: string;
+  /** Optional on input: missing (legacy callers/tests) normalizes to "00:00". */
+  issueTime?: string;
   dueDate: string | null;
   terms: string | null;
   notes: string | null;

@@ -222,6 +222,8 @@ function VatRateCell({
 export interface DuplicatePrefill {
   customerId?: string;
   issueDate?: string;
+  /** HH:MM Riyadh wall-time prefill for the duplicate flow. */
+  issueTime?: string;
   dueDate?: string | null;
   templateId?: string;
   invoiceType?: "standard" | "simplified";
@@ -321,6 +323,20 @@ export function InvoiceWizardForm({
       initialInvoice?.issueDate ||
       duplicatePrefill?.issueDate ||
       new Date().toISOString().slice(0, 10)
+  );
+  // HH:MM wall-time (Asia/Riyadh) next to the date. New invoices default to
+  // the current local time; edit/duplicate reuse the stored time so the QR
+  // round-trips; legacy rows without a time fall back to midnight.
+  const [issueTime, setIssueTime] = useState(
+    () =>
+      initialInvoice?.issueTime ||
+      duplicatePrefill?.issueTime ||
+      (() => {
+        const n = new Date();
+        const hh = String(n.getHours()).padStart(2, "0");
+        const mm = String(n.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      })()
   );
   const [dueDate, setDueDate] = useState(
     initialInvoice?.dueDate || duplicatePrefill?.dueDate || ""
@@ -526,6 +542,12 @@ export function InvoiceWizardForm({
       message: "تم نسخ بيانات الفاتورة الحالية لإصدار نسخة جديدة.",
     });
     setIssueDate(new Date().toISOString().slice(0, 10));
+    // Copy also refreshes the time to now: the new invoice's QR must carry
+    // its own instant, not the source invoice's wall-time.
+    const n = new Date();
+    setIssueTime(
+      `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`
+    );
     setGearOpen(false);
   };
 
@@ -583,9 +605,10 @@ export function InvoiceWizardForm({
       notes: notes || undefined,
       terms: terms || undefined,
       issueDate: issueDate || undefined,
+      issueTime: issueTime || undefined,
       dueDate: dueDate || undefined,
     };
-  }, [lines, notes, terms, issueDate, dueDate]);
+  }, [lines, notes, terms, issueDate, issueTime, dueDate]);
 
   const formattedCompanyAddress = [
     activeCompany?.addressBuildingNumber,
@@ -865,17 +888,32 @@ export function InvoiceWizardForm({
               </select>
             </div>
 
-            {/* Issue Date */}
+            {/* Issue Date + Time */}
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] font-medium text-muted-foreground">
                 تاريخ الإصدار *
               </label>
-              <DatePickerInput
-                name="issueDate"
-                value={issueDate}
-                onChange={(val) => setIssueDate(val)}
-                className="text-xs h-6.5"
-              />
+              <div className="flex items-center gap-1">
+                <DatePickerInput
+                  name="issueDate"
+                  value={issueDate}
+                  onChange={(val) => setIssueDate(val)}
+                  className="text-xs h-6.5 flex-1"
+                />
+                {/* Native time input: DatePickerInput is date-only, so a
+                    plain HH:MM picker rides beside it at the same density.
+                    Named `issueTime` so it submits with the form. */}
+                <input
+                  type="time"
+                  name="issueTime"
+                  dir="ltr"
+                  value={issueTime}
+                  onChange={(e) => setIssueTime(e.target.value)}
+                  required
+                  aria-label="وقت الإصدار (HH:MM)"
+                  className="h-8 text-xs font-mono tabular-nums bg-background border border-input px-1 text-foreground w-[86px]"
+                />
+              </div>
             </div>
 
             {/* Due Date */}

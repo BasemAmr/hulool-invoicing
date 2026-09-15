@@ -93,6 +93,11 @@ function buildSampleInvoiceDto(
     invoiceType: "simplified",
     status: "issued",
     issueDate: new Date().toISOString().slice(0, 10),
+    // Sample preview only: current local time, display-only (QR is a fixed sample).
+    issueTime: (() => {
+      const n = new Date();
+      return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+    })(),
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     currency: "SAR",
     subtotal: "5000.00",
@@ -176,12 +181,14 @@ interface DraftInput {
   notes?: unknown;
   terms?: unknown;
   issueDate?: unknown;
+  issueTime?: unknown;
   dueDate?: unknown;
   invoiceType?: unknown;
   invoiceNumber?: unknown;
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
  * Build a preview InvoiceDto from live wizard draft state.
@@ -278,6 +285,12 @@ function buildDraftInvoiceDto(
     typeof draft.dueDate === "string" && DATE_RE.test(draft.dueDate)
       ? draft.dueDate
       : null;
+  // Draft preview only feeds display (QR is the fixed sample): accept a valid
+  // HH:MM, else midnight — never garbage.
+  const issueTime =
+    typeof draft.issueTime === "string" && TIME_RE.test(draft.issueTime)
+      ? draft.issueTime
+      : "00:00";
   const notes =
     typeof draft.notes === "string" && draft.notes.trim().length > 0 ? draft.notes : null;
   const terms =
@@ -296,6 +309,7 @@ function buildDraftInvoiceDto(
     invoiceType,
     status: "issued",
     issueDate,
+    issueTime,
     dueDate,
     currency: "SAR",
     subtotal: toDecimalString(totals.subtotal),
