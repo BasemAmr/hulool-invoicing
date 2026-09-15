@@ -1,8 +1,8 @@
 import { asCompanyId, asCustomerId, asInvoiceId } from "@/domain/branding";
-import { halalas } from "@/domain/value-objects/money";
+import { halalas, priceStringToHalalas, toDecimalString } from "@/domain/value-objects/money";
 import { CURRENCY } from "@/domain/constants";
 import { invoiceUpdateSchema } from "@/domain/contracts";
-import { calculateTotals } from "@/domain/services/totals-calculator";
+import { calculateTotalsExact } from "@/domain/services/totals-calculator";
 import { ValidationError } from "@/domain/errors";
 import { toInvoiceDto } from "../dto";
 import type { InvoiceDto } from "../dto";
@@ -27,13 +27,20 @@ export class UpdateDraftInvoice {
     }
     const data = parsed.data;
 
-    const totalsInput = data.items.map((item) => ({
-      unitPrice: halalas(item.unitPrice),
-      quantity: item.quantity,
-      discountAmount: halalas(item.discountAmount ?? 0),
-      vatRate: item.vatRate,
-    }));
-    const totals = calculateTotals(totalsInput);
+    // Same exact-totals path as CreateDraftInvoice (see its WHY comment):
+    // string SAR prices multiply before rounding; stored unit_price stays
+    // numeric(15,2) via priceStringToHalalas.
+    const totals = calculateTotalsExact(
+      data.items.map((item) => ({
+        unitPrice:
+          typeof item.unitPrice === "string"
+            ? item.unitPrice
+            : toDecimalString(halalas(item.unitPrice)),
+        quantity: item.quantity,
+        discountAmount: halalas(item.discountAmount ?? 0),
+        vatRate: item.vatRate,
+      })),
+    );
 
     const items: InvoiceItemRecord[] = data.items.map((item, i) => {
       const line = totals.lines[i];
@@ -45,7 +52,10 @@ export class UpdateDraftInvoice {
         position: i + 1,
         description: item.description,
         quantity: item.quantity,
-        unitPrice: halalas(item.unitPrice),
+        unitPrice:
+          typeof item.unitPrice === "string"
+            ? priceStringToHalalas(item.unitPrice)
+            : halalas(item.unitPrice),
         discountAmount: halalas(item.discountAmount ?? 0),
         vatRate: item.vatRate,
         lineSubtotal: line.lineSubtotal,

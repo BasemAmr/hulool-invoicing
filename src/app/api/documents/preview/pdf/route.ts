@@ -2,8 +2,13 @@ import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
 import { asInvoiceId, asCompanyId, asCustomerId } from "@/domain/branding";
 import { toInvoiceDto, type InvoiceDto } from "@/application/dto";
-import { calculateTotals } from "@/domain/services/totals-calculator";
-import { halalas, toDecimalString } from "@/domain/value-objects/money";
+import { calculateTotalsExact } from "@/domain/services/totals-calculator";
+import {
+  fromDecimalString,
+  halalas,
+  priceStringToHalalas,
+  toDecimalString,
+} from "@/domain/value-objects/money";
 import QRCode from "qrcode";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { CustomerRecord } from "@/application/ports/customer-repository";
@@ -129,18 +134,6 @@ function buildSampleInvoiceDto(
 
 // ─── Draft sanitizers (defensive: NaN/negative garbage → safe defaults) ───
 
-function toSafeQuantity(v: unknown): number {
-  const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
-  if (!Number.isFinite(n) || n < 0) return 1;
-  return n;
-}
-
-function toSafeMoneySar(v: unknown): number {
-  const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return n;
-}
-
 function toSafeVatRate(v: unknown): number {
   const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
   // Invalid/negative → company default 15%.
@@ -149,6 +142,25 @@ function toSafeVatRate(v: unknown): number {
   if (n > 1 && n <= 100) return n / 100;
   if (n > 1) return 0.15;
   return n;
+}
+
+/**
+ * Keep a raw decimal string for EXACT math (never parseFloat a price that
+ * will be multiplied: 17.95319 → parseFloat → toFixed(2) → 17.95 loses
+ * qty×fraction before the multiply — the 5368-vs-5367.05 bug). Accepts
+ * legacy numbers via String(v); garbage → fallback.
+ */
+function toSafeDecimalString(v: unknown, fallback: string): string {
+  const s =
+    typeof v === "number"
+      ? String(v)
+      : typeof v === "string"
+        ? v.trim()
+        : "";
+  if (!s || !/^\d+(\.\d+)?$/.test(s)) return fallback;
+  const n = parseFloat(s);
+  if (!Number.isFinite(n)) return fallback;
+  return s;
 }
 
 interface DraftItemInput {
@@ -194,37 +206,62 @@ function buildDraftInvoiceDto(
     description:
       (typeof raw.description === "string" ? raw.description.trim() : "") ||
       "بند غير مسمى",
-    quantity: toSafeQuantity(raw.quantity),
-    unitPriceSar: toSafeMoneySar(raw.unitPrice),
-    discountSar: toSafeMoneySar(raw.discountAmount),
+    // Raw strings feed calculateTotalsExact (multiply full precision, round
+    // ONCE) — identical to wizard display + save math.
+    quantityStr: toSafeDecimalString(raw.quantity, "1"),
+    unitPriceStr: toSafeDecimalString(raw.unitPrice, "0"),
+    discountStr: toSafeDecimalString(raw.discountAmount, "0"),
     vatRate: toSafeVatRate(raw.vatRate),
   }));
 
-  // Integer-halalas math via the shared domain calculator (same semantics as
-  // the create-draft use case: gross - discount clamped at 0, VAT per line).
-  const totalsInput = sanitized.map((l) => ({
-    unitPrice: halalas(Math.round(l.unitPriceSar * 100)),
-    quantity: l.quantity,
-    discountAmount: halalas(Math.round(l.discountSar * 100)),
-    vatRate: l.vatRate,
-  }));
+  // Integer-halalas math via the shared exact domain calculator (same
+  // semantics as the create/update use cases: exact gross - discount clamped
+  // at 0, VAT per line). Discounts are halala-denominated (2 decimals), so
+  // they go through the same fromDecimalString(toFixed(2)) normalization the
+  // wizard display uses.
   let totals;
   try {
-    totals = calculateTotals(totalsInput);
+    totals = calculateTotalsExact(
+      sanitized.map((l) => ({
+        unitPrice: l.unitPriceStr,
+        quantity: l.quantityStr,
+        discountAmount: fromDecimalString(
+          (parseFloat(l.discountStr) || 0).toFixed(2),
+        ),
+        vatRate: l.vatRate,
+      })),
+    );
   } catch {
     return null;
   }
 
   const items = sanitized.map((l, i) => {
     const line = totals.lines[i];
-    // calculateTotals guarantees one output line per input line.
+    // calculateTotalsExact guarantees one output line per input line.
     const safeLine = line ?? { lineSubtotal: halalas(0), lineVat: halalas(0), lineTotal: halalas(0) };
+    // Persisted unit_price is numeric(15,2): show the same half-up-rounded
+    // value the DB stores, while line totals stay exact (rounded once after
+    // multiply). parseFloat here is display-only rounding, not math input.
+    let storedUnitPrice: string;
+    let storedDiscount: string;
+    try {
+      storedUnitPrice = toDecimalString(priceStringToHalalas(l.unitPriceStr));
+    } catch {
+      storedUnitPrice = "0.00";
+    }
+    try {
+      storedDiscount = toDecimalString(
+        fromDecimalString((parseFloat(l.discountStr) || 0).toFixed(2)),
+      );
+    } catch {
+      storedDiscount = "0.00";
+    }
     return {
       position: i + 1,
       description: l.description,
-      quantity: l.quantity,
-      unitPrice: toDecimalString(halalas(Math.round(l.unitPriceSar * 100))),
-      discountAmount: toDecimalString(halalas(Math.round(l.discountSar * 100))),
+      quantity: parseFloat(l.quantityStr) || 1,
+      unitPrice: storedUnitPrice,
+      discountAmount: storedDiscount,
       vatRate: l.vatRate,
       lineSubtotal: toDecimalString(safeLine.lineSubtotal),
       lineVat: toDecimalString(safeLine.lineVat),

@@ -1,8 +1,8 @@
 import { asCompanyId, asCustomerId } from "@/domain/branding";
-import { halalas } from "@/domain/value-objects/money";
+import { halalas, priceStringToHalalas, toDecimalString } from "@/domain/value-objects/money";
 import { CURRENCY } from "@/domain/constants";
 import { invoiceCreateSchema } from "@/domain/contracts";
-import { calculateTotals } from "@/domain/services/totals-calculator";
+import { calculateTotalsExact } from "@/domain/services/totals-calculator";
 import { ValidationError } from "@/domain/errors";
 import { toInvoiceDto } from "../dto";
 import type { InvoiceDto } from "../dto";
@@ -26,13 +26,23 @@ export class CreateDraftInvoice {
     }
     const data = parsed.data;
 
-    const totalsInput = data.items.map((item) => ({
-      unitPrice: halalas(item.unitPrice),
-      quantity: item.quantity,
-      discountAmount: halalas(item.discountAmount ?? 0),
-      vatRate: item.vatRate,
-    }));
-    const totals = calculateTotals(totalsInput);
+    // Exact totals: string SAR prices multiply BEFORE rounding (round once
+    // per line inside calculateTotalsExact — identical to the wizard display
+    // helper lineSubtotalHalalasExact). Legacy halalas integers are lifted
+    // back to a 2-decimal SAR string so both input shapes share one path.
+    // The persisted unit_price column stays numeric(15,2): rounded half-up
+    // via priceStringToHalalas at the DB boundary below.
+    const totals = calculateTotalsExact(
+      data.items.map((item) => ({
+        unitPrice:
+          typeof item.unitPrice === "string"
+            ? item.unitPrice
+            : toDecimalString(halalas(item.unitPrice)),
+        quantity: item.quantity,
+        discountAmount: halalas(item.discountAmount ?? 0),
+        vatRate: item.vatRate,
+      })),
+    );
 
     const items: InvoiceItemRecord[] = data.items.map((item, i) => {
       const line = totals.lines[i];
@@ -44,7 +54,10 @@ export class CreateDraftInvoice {
         position: i + 1,
         description: item.description,
         quantity: item.quantity,
-        unitPrice: halalas(item.unitPrice),
+        unitPrice:
+          typeof item.unitPrice === "string"
+            ? priceStringToHalalas(item.unitPrice)
+            : halalas(item.unitPrice),
         discountAmount: halalas(item.discountAmount ?? 0),
         vatRate: item.vatRate,
         lineSubtotal: line.lineSubtotal,
