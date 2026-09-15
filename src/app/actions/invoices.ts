@@ -363,29 +363,50 @@ export async function deleteDraftInvoiceAction(
     return { status: "error", message: "معرّف الفاتورة مفقود" };
   }
 
-  try {
-    // Remove the linked receipt voucher first so no orphan voucher keeps a
-    // stale reference to the deleted invoice number.
+  // Resolve the owning company for cache invalidation. Callers should pass
+  // companyId, but dashboard call sites historically omit it — look it up
+  // so the company list never goes stale after a dashboard-initiated delete.
+  let resolvedCompanyId = companyId;
+  if (!resolvedCompanyId) {
     try {
-      const voucher =
-        await container.receiptVoucherRepository.findByInvoiceId(id);
-      if (voucher) {
-        await container.receiptVoucherRepository.delete(voucher.id);
+      const { asInvoiceId } = await import("@/domain/branding");
+      const existing = await container.invoiceRepository.findByIdWithItems(
+        asInvoiceId(id),
+      );
+      if (existing) {
+        resolvedCompanyId = String(existing.companyId);
       }
     } catch {
-      // Best-effort: continue with invoice deletion even if voucher lookup fails.
+      // Deliberate swallow: company resolution is only for revalidation.
+      // If the lookup fails, the delete below still runs and surfaces the
+      // real result; worst case is a stale list until the next refresh.
     }
+  }
+
+  try {
+    // Voucher + line-item cleanup happens atomically inside
+    // InvoiceRepository.deleteDraft (single transaction: vouchers →
+    // items → parent). It used to be a best-effort voucher delete here
+    // BEFORE the invoice delete, which was non-atomic: when the parent
+    // delete then failed on the invoice_items FK, the voucher was already
+    // gone. Kept out of this layer on purpose.
     const { DeleteDraftInvoice } = await import("@/application/use-cases/delete-draft-invoice");
     await new DeleteDraftInvoice(container.invoiceRepository).execute({ id });
-    if (companyId) {
-      revalidatePath(`/c/${companyId}/invoices`);
+    if (resolvedCompanyId) {
+      revalidatePath(`/c/${resolvedCompanyId}/invoices`);
+      revalidatePath(`/c/${resolvedCompanyId}/invoices/${id}`);
     }
     revalidatePath("/invoices");
+    revalidatePath(`/invoices/${id}`);
     return { status: "success" };
   } catch (error) {
     if (error instanceof DomainError) {
       return { status: "error", message: error.message };
     }
+    // Deliberate generic message: unexpected errors here are FK/DB
+    // failures with no actionable detail for the user. Log server-side
+    // so the real cause is still observable.
+    console.error("deleteDraftInvoiceAction failed:", error);
     return { status: "error", message: "تعذر حذف الفاتورة" };
   }
 }

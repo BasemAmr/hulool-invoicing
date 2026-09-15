@@ -76,6 +76,7 @@ export default async function InvoicePreviewPage({
                 invoiceNumber: dto.invoiceNumber,
                 status: dto.status,
               }}
+              companyId={dto.companyId}
               redirectAfterDelete
             />
 

@@ -12,7 +12,7 @@ import type {
 import type { Database, Tx } from "@/application/tx";
 import { InvalidTransitionError, NotFoundError } from "@/domain/errors";
 import { fromDecimalString, toDecimalString } from "@/domain/value-objects/money";
-import { invoices, invoiceItems } from "../schema";
+import { invoices, invoiceItems, receiptVouchers } from "../schema";
 
 type InvoiceRow = typeof invoices.$inferSelect;
 type InvoiceItemRow = typeof invoiceItems.$inferSelect;
@@ -189,18 +189,34 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
   }
 
   async deleteDraft(id: InvoiceId): Promise<void> {
-    const [existing] = await this.db
-      .select()
-      .from(invoices)
-      .where(eq(invoices.id, id));
+    return this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, id));
 
-    if (!existing) {
-      throw new NotFoundError("Invoice not found");
-    }
-    // Business rule (2026-09): any invoice (draft or published) can be
-    // deleted from the table or preview. No status guard.
+      if (!existing) {
+        throw new NotFoundError("Invoice not found");
+      }
+      // Business rule (2026-09): any invoice (draft or published) can be
+      // deleted from the table or preview. No status guard.
 
-    await this.db.delete(invoices).where(eq(invoices.id, id));
+      // Children-before-parent ordering is mandatory: the live
+      // `invoice_items.invoice_id` FK is ON DELETE NO ACTION (see
+      // drizzle/0000 + snapshots; schema.ts declares cascade but the DB
+      // was created without it), so deleting the parent first raises an
+      // FK violation for every invoice that has lines — i.e. all of them.
+      // Mirrors the existing updateDraft pattern (delete items, then act
+      // on the parent) so the fix stays fixed regardless of DB state.
+      // Receipt vouchers are deleted here too (same tx) instead of the
+      // action layer: their FK is ON DELETE SET NULL, which would
+      // otherwise leave an orphan voucher with a nulled invoice_id.
+      await tx
+        .delete(receiptVouchers)
+        .where(eq(receiptVouchers.invoiceId, id));
+      await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, id));
+      await tx.delete(invoices).where(eq(invoices.id, id));
+    });
   }
 
   async findByIdWithItems(
