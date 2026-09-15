@@ -1,4 +1,5 @@
 import type { Halalas } from "../branding";
+import { ValidationError } from "../errors";
 import { toDecimalString } from "../value-objects/money";
 
 /**
@@ -55,12 +56,42 @@ function concatBytes(...arrays: Uint8Array[]): Uint8Array {
   return out;
 }
 
+/**
+ * Normalize any parseable ISO instant to the ZATCA Phase 1 Tag 3 shape:
+ * seconds-precision UTC `YYYY-MM-DDTHH:mm:ssZ` (no fractional seconds).
+ *
+ * WHY parse-then-re-emit instead of string-slicing the input: the input may
+ * carry an offset (e.g. `...+03:00`). Slicing the raw string would write a
+ * lying instant; `new Date()` converts the offset to the true UTC moment
+ * first, and the slice below applies to `toISOString()` output (always UTC
+ * `...ss.sssZ`), so the emitted instant is honest.
+ *
+ * WHY throw: the previous behavior embedded `timestampIso` verbatim with no
+ * validation, so garbage input silently produced a corrupt QR. Throwing
+ * ValidationError keeps it loud — the issue/edit callers already map
+ * ValidationError (a DomainError) to friendly user messages.
+ */
+export function normalizeQrTimestamp(timestampIso: string): string {
+  if (typeof timestampIso !== "string" || timestampIso.length === 0) {
+    throw new ValidationError(`Invalid QR timestamp: "${timestampIso}"`);
+  }
+  const d = new Date(timestampIso);
+  if (Number.isNaN(d.getTime())) {
+    throw new ValidationError(`Invalid QR timestamp: "${timestampIso}"`);
+  }
+  // toISOString() always emits UTC `YYYY-MM-DDTHH:mm:ss.sssZ`; dropping the
+  // `.sss` yields the required seconds-precision shape with `Z` suffix.
+  return `${d.toISOString().slice(0, 19)}Z`;
+}
+
 /** Build the raw TLV byte sequence — exposed for byte-level testing. */
 export function buildTlvBytes(input: QrInput): Uint8Array {
   return concatBytes(
     tlvField(TAG_SELLER_NAME, input.sellerName),
     tlvField(TAG_VAT_NUMBER, input.vatNumber),
-    tlvField(TAG_TIMESTAMP, input.timestampIso),
+    // Choke point: every caller flows through here, so normalizing here
+    // fixes all present and future Tag 3 writers in one place.
+    tlvField(TAG_TIMESTAMP, normalizeQrTimestamp(input.timestampIso)),
     tlvField(TAG_INVOICE_TOTAL, toDecimalString(input.invoiceTotal)),
     tlvField(TAG_VAT_TOTAL, toDecimalString(input.vatTotal)),
   );
