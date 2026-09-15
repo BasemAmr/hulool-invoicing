@@ -189,15 +189,17 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
 
     const dto = await issue.execute({ invoiceId: String(id) });
     expect(dto.qrPayload).toBeTruthy();
-    expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      invoiceDateTimeToUtcIso(
-        "2026-09-15",
-        "14:30",
-        new Date("2026-09-15T10:00:00.000Z"),
-      ),
+    // invoiceDateTimeToUtcIso still emits millis shape (its contract is
+    // unchanged); the QR choke point normalizes Tag 3 to seconds precision —
+    // same second-instant, new shape. Both sides pinned deliberately.
+    const invoiceInstant = invoiceDateTimeToUtcIso(
+      "2026-09-15",
+      "14:30",
+      new Date("2026-09-15T10:00:00.000Z"),
     );
+    expect(invoiceInstant).toBe("2026-09-15T11:30:00.000Z");
     expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      "2026-09-15T11:30:00.000Z",
+      "2026-09-15T11:30:00Z",
     );
   });
 
@@ -210,8 +212,9 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
     );
 
     const dto = await issue.execute({ invoiceId: String(id) });
+    // Same instant as before, seconds-precision shape (was `.000Z`).
     expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      "2026-09-14T21:00:00.000Z",
+      "2026-09-14T21:00:00Z",
     );
   });
 
@@ -225,9 +228,10 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
 
     const dto = await issue.execute({ invoiceId: String(id) });
     // Server-now (10:00Z) ≠ invoice instant (11:30Z): proves the two concepts split.
+    // issuedAt keeps millis shape (system moment, untouched); Tag 3 is seconds precision.
     expect(dto.issuedAt).toBe("2026-09-15T10:00:00.000Z");
     expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      "2026-09-15T11:30:00.000Z",
+      "2026-09-15T11:30:00Z",
     );
   });
 });
