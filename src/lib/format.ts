@@ -118,8 +118,10 @@ export const PAYMENT_METHOD_LABELS_AR = {
   other: "أخرى",
 } as const;
 
-/** Generate default random company prefix in format INV### (e.g. INV742). */
+/** Generate default random company prefix in format INV###### (e.g. INV742391). */
+// INV (3 chars) + 6 random digits = 9 chars, well within the 12-char prefix limit.
+// 6 digits (not 3) to reduce collision chance when many companies are created.
 export function generateDefaultCompanyPrefix(): string {
-  const num = Math.floor(100 + Math.random() * 900);
+  const num = Math.floor(100000 + Math.random() * 900000);
   return `INV${num}`;
 }

@@ -139,9 +139,8 @@ export function ManahirPosTemplate({
             <Text style={styles.metaVal}>{dateStr}</Text>
           </View>
           {invoiceNum ? <Text style={styles.metaLine}>Trans No. {invoiceNum}</Text> : null}
-          {company.clientEmployee ? (
-            <Text style={styles.metaLine}>Cashier. {company.clientEmployee}</Text>
-          ) : null}
+          {/* NOTE: company.clientEmployee ("تابع للعميل") is admin-only —
+              Cashier line removed so it never prints on the receipt. */}
           {(company as any).branch ? (
             <Text style={styles.metaLine}>Store. {(company as any).branch}</Text>
           ) : null}

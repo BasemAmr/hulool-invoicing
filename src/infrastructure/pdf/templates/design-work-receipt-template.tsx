@@ -79,7 +79,9 @@ function tafqeetReceipt(amount: number): string {
   const halalas = Math.round((amount - riyals) * 100);
 
   let text = numberToArabicWords(riyals);
-  text += " Saudi Riyal فقط لا غير";
+  // Arabic-only currency wording: Latin "Saudi Riyal" inside an RTL Arabic
+  // sentence breaks bidi shaping and renders as truncated "Saudi Riya".
+  text += " ريال سعودي فقط لا غير";
   if (halalas > 0) {
     text += ` و ${numberToArabicWords(halalas)} هللة`;
   }
@@ -205,7 +207,10 @@ export function DesignWorkReceiptTemplate({
 
               {/* Center: Received Voucher Heading with Underline */}
               <View style={styles.centerHeadingWrap}>
-                <Text style={styles.titleAr}>ســـــنـــد قـــبـــض</Text>
+                {/* Normal Arabic wording without tatweel/letterSpacing:
+                    stretched kashida + letterSpacing breaks Arabic joining
+                    in react-pdf/Amiri and renders as mid-character cuts. */}
+                <Text style={styles.titleAr}>سند قبض</Text>
                 <View style={styles.titleEnWrap}>
                   <Text style={styles.titleEn}>Received Voucher</Text>
                   <View style={styles.titleEnDoubleUnderline}>
@@ -445,7 +450,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#000000",
     textAlign: "center",
-    letterSpacing: 3,
+    // No letterSpacing on Arabic: any value > 0 disconnects joined letters.
     marginBottom: 2,
   },
   titleEnWrap: {

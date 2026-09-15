@@ -65,7 +65,7 @@ export function CompanyForm({
             defaultValue={initialCompany?.prefix ?? generateDefaultCompanyPrefix()}
             placeholder="INV"
             required
-            hint="2-6 أحرف كبيرة، تظهر في أرقام الفواتير"
+            hint="2-12 أحرف كبيرة، تظهر في أرقام الفواتير"
           />
           <Field
             label="رقم السجل التجاري (اختياري)"

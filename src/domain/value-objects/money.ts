@@ -101,3 +101,81 @@ export function sum(...amounts: Halalas[]): Halalas {
   for (const a of amounts) total += a;
   return total as Halalas;
 }
+
+/**
+ * Parse an arbitrary-precision decimal string exactly (no floats).
+ * Returns integer numerator + base-10 scale: value = int / 10^scale.
+ * Accepts up to any number of decimals — BigInt keeps it exact.
+ */
+function parseDecimalExact(s: string): { int: bigint; scale: number } {
+  const trimmed = s.trim();
+  if (trimmed === "" || trimmed === "-" || trimmed === "." || trimmed === "-.") {
+    return { int: BigInt(0), scale: 0 };
+  }
+  const neg = trimmed.startsWith("-");
+  const clean = neg ? trimmed.slice(1) : trimmed;
+  if (!/^\d*(\.\d*)?$/.test(clean)) {
+    throw new RangeError(`Invalid decimal string: "${s}"`);
+  }
+  const dot = clean.indexOf(".");
+  let digits: string;
+  let scale: number;
+  if (dot === -1) {
+    digits = clean || "0";
+    scale = 0;
+  } else {
+    const whole = clean.slice(0, dot) || "0";
+    const frac = clean.slice(dot + 1) || "";
+    digits = (whole + frac).replace(/^0+(?=\d)/, "") || "0";
+    scale = frac.length;
+  }
+  const int = BigInt(digits);
+  return { int: neg ? -int : int, scale };
+}
+
+function pow10(n: number): bigint {
+  return BigInt(10) ** BigInt(n);
+}
+
+/**
+ * Exact line subtotal in halalas from full-precision price/qty strings.
+ *
+ * WHY this exists: the old wizard did `parseFloat(price).toFixed(2)` BEFORE
+ * multiplying, so 17.95319 x 260 became 17.95 x 260 = 4667.00 while the row
+ * (which multiplied full floats) showed 5368.00. Truncating/rounding the unit
+ * price before quantity multiplication loses `qty x fraction` (here 0.83 SAR).
+ *
+ * Correct order: multiply exact decimals first, round ONCE to halala at the
+ * end (half-up). Intermediate math is BigInt-exact, no IEEE 754 involved.
+ * Final SAR display is still 2 decimals (halala is the legal tender unit +
+ * ZATCA/DB numeric(15,2) constraint) — but it is rounded once, not twice.
+ */
+export function lineSubtotalHalalasExact(
+  priceStr: string,
+  qtyStr: string,
+  discountHalalas?: Halalas,
+): Halalas {
+  const price = parseDecimalExact(priceStr || "0");
+  const qty = parseDecimalExact(qtyStr || "0");
+  const ZERO = BigInt(0);
+  if (price.int < ZERO || qty.int < ZERO) {
+    throw new RangeError("price and quantity must be non-negative");
+  }
+  // gross SAR = (price.int * qty.int) / 10^(price.scale + qty.scale)
+  // gross halalas = gross SAR * 100, rounded half-up in one step.
+  const totalScale = price.scale + qty.scale;
+  const product = price.int * qty.int; // exact, arbitrary precision
+  const numerator = product * BigInt(100);
+  const denominator = pow10(totalScale);
+  const gross =
+    totalScale === 0
+      ? numerator
+      : (numerator + denominator / BigInt(2)) / denominator;
+  const discount = BigInt(discountHalalas ?? 0);
+  const net = gross - discount;
+  const clamped = net < ZERO ? ZERO : net;
+  if (clamped > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new RangeError("line subtotal exceeds safe integer range");
+  }
+  return Number(clamped) as Halalas;
+}

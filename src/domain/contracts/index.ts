@@ -31,7 +31,7 @@ export const companyCreateSchema = z.object({
     .string()
     .regex(
       COMPANY_PREFIX_PATTERN,
-      "prefix must be 2-6 uppercase alphanumerics",
+      "prefix must be 2-12 uppercase alphanumerics",
     ),
   crNumber: z.string().optional(),
   clientEmployee: z.string().optional(),
@@ -56,7 +56,7 @@ export const companyUpdateSchema = companyCreateSchema.partial().extend({
     .string()
     .regex(
       COMPANY_PREFIX_PATTERN,
-      "prefix must be 2-6 uppercase alphanumerics",
+      "prefix must be 2-12 uppercase alphanumerics",
     ),
 });
 export type CompanyUpdateInput = z.infer<typeof companyUpdateSchema>;

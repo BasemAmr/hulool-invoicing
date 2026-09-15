@@ -116,7 +116,8 @@ export function TopTownTemplate({
   ].filter(Boolean).join(" - ");
 
   const bankAccount = (company as any).bankAccount || "";
-  const salesmanName = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — salesman row removed.
 
   return (
     <Document
@@ -324,13 +325,6 @@ export function TopTownTemplate({
               <Text style={styles.totalsValBold}>{formatNumber(totalVal, 2)}</Text>
               <Text style={styles.totalsLblBold}>الإجمـــــــــــــــــــــــــالي</Text>
             </View>
-
-            {/* Salesman name row under total */}
-            {salesmanName ? (
-              <View style={styles.salesmanRow}>
-                <Text style={styles.salesmanText}>{salesmanName}</Text>
-              </View>
-            ) : null}
           </View>
         </View>
 

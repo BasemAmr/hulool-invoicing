@@ -159,7 +159,8 @@ export function KuwaitLandmarksTemplate({
   const customerName = customer?.nameAr || customer?.nameEn || "";
   const customerVat = customer?.vatNumber || "";
   const customerPhone = customer?.phone || "";
-  const employeeName = company?.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — the Employee row was removed.
   const companyCr = company?.crNumber || "";
   const companyVat = company?.vatNumber || "";
 
@@ -282,14 +283,7 @@ export function KuwaitLandmarksTemplate({
               <Text style={styles.cardKeyAr}>المندوب</Text>
             </View>
 
-            {/* Row 3: Employee */}
-            <View style={styles.cardRow}>
-              <Text style={styles.cardKeyEn}>Employee</Text>
-              <Text style={styles.cardValCenter}>{employeeName}</Text>
-              <Text style={styles.cardKeyAr}>الموظف</Text>
-            </View>
-
-            {/* Row 4: Tax No. */}
+            {/* Row 3: Tax No. */}
             <View style={styles.cardRow}>
               <Text style={styles.cardKeyEn}>Tax No.</Text>
               <Text style={styles.cardValCenter}>{customerVat}</Text>

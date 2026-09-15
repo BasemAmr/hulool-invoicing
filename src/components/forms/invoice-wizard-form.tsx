@@ -32,11 +32,12 @@ import {
 import { idleState, type ActionState } from "@/app/actions/types";
 import type { InvoiceDto } from "@/application/dto";
 import { VAT_RATE } from "@/domain/constants";
-import { calculateTotals } from "@/domain/services/totals-calculator";
 import {
   fromDecimalString,
   toDecimalString,
   halalas,
+  lineSubtotalHalalasExact,
+  vatOf,
 } from "@/domain/value-objects/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,8 @@ const createEmptyLine = (defaultVat = VAT_RATE): LineItemDraft => ({
   discountPercent: "0",
   discountAmount: "0",
   vatRate: defaultVat,
-  saveToProducts: false,
+  // New typed lines auto-offer to save into the products catalog (user asked: default checked).
+  saveToProducts: true,
 });
 
 export function InvoiceWizardForm({
@@ -213,26 +215,30 @@ export function InvoiceWizardForm({
           discountPercent: discPct,
           discountAmount: discSar.toFixed(2),
           vatRate: item.vatRate || defaultVatRate,
-          saveToProducts: false,
+          // Editing an existing invoice: pre-check save for free-text lines so they
+          // land in the catalog; already-linked catalog lines stay unchecked.
+          saveToProducts: item.savedProductId ? false : true,
         };
       });
     }
     return [createEmptyLine(defaultVatRate)];
   });
 
-  // Calculations
+  // Calculations — exact decimal math, single final rounding to halala.
+  // DO NOT toFixed(2) the unit price before multiplying: that was the 5368 vs 5367
+  // bug (17.95319 x 260 truncated to 17.95 x 260). We multiply exact strings via
+  // lineSubtotalHalalasExact() then VAT once per line, so row + summary agree.
   const totals = useMemo(() => {
     const validLines = lines
       .filter((l) => l.description.trim().length > 0)
       .map((l) => {
-        const qty = parseFloat(l.quantity) || 0;
-        const priceSar = parseFloat(l.unitPrice) || 0;
         const discSar = parseFloat(l.discountAmount) || 0;
 
         return {
           description: l.description,
-          quantity: qty,
-          unitPrice: fromDecimalString(priceSar.toFixed(2)),
+          // Keep raw strings: exact helper parses full precision (e.g. "17.95319").
+          qtyStr: l.quantity || "0",
+          priceStr: l.unitPrice || "0",
           discountAmount: fromDecimalString(discSar.toFixed(2)),
           vatRate: l.vatRate,
         };
@@ -248,10 +254,25 @@ export function InvoiceWizardForm({
     }
 
     try {
-      const res = calculateTotals(validLines);
-      let sub = res.subtotal;
-      let vat = res.vatTotal;
-      let grand = res.total;
+      const computed = validLines.map((l) => {
+        const lineSubtotal = lineSubtotalHalalasExact(
+          l.priceStr,
+          l.qtyStr,
+          l.discountAmount,
+        );
+        const lineVat = vatOf(lineSubtotal, l.vatRate);
+        const lineTotal = halalas(lineSubtotal + lineVat);
+        return { lineSubtotal, lineVat, lineTotal };
+      });
+      let sub = halalas(
+        computed.reduce((acc, c) => acc + c.lineSubtotal, 0),
+      );
+      let vat = halalas(
+        computed.reduce((acc, c) => acc + c.lineVat, 0),
+      );
+      let grand = halalas(
+        computed.reduce((acc, c) => acc + c.lineTotal, 0),
+      );
 
       const extraTaxPct = parseFloat(overallTaxRate) || 0;
       if (extraTaxPct > 0) {
@@ -266,7 +287,7 @@ export function InvoiceWizardForm({
         subtotal: toDecimalString(sub),
         vatAmount: toDecimalString(vat),
         total: toDecimalString(grand),
-        calculatedLines: res.lines,
+        calculatedLines: computed,
       };
     } catch {
       return {
@@ -782,12 +803,25 @@ export function InvoiceWizardForm({
             </thead>
             <tbody className="divide-y divide-border">
               {lines.map((line, idx) => {
-                const qty = parseFloat(line.quantity) || 0;
-                const price = parseFloat(line.unitPrice) || 0;
-                const disc = parseFloat(line.discountAmount) || 0;
-                const base = Math.max(0, qty * price - disc);
-                const vat = base * line.vatRate;
-                const total = base + vat;
+                // Exact per-row math (same helper as summary) so الإجمالي matches totals.
+                // Falls back to 0.00 on bad input instead of throwing mid-render.
+                let totalStr = "0.00";
+                try {
+                  const discHalalas = fromDecimalString(
+                    (parseFloat(line.discountAmount) || 0).toFixed(2),
+                  );
+                  const baseHalalas = lineSubtotalHalalasExact(
+                    line.unitPrice || "0",
+                    line.quantity || "0",
+                    discHalalas,
+                  );
+                  const vatHalalas = vatOf(baseHalalas, line.vatRate);
+                  totalStr = toDecimalString(
+                    halalas(baseHalalas + vatHalalas),
+                  );
+                } catch {
+                  totalStr = "0.00";
+                }
 
                 return (
                   <tr key={line.key} className="hover:bg-muted/20">
@@ -874,7 +908,7 @@ export function InvoiceWizardForm({
 
                     {/* Line Total */}
                     <td className="p-1.5 text-end font-mono font-bold text-foreground text-xs">
-                      {formatMoney(total.toFixed(2))} SAR
+                      {formatMoney(totalStr)} SAR
                     </td>
 
                     {/* Remove & Hidden inputs for form action inside td */}

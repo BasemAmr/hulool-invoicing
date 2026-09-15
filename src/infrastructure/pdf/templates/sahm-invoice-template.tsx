@@ -80,7 +80,8 @@ export function SahmInvoiceTemplate({
   const companyName = company.nameAr || "";
   const companyCity = company.addressCity || "";
   const customerName = customer.nameAr || "";
-  const sellerEmployee = company.clientEmployee || "";
+  // NOTE: company.clientEmployee ("تابع للعميل") is admin-only and must never
+  // appear on invoice/receipt PDFs — seller/agent lines removed.
   const items = invoice.items || [];
 
   return (
@@ -141,11 +142,6 @@ export function SahmInvoiceTemplate({
                 رقم تعريف ضريبة القيمة المضافة: {company.vatNumber}
               </Text>
             ) : null}
-            {sellerEmployee ? (
-              <Text style={styles.companyDetailLine}>
-                معرف آخر للبائع: {sellerEmployee}
-              </Text>
-            ) : null}
           </View>
         </View>
 
@@ -165,12 +161,6 @@ export function SahmInvoiceTemplate({
               <Text style={styles.coralVal}>0 SAR</Text>
               <Text style={styles.coralLabel}>المبلغ المستحق</Text>
             </View>
-          </View>
-
-          {/* Middle Column: Agent / Responsible */}
-          <View style={styles.agentBox}>
-            <Text style={styles.agentLabel}>المسؤول</Text>
-            <Text style={styles.agentLine}>{sellerEmployee}</Text>
           </View>
 
           {/* Right Column: Customer Info */}
