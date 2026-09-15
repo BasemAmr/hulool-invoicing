@@ -28,6 +28,7 @@ import { MasdarBuildingMaterialsTemplate } from "./templates/masdar-materials-te
 import { AldailCeramicsTemplate } from "./templates/aldail-ceramics-template";
 import { BazreaPlasticsTemplate } from "./templates/bazrea-plastics-template";
 import { SaAlkoufiTemplate } from "./templates/sa-alkoufi-template";
+import { GenericDeliveryNoteTemplate } from "./templates/generic-delivery-note-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -137,6 +138,9 @@ export function InvoiceDocument({
   }
   if (templateDef.id === "sa_alkoufi") {
     return <SaAlkoufiTemplate {...props} />;
+  }
+  if (templateDef.id === "generic_delivery_21") {
+    return <GenericDeliveryNoteTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;

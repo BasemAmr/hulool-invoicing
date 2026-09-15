@@ -455,6 +455,17 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة ضريبية ببطاقتي المورد والعميل وجدول 7 أعمدة ديناميكي وملاحظات الفاتورة وملاحظة سياسة المنشأة",
   },
+  generic_delivery_21: {
+    id: "generic_delivery_21",
+    nameAr: "نموذج 21",
+    nameEn: "Template 21",
+    parentCategory: "company_chosen",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#111827",
+    isBilingual: true,
+    descriptionAr: "تصميم بيان تسليم بضاعة أحادي اللون بأسلوب الطباعة النقطية مع خانة المندوب وتوقيعي المندوب والعميل ورمز QR",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);
