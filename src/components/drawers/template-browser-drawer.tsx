@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   TEMPLATES_LIST,
   getTemplateById,
+  getTemplateDisplayName,
   RECEIPT_TEMPLATES_LIST,
   getReceiptTemplateById,
   PARENT_CATEGORY_LABELS,
@@ -160,18 +161,18 @@ export function TemplateBrowserDrawer({
               className="h-7.5 bg-background border border-input px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[170px] sm:min-w-[220px]"
             >
               {groupTemplatesByParentCategory(templatesList).companyChosen.length > 0 && (
-                <optgroup label="قوالب المنشأة المختارة (Company Chosen)">
-                  {groupTemplatesByParentCategory(templatesList).companyChosen.map((t, idx) => (
+                <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
+                  {groupTemplatesByParentCategory(templatesList).companyChosen.map((t) => (
                     <option key={t.id} value={t.id}>
-                      ★ {t.nameAr} ({t.nameEn})
+                      ★ {getTemplateDisplayName(t)}
                     </option>
                   ))}
                 </optgroup>
               )}
-              <optgroup label="قوالب النظام الافتراضية (System Default)">
-                {groupTemplatesByParentCategory(templatesList).systemDefault.map((t, idx) => (
+              <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
+                {groupTemplatesByParentCategory(templatesList).systemDefault.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {idx + 1}. {t.nameAr} ({t.nameEn})
+                    {getTemplateDisplayName(t)}
                   </option>
                 ))}
               </optgroup>
@@ -204,7 +205,7 @@ export function TemplateBrowserDrawer({
           {loading && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-background/90 border border-border px-3 py-1 text-[11px] font-medium text-foreground flex items-center gap-1.5 shadow-md z-20">
               <Loader2 className="size-3 animate-spin text-primary" />
-              <span>جاري تحميل {activeDef.nameAr}...</span>
+              <span>جاري تحميل {getTemplateDisplayName(activeDef)}...</span>
             </div>
           )}
 

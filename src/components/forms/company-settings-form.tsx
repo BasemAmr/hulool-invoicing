@@ -18,6 +18,7 @@ import type { CompanySettingsRecord } from "@/application/ports/company-settings
 import {
   TEMPLATES_LIST,
   getTemplateById,
+  getTemplateDisplayName,
   RECEIPT_TEMPLATES_LIST,
   getReceiptTemplateById,
   PARENT_CATEGORY_LABELS,
@@ -312,11 +313,9 @@ export function CompanySettingsForm({
                 </span>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
+                    {/* Picker selected-value: Arabic-only label, no English "(...)" suffix */}
                     <span className="text-xs font-bold text-foreground">
-                      {activeInvoiceTemplate.nameAr}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      ({activeInvoiceTemplate.nameEn})
+                      {getTemplateDisplayName(activeInvoiceTemplate)}
                     </span>
                     <span
                       className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${
@@ -341,18 +340,18 @@ export function CompanySettingsForm({
                   className="h-7.5 px-2 text-xs bg-muted/40 border border-input text-foreground font-medium focus:outline-none"
                 >
                   {groupTemplatesByParentCategory(TEMPLATES_LIST).companyChosen.length > 0 && (
-                    <optgroup label="قوالب المنشأة المختارة (Company Chosen)">
+                    <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
                       {groupTemplatesByParentCategory(TEMPLATES_LIST).companyChosen.map((t) => (
                         <option key={t.id} value={t.id}>
-                          ★ {t.nameAr} ({t.nameEn})
+                          ★ {getTemplateDisplayName(t)}
                         </option>
                       ))}
                     </optgroup>
                   )}
-                  <optgroup label="قوالب النظام الافتراضية (System Default)">
+                  <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
                     {groupTemplatesByParentCategory(TEMPLATES_LIST).systemDefault.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.nameAr} ({t.nameEn})
+                        {getTemplateDisplayName(t)}
                       </option>
                     ))}
                   </optgroup>
@@ -397,11 +396,9 @@ export function CompanySettingsForm({
                 </span>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
+                    {/* Picker selected-value: Arabic-only label, no English "(...)" suffix */}
                     <span className="text-xs font-bold text-foreground">
-                      {activeReceiptTemplate.nameAr}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      ({activeReceiptTemplate.nameEn})
+                      {getTemplateDisplayName(activeReceiptTemplate)}
                     </span>
                     <span
                       className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${
@@ -426,18 +423,18 @@ export function CompanySettingsForm({
                   className="h-7.5 px-2 text-xs bg-muted/40 border border-input text-foreground font-medium focus:outline-none"
                 >
                   {groupTemplatesByParentCategory(RECEIPT_TEMPLATES_LIST).companyChosen.length > 0 && (
-                    <optgroup label="قوالب المنشأة المختارة (Company Chosen)">
+                    <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
                       {groupTemplatesByParentCategory(RECEIPT_TEMPLATES_LIST).companyChosen.map((t) => (
                         <option key={t.id} value={t.id}>
-                          ★ {t.nameAr} ({t.nameEn})
+                          ★ {getTemplateDisplayName(t)}
                         </option>
                       ))}
                     </optgroup>
                   )}
-                  <optgroup label="قوالب النظام الافتراضية (System Default)">
+                  <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
                     {groupTemplatesByParentCategory(RECEIPT_TEMPLATES_LIST).systemDefault.map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.nameAr} ({t.nameEn})
+                        {getTemplateDisplayName(t)}
                       </option>
                     ))}
                   </optgroup>

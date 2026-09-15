@@ -50,6 +50,7 @@ import { ProductCombobox } from "./product-combobox";
 import {
   TEMPLATES_LIST,
   getTemplateById,
+  getTemplateDisplayName,
 } from "@/infrastructure/pdf/templates/registry";
 import { useToast } from "@/components/ui/toaster";
 import type { SavedProductRecord } from "@/application/ports/saved-product-repository";
@@ -664,7 +665,7 @@ export function InvoiceWizardForm({
               >
                 {TEMPLATES_LIST.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.nameAr}
+                    {getTemplateDisplayName(t)}
                   </option>
                 ))}
               </select>
