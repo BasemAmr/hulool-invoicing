@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowRight, FileText } from "lucide-react";
 
 import { createContainer } from "@/application/container";
@@ -23,9 +23,9 @@ export default async function EditInvoiceDraftPage({
     notFound();
   }
 
-  // Only draft invoices can be edited
-  if (invoice.status !== "draft") {
-    redirect(`/invoices/${id}`);
+  // All invoices (draft or published) are editable — only cancelled is locked.
+  if (invoice.status === "cancelled") {
+    notFound();
   }
 
   const [companies, customers] = await Promise.all([
@@ -64,7 +64,7 @@ export default async function EditInvoiceDraftPage({
           <div>
             <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <FileText className="size-5 text-primary" />
-              <span>تعديل مسودة الفاتورة</span>
+              <span>تعديل الفاتورة</span>
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               تعديل بيانات وبنود المسودة قبل الاعتماد والإصدار

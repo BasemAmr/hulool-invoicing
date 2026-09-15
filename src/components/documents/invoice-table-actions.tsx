@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Eye, Edit2, Trash2 } from "lucide-react";
+import { Eye, Edit2, Trash2, Copy } from "lucide-react";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
+import { DuplicateInvoiceDialog } from "./duplicate-invoice-dialog";
 import { deleteDraftInvoiceAction } from "@/app/actions/invoices";
 import { PdfActionButtons } from "./pdf-action-buttons";
 
@@ -13,12 +14,14 @@ interface InvoiceTableActionsProps {
     invoiceNumber: string | null;
     status: string;
     companyId?: string;
+    customerId?: string;
   };
   companyId?: string;
 }
 
 export function InvoiceTableActions({ invoice, companyId }: InvoiceTableActionsProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
   const activeCompanyId = companyId ?? invoice.companyId;
   const basePath = activeCompanyId ? `/c/${activeCompanyId}/invoices` : "/invoices";
 
@@ -36,38 +39,54 @@ export function InvoiceTableActions({ invoice, companyId }: InvoiceTableActionsP
         <Eye className="size-3.5" />
       </Link>
 
-      {/* 2. Draft Actions: Edit & Delete (Icons Only) */}
-      {invoice.status === "draft" && (
-        <>
-          <Link
-            href={`${basePath}/${invoice.id}/edit`}
-            className="p-1 text-muted-foreground hover:text-primary hover:bg-muted transition-colors rounded-sm"
-            title="تعديل مسودة الفاتورة"
-          >
-            <Edit2 className="size-3.5" />
-          </Link>
+      {/* 2. Edit (all statuses: every invoice is published, fully editable) */}
+      <Link
+        href={`${basePath}/${invoice.id}/edit`}
+        className="p-1 text-muted-foreground hover:text-primary hover:bg-muted transition-colors rounded-sm"
+        title="تعديل الفاتورة"
+      >
+        <Edit2 className="size-3.5" />
+      </Link>
 
-          <button
-            type="button"
-            onClick={() => setDeleteOpen(true)}
-            className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-sm"
-            title="حذف مسودة الفاتورة"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+      {/* 3. Duplicate (dialog asks for client + date, then opens create page prefilled) */}
+      <button
+        type="button"
+        onClick={() => setDuplicateOpen(true)}
+        className="p-1 text-muted-foreground hover:text-primary hover:bg-muted transition-colors rounded-sm"
+        title="تكرار الفاتورة"
+      >
+        <Copy className="size-3.5" />
+      </button>
 
-          <DeleteConfirmDialog
-            open={deleteOpen}
-            onClose={() => setDeleteOpen(false)}
-            title="تأكيد حذف مسودة الفاتورة"
-            description="هل أنت متأكد من رغبتك في حذف مسودة الفاتورة؟"
-            itemName={invoice.invoiceNumber ?? `مسودة #${invoice.id.slice(0, 8)}`}
-            onConfirm={() => deleteDraftInvoiceAction(invoice.id)}
-          />
-        </>
-      )}
+      {/* 4. Delete (all statuses) */}
+      <button
+        type="button"
+        onClick={() => setDeleteOpen(true)}
+        className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-sm"
+        title="حذف الفاتورة"
+      >
+        <Trash2 className="size-3.5" />
+      </button>
 
-      {/* 3. Issued Actions: Direct Download Icon & Shareable Signed Link Icon (Icons Only) */}
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="تأكيد حذف الفاتورة"
+        description="هل أنت متأكد من رغبتك في حذف هذه الفاتورة؟ سيتم حذف سند القبض المرتبط بها أيضاً."
+        itemName={invoice.invoiceNumber ?? `فاتورة #${invoice.id.slice(0, 8)}`}
+        onConfirm={() => deleteDraftInvoiceAction(invoice.id, activeCompanyId)}
+      />
+
+      <DuplicateInvoiceDialog
+        open={duplicateOpen}
+        onClose={() => setDuplicateOpen(false)}
+        invoiceId={invoice.id}
+        companyId={activeCompanyId}
+        defaultCustomerId={invoice.customerId}
+        itemName={invoice.invoiceNumber ?? undefined}
+      />
+
+      {/* 5. Issued Actions: Direct Download Icon & Shareable Signed Link Icon (Icons Only) */}
       {invoice.status === "issued" && (
         <PdfActionButtons
           documentId={invoice.id}

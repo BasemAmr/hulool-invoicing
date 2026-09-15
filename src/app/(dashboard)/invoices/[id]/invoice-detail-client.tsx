@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Share2, Copy, Check } from "lucide-react";
+import Link from "next/link";
+import { Share2, Copy, Check, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShareInvoiceModal } from "@/components/documents/share-invoice-modal";
+import { DuplicateInvoiceDialog } from "@/components/documents/duplicate-invoice-dialog";
 import { useToast } from "@/components/ui/toaster";
 import { generateShareLinkAction } from "@/app/actions/auth";
 
@@ -15,6 +17,8 @@ interface InvoiceDetailClientActionsProps {
     customerName: string;
     customerPhone?: string | null;
     customerEmail?: string | null;
+    companyId?: string;
+    customerId?: string;
   };
 }
 
@@ -23,7 +27,11 @@ export function InvoiceDetailClientActions({
 }: InvoiceDetailClientActionsProps) {
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
   const { success, error } = useToast();
+  const editHref = invoice.companyId
+    ? `/c/${invoice.companyId}/invoices/${invoice.id}/edit`
+    : `/invoices/${invoice.id}/edit`;
 
   async function handleQuickCopy() {
     const res = await generateShareLinkAction(invoice.id);
@@ -60,6 +68,30 @@ export function InvoiceDetailClientActions({
 
   return (
     <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Link href={editHref}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full gap-2 justify-center text-xs font-semibold"
+          >
+            <Edit2 className="size-3.5" />
+            <span>تعديل</span>
+          </Button>
+        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setDuplicateOpen(true)}
+          className="w-full gap-2 justify-center text-xs font-semibold"
+        >
+          <Copy className="size-3.5" />
+          <span>تكرار</span>
+        </Button>
+      </div>
+
       <Button
         type="button"
         variant="outline"
@@ -90,6 +122,15 @@ export function InvoiceDetailClientActions({
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         invoice={invoice}
+      />
+
+      <DuplicateInvoiceDialog
+        open={duplicateOpen}
+        onClose={() => setDuplicateOpen(false)}
+        invoiceId={invoice.id}
+        companyId={invoice.companyId}
+        defaultCustomerId={invoice.customerId}
+        itemName={invoice.invoiceNumber ?? undefined}
       />
     </div>
   );

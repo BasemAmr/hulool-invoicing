@@ -157,11 +157,12 @@ export function InvoicesFilterView({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="border border-border bg-background px-1.5 h-7 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            title="تصفية حسب الحالة (كل الفواتير الجديدة معتمدة ومصدرة)"
           >
             <option value="all">جميع الحالات</option>
-            <option value="draft">مسودة (Draft)</option>
-            <option value="issued">معتمدة (Issued)</option>
+            <option value="issued">معتمدة ومصدرة</option>
             <option value="cancelled">ملغاة (Cancelled)</option>
+            <option value="draft">مسودة قديمة</option>
           </select>
 
           {/* Date Range Inputs */}
@@ -261,7 +262,7 @@ export function InvoicesFilterView({
                         href={`${cPath}/invoices/${invoice.id}`}
                         className="hover:underline"
                       >
-                        {invoice.invoiceNumber ?? "مسودة"}
+                        {invoice.invoiceNumber ?? "بانتظار الترقيم"}
                       </Link>
                     </TableCell>
                     <TableCell className="text-start py-2">
@@ -290,6 +291,7 @@ export function InvoicesFilterView({
                           invoiceNumber: invoice.invoiceNumber,
                           status: invoice.status,
                           companyId: company.id,
+                          customerId: invoice.customerId,
                         }}
                         companyId={company.id}
                       />

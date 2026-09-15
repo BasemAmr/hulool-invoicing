@@ -129,10 +129,12 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
       if (!existing) {
         throw new NotFoundError("Invoice not found");
       }
-      if (existing.status !== "draft") {
-        throw new InvalidTransitionError(
-          "لا يمكن تعديل الفاتورة بعد اعتمادها وإصدارها وفقاً لاشتراطات هيئة الزكاة والضريبة والجمارك",
-        );
+      // Business rule (2026-09): published invoices are fully editable.
+      // Only cancelled invoices stay locked; drafts + issued can be updated
+      // in place (invoiceNumber/status/qr are preserved by the SET below —
+      // QR is refreshed by the action layer after totals change).
+      if (existing.status === "cancelled") {
+        throw new InvalidTransitionError("لا يمكن تعديل فاتورة ملغاة");
       }
 
       const [updatedInv] = await tx
@@ -195,11 +197,8 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
     if (!existing) {
       throw new NotFoundError("Invoice not found");
     }
-    if (existing.status !== "draft") {
-      throw new InvalidTransitionError(
-        "لا يمكن حذف الفاتورة بعد اعتمادها وإصدارها وفقاً لاشتراطات هيئة الزكاة والضريبة والجمارك",
-      );
-    }
+    // Business rule (2026-09): any invoice (draft or published) can be
+    // deleted from the table or preview. No status guard.
 
     await this.db.delete(invoices).where(eq(invoices.id, id));
   }

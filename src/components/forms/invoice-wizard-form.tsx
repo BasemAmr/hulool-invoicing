@@ -3,15 +3,11 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useActionState } from "react";
 import {
-  Building2,
-  Calendar,
   Plus,
   Trash2,
   Send,
-  Save,
   Loader2,
   Package,
-  Check,
   Search,
   Edit2,
   Settings,
@@ -20,8 +16,6 @@ import {
   Mail,
   Copy,
   Percent,
-  LayoutTemplate,
-  ChevronDown,
   UserPlus,
 } from "lucide-react";
 
@@ -91,12 +85,25 @@ const createEmptyLine = (defaultVat = VAT_RATE): LineItemDraft => ({
   saveToProducts: false,
 });
 
+export interface DuplicatePrefill {
+  customerId?: string;
+  issueDate?: string;
+  dueDate?: string | null;
+  templateId?: string;
+  invoiceType?: "standard" | "simplified";
+  notes?: string | null;
+  terms?: string | null;
+  items?: InvoiceDto["items"];
+}
+
 export function InvoiceWizardForm({
   companies,
   customers,
   products = [],
   scopedCompanyId,
   initialInvoice,
+  duplicatePrefill,
+  suggestedInvoiceNumber,
   defaultVatRate = VAT_RATE,
   defaultTemplateId = "simple_red",
 }: {
@@ -105,6 +112,10 @@ export function InvoiceWizardForm({
   products?: SavedProductRecord[];
   scopedCompanyId?: string;
   initialInvoice?: InvoiceDto;
+  /** Prefill for "duplicate invoice" creates (new invoice, no id). */
+  duplicatePrefill?: DuplicatePrefill;
+  /** Server-computed next number preview (max+1), shown read-only. */
+  suggestedInvoiceNumber?: string;
   defaultVatRate?: number;
   defaultTemplateId?: string;
 }) {
@@ -123,10 +134,13 @@ export function InvoiceWizardForm({
       (c) => c.id === (scopedCompanyId || initialInvoice?.companyId)
     ) || companies[0];
 
-  // Client State
+  // Client State (duplicate prefill overrides the default customer)
   const [customersList, setCustomersList] = useState<ClientOption[]>(customers);
   const [selectedCustomerId, setSelectedCustomerId] = useState(
-    initialInvoice?.customerId || customers[0]?.id || ""
+    initialInvoice?.customerId ||
+      duplicatePrefill?.customerId ||
+      customers[0]?.id ||
+      ""
   );
   const [customerEditDrawerOpen, setCustomerEditDrawerOpen] = useState(false);
   const [customerAddDrawerOpen, setCustomerAddDrawerOpen] = useState(false);
@@ -142,39 +156,48 @@ export function InvoiceWizardForm({
     return customersList.find((c) => c.id === selectedCustomerId);
   }, [customersList, selectedCustomerId]);
 
-  // Invoice Number Simulation for new invoices (new norm: PREFIX-00001, no year)
+  // Invoice number is allocated server-side on save (atomic per-company
+  // sequence). Never trust a client-side guess: show the server's max+1
+  // preview read-only for new invoices, and the real number when editing.
+  // The old `${prefix}-00001` simulation always showed ...-00001, which is
+  // why new invoices *looked* like they reused the same number.
   const simulatedInvoiceNumber = useMemo(() => {
+    if (suggestedInvoiceNumber) return suggestedInvoiceNumber;
     const prefix = activeCompany?.prefix || "INV";
-    return `${prefix}-00001`;
-  }, [activeCompany]);
+    return `${prefix}- (ترقيم تلقائي عند الحفظ)`;
+  }, [activeCompany, suggestedInvoiceNumber]);
 
-  const [invoiceNumber, setInvoiceNumber] = useState(
+  const [invoiceNumber] = useState(
     initialInvoice?.invoiceNumber || simulatedInvoiceNumber
   );
 
-  // If company changes and invoice is new, update simulated number
-  useEffect(() => {
-    if (!initialInvoice && activeCompany) {
-      setInvoiceNumber(simulatedInvoiceNumber);
-    }
-  }, [activeCompany, simulatedInvoiceNumber, initialInvoice]);
-
-  const [invoiceStatus, setInvoiceStatus] = useState<"draft" | "issued">(
-    initialInvoice ? (initialInvoice.status === "issued" ? "issued" : "draft") : "issued"
-  );
+  // Every invoice is published immediately — no draft option.
   const [templateId, setTemplateId] = useState(
-    initialInvoice?.templateId || defaultTemplateId || "simple_red"
+    initialInvoice?.templateId ||
+      duplicatePrefill?.templateId ||
+      defaultTemplateId ||
+      "simple_red"
   );
   const [templateDrawerOpen, setTemplateDrawerOpen] = useState(false);
-  const [isSimplifiedVat, setIsSimplifiedVat] = useState(
-    initialInvoice ? initialInvoice.invoiceType === "simplified" : true
-  );
+  const [isSimplifiedVat, setIsSimplifiedVat] = useState(() => {
+    const t = initialInvoice?.invoiceType ?? duplicatePrefill?.invoiceType;
+    return t ? t === "simplified" : true;
+  });
   const [issueDate, setIssueDate] = useState(
-    () => initialInvoice?.issueDate || new Date().toISOString().slice(0, 10)
+    () =>
+      initialInvoice?.issueDate ||
+      duplicatePrefill?.issueDate ||
+      new Date().toISOString().slice(0, 10)
   );
-  const [dueDate, setDueDate] = useState(initialInvoice?.dueDate || "");
-  const [notes, setNotes] = useState(initialInvoice?.notes || "");
-  const [terms, setTerms] = useState(initialInvoice?.terms || "");
+  const [dueDate, setDueDate] = useState(
+    initialInvoice?.dueDate || duplicatePrefill?.dueDate || ""
+  );
+  const [notes, setNotes] = useState(
+    initialInvoice?.notes || duplicatePrefill?.notes || ""
+  );
+  const [terms, setTerms] = useState(
+    initialInvoice?.terms || duplicatePrefill?.terms || ""
+  );
 
   // Settings Gear Dropdown State
   const [gearOpen, setGearOpen] = useState(false);
@@ -192,10 +215,16 @@ export function InvoiceWizardForm({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Products Table Line Items
+  // Products Table Line Items (edit source or duplicate prefill both map the same way)
   const [lines, setLines] = useState<LineItemDraft[]>(() => {
-    if (initialInvoice && initialInvoice.items.length > 0) {
-      return initialInvoice.items.map((item) => {
+    const sourceItems =
+      initialInvoice && initialInvoice.items.length > 0
+        ? initialInvoice.items
+        : duplicatePrefill?.items && duplicatePrefill.items.length > 0
+          ? duplicatePrefill.items
+          : null;
+    if (sourceItems) {
+      return sourceItems.map((item) => {
         const qty = item.quantity || 1;
         const priceHalalas = parseInt(item.unitPrice, 10) || 0;
         const discountHalalas = parseInt(item.discountAmount, 10) || 0;
@@ -336,11 +365,12 @@ export function InvoiceWizardForm({
   };
 
   const handleCopyInvoice = () => {
+    // Reset to a fresh numbering + today; the server allocates the real
+    // number on save, so we only reset the date here.
     toast({
       title: "نسخ الفاتورة",
       message: "تم نسخ بيانات الفاتورة الحالية لإصدار نسخة جديدة.",
     });
-    setInvoiceNumber(simulatedInvoiceNumber);
     setIssueDate(new Date().toISOString().slice(0, 10));
     setGearOpen(false);
   };
@@ -401,12 +431,9 @@ export function InvoiceWizardForm({
         name="invoiceType"
         value={isSimplifiedVat ? "simplified" : "standard"}
       />
-      <input
-        type="hidden"
-        name="_action"
-        value={invoiceStatus === "issued" ? "issue" : "save_draft"}
-      />
-      <input type="hidden" name="status" value={invoiceStatus} />
+      {/* All invoices are published: always issue on save. */}
+      <input type="hidden" name="_action" value="issue" />
+      <input type="hidden" name="status" value="issued" />
       {initialInvoice && (
         <input type="hidden" name="id" value={initialInvoice.id} />
       )}
@@ -610,18 +637,24 @@ export function InvoiceWizardForm({
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 text-xs">
-            {/* Invoice Number */}
+            {/* Invoice Number (read-only preview; server allocates atomically) */}
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] font-medium text-muted-foreground">
                 رقم الفاتورة
               </label>
               <Input
-                name="invoiceNumber"
                 value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
-                placeholder="INV-00001"
-                className="text-xs font-mono h-6.5 px-2"
+                readOnly
+                disabled
+                placeholder="ترقيم تلقائي"
+                title="يُخصَّص رقم الفاتورة تلقائياً عند الحفظ بتسلسل الشركة"
+                className="text-xs font-mono h-6.5 px-2 bg-muted/40"
               />
+              {!initialInvoice && (
+                <span className="text-[9px] text-muted-foreground">
+                  ترقيم تلقائي متسلسل — الرقم النهائي يُحجز عند الحفظ.
+                </span>
+              )}
             </div>
 
             {/* Template Selector Dropdown */}
@@ -676,35 +709,14 @@ export function InvoiceWizardForm({
               />
             </div>
 
-            {/* Invoice Status (Draft vs Issued) */}
+            {/* All invoices are published immediately — no draft option. */}
             <div className="col-span-2 flex items-center justify-between pt-1 border-t border-border/60">
               <span className="text-[10px] font-medium text-muted-foreground">
                 حالة الحفظ
               </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setInvoiceStatus("draft")}
-                  className={`px-2 py-0.5 text-[10px] font-semibold border transition-colors ${
-                    invoiceStatus === "draft"
-                      ? "bg-slate-800 text-white border-slate-800"
-                      : "bg-muted text-muted-foreground border-border"
-                  }`}
-                >
-                  مسودة (Draft)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInvoiceStatus("issued")}
-                  className={`px-2 py-0.5 text-[10px] font-semibold border transition-colors ${
-                    invoiceStatus === "issued"
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-muted text-muted-foreground border-border"
-                  }`}
-                >
-                  معتمدة ومصدرة
-                </button>
-              </div>
+              <span className="px-2 py-0.5 text-[10px] font-semibold border bg-emerald-600 text-white border-emerald-600">
+                معتمدة ومصدرة
+              </span>
             </div>
 
             {/* Invoice Type Toggle */}
@@ -1034,15 +1046,13 @@ export function InvoiceWizardForm({
             >
               {pending ? (
                 <Loader2 className="size-3.5 animate-spin" />
-              ) : invoiceStatus === "issued" ? (
-                <Send className="size-3.5" />
               ) : (
-                <Save className="size-3.5" />
+                <Send className="size-3.5" />
               )}
               <span>
-                {invoiceStatus === "issued"
-                  ? "إصدار واعتماد الفاتورة فوراً"
-                  : "حفظ الفاتورة (مسودة)"}
+                {initialInvoice
+                  ? "حفظ التعديلات"
+                  : "إصدار واعتماد الفاتورة فوراً"}
               </span>
             </Button>
           </div>
