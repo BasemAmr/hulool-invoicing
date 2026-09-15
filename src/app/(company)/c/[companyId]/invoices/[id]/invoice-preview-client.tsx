@@ -442,6 +442,8 @@ export function InvoicePreviewClient({
         open={templateDrawerOpen}
         onClose={() => setTemplateDrawerOpen(false)}
         selectedTemplateId={templateId}
+        companyId={companyId}
+        invoiceId={invoice.id}
         onSelectTemplate={async (newTemplateId) => {
           if (newTemplateId === templateId) return;
           const previousTemplateId = templateId;

@@ -125,6 +125,19 @@ export function TemplateBrowserDrawer({
               <span className="px-1.5 py-0.2 rounded-xs text-[9px] font-semibold border border-primary/25 bg-primary/10 text-primary">
                 {PARENT_CATEGORY_LABELS[activeDef.parentCategory]?.badgeAr || "قالب نظام معتمد"}
               </span>
+              {/* Preview-source badge: real invoice vs sample stub (invoice mode only; receipt mode always uses a sample voucher) */}
+              {!isReceipt && (
+                <span
+                  className={`px-1.5 py-0.2 rounded-xs text-[9px] font-semibold border ${
+                    invoiceId
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-600"
+                  }`}
+                  title={invoiceId ? "تُعاين بيانات الفاتورة الحالية" : "لا توجد فاتورة — تُعاين بيانات تجريبية"}
+                >
+                  {invoiceId ? "معاينة الفاتورة الحالية" : "بيانات تجريبية"}
+                </span>
+              )}
             </div>
           </div>
 
