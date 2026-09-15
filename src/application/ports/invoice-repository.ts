@@ -24,6 +24,12 @@ export interface InvoiceRecord {
   invoiceNumber: string | null;
   status: DocumentStatus;
   issueDate: string;
+  /**
+   * HH:MM Riyadh wall-time (see invoice-datetime.ts). Optional so legacy
+   * in-memory fakes/tests omitting it keep compiling — readers normalize
+   * missing to "00:00" (midnight). The DB column itself is NOT NULL.
+   */
+  issueTime?: string;
   dueDate: string | null;
   currency: string;
   subtotal: Halalas;
@@ -44,6 +50,8 @@ export interface CreateDraftInvoiceInput {
   templateId?: string;
   invoiceType: 'standard' | 'simplified';
   issueDate: string;
+  /** Optional on input: missing (legacy callers/tests) normalizes to "00:00". */
+  issueTime?: string;
   dueDate: string | null;
   terms: string | null;
   notes: string | null;
@@ -61,6 +69,17 @@ export interface MarkIssuedInput {
   issuedAt: string;
 }
 
+/**
+ * Update input = draft fields plus an OPTIONAL rename. Undefined (the
+ * default for all legacy/auto callers) preserves the stored number
+ * byte-for-byte; a defined non-empty string renames after a uniqueness
+ * pre-check (see UpdateDraftInvoice). Empty-string rejection lives in the
+ * use case, not here.
+ */
+export interface UpdateDraftInvoiceInput extends CreateDraftInvoiceInput {
+  invoiceNumber?: string;
+}
+
 export interface InvoiceListFilters {
   status: DocumentStatus | null;
 }
@@ -72,12 +91,22 @@ export interface InvoiceRepository {
   ): Promise<InvoiceRecord>;
   updateDraft(
     id: InvoiceId,
-    input: CreateDraftInvoiceInput,
+    input: UpdateDraftInvoiceInput,
     now: Date,
   ): Promise<InvoiceRecord>;
   deleteDraft(id: InvoiceId): Promise<void>;
   /** Pass a Tx inside use-case transactions; omit for plain reads. */
   findByIdWithItems(id: InvoiceId, tx?: Tx): Promise<InvoiceRecord | null>;
+  /**
+   * Exact per-company number lookup for the custom-number uniqueness
+   * pre-check. Same-company scope only by construction (companyId is part
+   * of the predicate), so cross-company reuse never shows up here.
+   */
+  findByNumber(
+    companyId: CompanyId,
+    invoiceNumber: string,
+    tx?: Tx,
+  ): Promise<InvoiceRecord | null>;
   markIssued(
     id: InvoiceId,
     input: MarkIssuedInput,

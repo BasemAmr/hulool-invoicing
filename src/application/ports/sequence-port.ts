@@ -17,4 +17,17 @@ export interface SequencePort {
     prefix: string,
     year: number,
   ): Promise<string>;
+
+  /**
+   * Advance the per-company sentinel to at least `seq` (no-op when the
+   * sentinel is already higher). Called after a custom `PREFIX-nnnnn`
+   * number is accepted so a later auto-allocation never marches into it.
+   * Must be atomic (single UPSERT, same pattern as nextInvoiceNumber) and
+   * run inside the caller's transaction.
+   */
+  ensureSequenceAtLeast(
+    tx: Tx,
+    companyId: CompanyId,
+    seq: number,
+  ): Promise<void>;
 }

@@ -195,6 +195,8 @@ export function InvoicePreviewClient({
                 </span>
                 <span className="font-mono font-medium text-foreground">
                   {formatIsoDate(invoice.issueDate)}
+                  {/* Wall-time beside the date (HH:MM Riyadh); tables/lists keep date-only. */}
+                  <span className="text-muted-foreground"> · {invoice.issueTime ?? "00:00"}</span>
                 </span>
               </div>
               {invoice.dueDate && (

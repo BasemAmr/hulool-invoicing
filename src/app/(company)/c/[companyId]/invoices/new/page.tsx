@@ -43,7 +43,7 @@ export default async function NewCompanyInvoicePage({
   searchParams,
 }: {
   params: Promise<{ companyId: string }>;
-  searchParams?: Promise<{ duplicateFrom?: string; customerId?: string; issueDate?: string }>;
+  searchParams?: Promise<{ duplicateFrom?: string; customerId?: string; issueDate?: string; issueTime?: string }>;
 }) {
   const { companyId } = await params;
   const query = (await searchParams) ?? {};
@@ -68,6 +68,7 @@ export default async function NewCompanyInvoicePage({
     | {
         customerId?: string;
         issueDate?: string;
+        issueTime?: string;
         dueDate?: string | null;
         templateId?: string;
         invoiceType?: "standard" | "simplified";
@@ -89,6 +90,10 @@ export default async function NewCompanyInvoicePage({
           customerId: query.customerId || dto.customerId,
           issueDate:
             query.issueDate || new Date().toISOString().slice(0, 10),
+          // Duplicate carries the dialog-picked time so the wizard + QR
+          // round-trip it; falls back to the source time, then midnight.
+          issueTime:
+            query.issueTime || dto.issueTime || "00:00",
           dueDate: dto.dueDate,
           templateId: dto.templateId,
           invoiceType: dto.invoiceType,

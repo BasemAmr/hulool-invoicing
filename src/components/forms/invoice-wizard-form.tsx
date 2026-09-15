@@ -37,6 +37,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { formatMoney, toWesternDigits } from "@/lib/format";
+import {
+  formatVatRatePercent,
+  isPresetVatRate,
+  parseVatPercentToRate,
+} from "@/lib/vat-rate";
 import { ClientCombobox, type ClientOption } from "./client-combobox";
 import { CustomerDrawer } from "@/components/drawers/customer-drawer";
 import { TemplateBrowserDrawer, type DraftInvoicePreview } from "@/components/drawers/template-browser-drawer";
@@ -107,9 +112,118 @@ function dtoDecimalToHalalas(v: string | number | null | undefined): number {
   }
 }
 
+/**
+ * Compact per-line VAT editor: preset dropdown (0%/5%/15%) + "custom" option
+ * that reveals a small percent input. Same h-7/text-xs density as the
+ * neighbouring quantity/price inputs; the numeric box is dir="ltr" so digits
+ * stay LTR inside the RTL table.
+ *
+ * Custom typing never writes NaN into line state: invalid/empty text parses
+ * (via parseVatPercentToRate) back to the previous valid rate, and blur snaps
+ * the visible text back to the committed rate.
+ */
+function VatRateCell({
+  rate,
+  onRateChange,
+}: {
+  rate: number;
+  onRateChange: (nextRate: number) => void;
+}) {
+  const percentDisplay = formatVatRatePercent(rate);
+  const selectValue = isPresetVatRate(rate) ? percentDisplay : "custom";
+  // Text of the custom box. Seeded from the committed rate and re-synced
+  // below whenever the rate changes from outside (preset pick, product
+  // select) — unless the user's in-progress text already parses to that
+  // rate, so mid-edit typing ("7." while aiming for "7.5") is not clobbered.
+  const [customText, setCustomText] = useState(percentDisplay);
+
+  useEffect(() => {
+    setCustomText((prev) => {
+      const nextDisplay = formatVatRatePercent(rate);
+      if (prev === nextDisplay) return prev;
+      // Keep in-progress typing that already equals the new rate ("15.0" vs
+      // "15") so mid-edit keystrokes are not clobbered. Parsed manually (not
+      // via the fallback helper) so garbage text never compares equal just
+      // because the fallback happens to match the rate.
+      try {
+        const norm = toWesternDigits(prev)
+          .replace(/[٫]/g, ".")
+          .replace(/[٬]/g, "")
+          .replace(/,/g, ".")
+          .replace(/[٪%]/g, "")
+          .trim();
+        if (norm !== "") {
+          const p = parseFloat(norm);
+          if (Number.isFinite(p) && Math.min(100, Math.max(0, p)) / 100 === rate)
+            return prev;
+        }
+      } catch {
+        // Deliberate fall-through: unparseable text resets to the display.
+      }
+      return nextDisplay;
+    });
+  }, [rate]);
+
+  return (
+    <div className="flex flex-col items-stretch gap-1">
+      <select
+        value={selectValue}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "custom") {
+            // Reveal the box seeded with the current percent; the rate itself
+            // is untouched until the user types a valid value.
+            setCustomText(percentDisplay);
+            return;
+          }
+          // Preset strings are always valid, so this never hits the fallback.
+          onRateChange(parseVatPercentToRate(v, rate));
+        }}
+        aria-label="نسبة الضريبة للبند"
+        className="h-7 text-xs bg-background border border-input px-1 font-mono text-center text-foreground"
+      >
+        <option value="0">0%</option>
+        <option value="5">5%</option>
+        <option value="15">15%</option>
+        <option value="custom">مخصص…</option>
+      </select>
+      {selectValue === "custom" && (
+        <div className="flex items-center justify-center gap-0.5" dir="ltr">
+          <Input
+            type="text"
+            inputMode="decimal"
+            dir="ltr"
+            value={customText}
+            onChange={(e) => {
+              const nextText = e.target.value;
+              setCustomText(nextText);
+              // Deliberate no-NaN path: invalid/empty parses back to `rate`
+              // (previous valid), so the equality guard below skips the
+              // update and line state keeps the last good rate.
+              const nextRate = parseVatPercentToRate(nextText, rate);
+              if (nextRate !== rate) onRateChange(nextRate);
+            }}
+            onBlur={() => {
+              // Deliberate reset: garbage/empty text snaps back to the
+              // committed rate so the box never displays an uncommitted value.
+              setCustomText(formatVatRatePercent(rate));
+            }}
+            placeholder="7.5"
+            aria-label="نسبة ضريبة مخصصة (بالمئة)"
+            className="h-7 w-14 text-xs font-mono text-center px-1"
+          />
+          <span className="text-[10px] text-muted-foreground">%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface DuplicatePrefill {
   customerId?: string;
   issueDate?: string;
+  /** HH:MM Riyadh wall-time prefill for the duplicate flow. */
+  issueTime?: string;
   dueDate?: string | null;
   templateId?: string;
   invoiceType?: "standard" | "simplified";
@@ -136,7 +250,7 @@ export function InvoiceWizardForm({
   initialInvoice?: InvoiceDto;
   /** Prefill for "duplicate invoice" creates (new invoice, no id). */
   duplicatePrefill?: DuplicatePrefill;
-  /** Server-computed next number preview (max+1), shown read-only. */
+  /** Server-computed next number preview (max+1), used as the editable default for new invoices. */
   suggestedInvoiceNumber?: string;
   defaultVatRate?: number;
   defaultTemplateId?: string;
@@ -178,19 +292,18 @@ export function InvoiceWizardForm({
     return customersList.find((c) => c.id === selectedCustomerId);
   }, [customersList, selectedCustomerId]);
 
-  // Invoice number is allocated server-side on save (atomic per-company
-  // sequence). Never trust a client-side guess: show the server's max+1
-  // preview read-only for new invoices, and the real number when editing.
-  // The old `${prefix}-00001` simulation always showed ...-00001, which is
-  // why new invoices *looked* like they reused the same number.
-  const simulatedInvoiceNumber = useMemo(() => {
-    if (suggestedInvoiceNumber) return suggestedInvoiceNumber;
-    const prefix = activeCompany?.prefix || "INV";
-    return `${prefix}- (ترقيم تلقائي عند الحفظ)`;
-  }, [activeCompany, suggestedInvoiceNumber]);
-
-  const [invoiceNumber] = useState(
-    initialInvoice?.invoiceNumber || simulatedInvoiceNumber
+  // Invoice number is user-editable but server-authoritative: the value here
+  // is only the REQUESTED string — IssueInvoice / UpdateDraftInvoice
+  // re-validate it (trim, max 64) and enforce per-company uniqueness
+  // (friendly pre-check + unique-constraint backstop), so a hostile or stale
+  // client value can never create a duplicate. New invoices (and the
+  // duplicate flow, which is a NEW invoice) prefill the server's max+1
+  // suggestion; edits prefill the real number; numberless drafts prefill the
+  // suggestion when available, else empty (empty+draft → auto on save).
+  // Single field name `invoiceNumberCustom` for both modes: create and edit
+  // submit to different server actions, so no mode flag is needed.
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    initialInvoice?.invoiceNumber || suggestedInvoiceNumber || ""
   );
 
   // Every invoice is published immediately — no draft option.
@@ -210,6 +323,20 @@ export function InvoiceWizardForm({
       initialInvoice?.issueDate ||
       duplicatePrefill?.issueDate ||
       new Date().toISOString().slice(0, 10)
+  );
+  // HH:MM wall-time (Asia/Riyadh) next to the date. New invoices default to
+  // the current local time; edit/duplicate reuse the stored time so the QR
+  // round-trips; legacy rows without a time fall back to midnight.
+  const [issueTime, setIssueTime] = useState(
+    () =>
+      initialInvoice?.issueTime ||
+      duplicatePrefill?.issueTime ||
+      (() => {
+        const n = new Date();
+        const hh = String(n.getHours()).padStart(2, "0");
+        const mm = String(n.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+      })()
   );
   const [dueDate, setDueDate] = useState(
     initialInvoice?.dueDate || duplicatePrefill?.dueDate || ""
@@ -415,6 +542,12 @@ export function InvoiceWizardForm({
       message: "تم نسخ بيانات الفاتورة الحالية لإصدار نسخة جديدة.",
     });
     setIssueDate(new Date().toISOString().slice(0, 10));
+    // Copy also refreshes the time to now: the new invoice's QR must carry
+    // its own instant, not the source invoice's wall-time.
+    const n = new Date();
+    setIssueTime(
+      `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`
+    );
     setGearOpen(false);
   };
 
@@ -472,9 +605,10 @@ export function InvoiceWizardForm({
       notes: notes || undefined,
       terms: terms || undefined,
       issueDate: issueDate || undefined,
+      issueTime: issueTime || undefined,
       dueDate: dueDate || undefined,
     };
-  }, [lines, notes, terms, issueDate, dueDate]);
+  }, [lines, notes, terms, issueDate, issueTime, dueDate]);
 
   const formattedCompanyAddress = [
     activeCompany?.addressBuildingNumber,
@@ -707,24 +841,26 @@ export function InvoiceWizardForm({
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 text-xs">
-            {/* Invoice Number (read-only preview; server allocates atomically) */}
+            {/* Invoice Number (editable request; server enforces per-company uniqueness) */}
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] font-medium text-muted-foreground">
                 رقم الفاتورة
               </label>
               <Input
+                name="invoiceNumberCustom"
                 value={invoiceNumber}
-                readOnly
-                disabled
-                placeholder="ترقيم تلقائي"
-                title="يُخصَّص رقم الفاتورة تلقائياً عند الحفظ بتسلسل الشركة"
-                className="text-xs font-mono h-6.5 px-2 bg-muted/40"
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                maxLength={64}
+                dir="auto"
+                placeholder="ترقيم تلقائي عند الحفظ"
+                title="يمكنك تعديل الرقم — يجب أن يكون فريداً ضمن الشركة"
+                className="text-xs font-mono h-6.5 px-2"
               />
-              {!initialInvoice && (
-                <span className="text-[9px] text-muted-foreground">
-                  ترقيم تلقائي متسلسل — الرقم النهائي يُحجز عند الحفظ.
-                </span>
-              )}
+              <span className="text-[9px] text-muted-foreground">
+                {initialInvoice
+                  ? "قابل للتعديل — يجب أن يكون فريداً ضمن الشركة."
+                  : "عدّله أو اتركه للترقيم التلقائي — يجب أن يكون فريداً ضمن الشركة."}
+              </span>
             </div>
 
             {/* Template Selector Dropdown */}
@@ -752,17 +888,32 @@ export function InvoiceWizardForm({
               </select>
             </div>
 
-            {/* Issue Date */}
+            {/* Issue Date + Time */}
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] font-medium text-muted-foreground">
                 تاريخ الإصدار *
               </label>
-              <DatePickerInput
-                name="issueDate"
-                value={issueDate}
-                onChange={(val) => setIssueDate(val)}
-                className="text-xs h-6.5"
-              />
+              <div className="flex items-center gap-1">
+                <DatePickerInput
+                  name="issueDate"
+                  value={issueDate}
+                  onChange={(val) => setIssueDate(val)}
+                  className="text-xs h-6.5 flex-1"
+                />
+                {/* Native time input: DatePickerInput is date-only, so a
+                    plain HH:MM picker rides beside it at the same density.
+                    Named `issueTime` so it submits with the form. */}
+                <input
+                  type="time"
+                  name="issueTime"
+                  dir="ltr"
+                  value={issueTime}
+                  onChange={(e) => setIssueTime(e.target.value)}
+                  required
+                  aria-label="وقت الإصدار (HH:MM)"
+                  className="h-8 text-xs font-mono tabular-nums bg-background border border-input px-1 text-foreground w-[86px]"
+                />
+              </div>
             </div>
 
             {/* Due Date */}
@@ -857,7 +1008,7 @@ export function InvoiceWizardForm({
                 <th className="p-1.5 text-center w-16">الكمية *</th>
                 <th className="p-1.5 text-end w-20">السعر (ر.س) *</th>
                 <th className="p-1.5 text-end w-16">الخصم (ر.س)</th>
-                <th className="p-1.5 text-center w-14">الضريبة</th>
+                <th className="p-1.5 text-center w-24">الضريبة</th>
                 <th className="p-1.5 text-end w-24">الإجمالي</th>
                 <th className="p-1.5 text-center w-8">حذف</th>
               </tr>
@@ -962,9 +1113,19 @@ export function InvoiceWizardForm({
                       />
                     </td>
 
-                    {/* VAT Rate */}
-                    <td className="p-1.5 text-center font-mono font-medium text-muted-foreground text-[11px]">
-                      {(line.vatRate * 100).toFixed(0)}%
+                    {/* VAT Rate: preset dropdown + custom percent input.
+                        Writes straight into line.vatRate (0..1), so the row
+                        total above, the totals useMemo, and the hidden
+                        items[idx].vatRate input below all follow with no
+                        extra wiring. Product select still sets the product's
+                        own rate first; this control only overrides after. */}
+                    <td className="p-1.5">
+                      <VatRateCell
+                        rate={line.vatRate}
+                        onRateChange={(nextRate) =>
+                          updateLine(line.key, { vatRate: nextRate })
+                        }
+                      />
                     </td>
 
                     {/* Line Total */}

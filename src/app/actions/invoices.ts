@@ -11,6 +11,12 @@ import { TEMPLATES_REGISTRY } from "@/infrastructure/pdf/templates/registry";
 import { CreateDraftInvoice } from "@/application/use-cases/create-draft-invoice";
 import { IssueInvoice } from "@/application/use-cases/issue-invoice";
 import { DomainError, ValidationError } from "@/domain/errors";
+import {
+  DUPLICATE_INVOICE_NUMBER_MESSAGE,
+  MISSING_INVOICE_NUMBER_MESSAGE,
+  normalizeCustomInvoiceNumber,
+} from "@/domain/value-objects/invoice-number";
+import { asCompanyId } from "@/domain/branding";
 import { halalas, priceStringToHalalas } from "@/domain/value-objects/money";
 import type { ActionState } from "./types";
 
@@ -76,6 +82,9 @@ export async function createDraftInvoiceAction(
     customerId: String(formData.get("customerId") ?? ""),
     templateId,
     issueDate: String(formData.get("issueDate") ?? ""),
+    // HH:MM from the wizard time picker; validated by the Zod contract,
+    // normalized to "00:00" in the use case when absent (legacy callers).
+    issueTime: nonEmpty(formData.get("issueTime")),
     dueDate: nonEmpty(formData.get("dueDate")),
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
@@ -83,7 +92,28 @@ export async function createDraftInvoiceAction(
     items,
   };
 
-  let invoiceId: string;
+  // User-editable number (wizard `invoiceNumberCustom`; same name in edit
+  // mode). Server-side only from here: trimmed, validated, uniqueness-checked
+  // in IssueInvoice. Blank = today's auto-allocation, untouched.
+  const customInvoiceNumber = normalizeCustomInvoiceNumber(
+    formData.get("invoiceNumberCustom"),
+  );
+
+  // Early friendly reject BEFORE any write: the common duplicate case returns
+  // without inserting even the numberless draft. The IssueInvoice pre-check +
+  // unique-constraint mapping below remain the backstop for the race where a
+  // duplicate lands between this lookup and issuance.
+  if (customInvoiceNumber) {
+    const clash = await container.invoiceRepository.findByNumber(
+      asCompanyId(String(formData.get("companyId") ?? "")),
+      customInvoiceNumber,
+    );
+    if (clash) {
+      return { status: "error", message: DUPLICATE_INVOICE_NUMBER_MESSAGE };
+    }
+  }
+
+  let invoiceId = "";
   try {
     const draft = await new CreateDraftInvoice(
       container.invoiceRepository,
@@ -104,12 +134,36 @@ export async function createDraftInvoiceAction(
       container.idempotencyStore,
       container.db,
       container.receiptVoucherRepository,
-    ).execute({ invoiceId });
+    ).execute(
+      customInvoiceNumber
+        ? { invoiceId, customInvoiceNumber }
+        : { invoiceId },
+    );
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return { status: "error", message: error.message };
-    }
-    if (error instanceof DomainError) {
+    if (error instanceof ValidationError || error instanceof DomainError) {
+      // Orphan cleanup for the lost race: the early pre-check above passed
+      // but issuance hit the unique constraint, leaving the just-created
+      // numberless draft behind. Delete it best-effort so a rejected save
+      // writes nothing. Deliberate swallow: cleanup failure must never mask
+      // the friendly duplicate message; a leftover numberless draft is
+      // invisible (no number, excluded from numbering) and cleaned by normal
+      // draft flows.
+      if (
+        error instanceof ValidationError &&
+        error.message === DUPLICATE_INVOICE_NUMBER_MESSAGE &&
+        invoiceId
+      ) {
+        try {
+          const { DeleteDraftInvoice } = await import(
+            "@/application/use-cases/delete-draft-invoice"
+          );
+          await new DeleteDraftInvoice(container.invoiceRepository).execute({
+            id: invoiceId,
+          });
+        } catch {
+          // Deliberate swallow — see WHY above.
+        }
+      }
       return { status: "error", message: error.message };
     }
     throw error;
@@ -193,17 +247,32 @@ export async function updateDraftInvoiceAction(
     (formData.get("isSimplified") === "true" ? "simplified" : "standard");
   const templateId = String(formData.get("templateId") ?? "simple_red");
 
+  // Same `invoiceNumberCustom` name as the create form — the actions differ,
+  // so one name suffices (documented in the wizard). Tri-state: field absent
+  // (legacy callers) = preserve; blank = reject on issued (cannot go
+  // numberless), auto on drafts; value = rename with uniqueness enforcement.
+  const numberFieldPresent =
+    typeof formData.get("invoiceNumberCustom") === "string";
+  const requestedNumber = normalizeCustomInvoiceNumber(
+    formData.get("invoiceNumberCustom"),
+  );
+
   const input = {
     id: invoiceId,
     companyId: String(formData.get("companyId") ?? ""),
     customerId: String(formData.get("customerId") ?? ""),
     templateId,
     issueDate: String(formData.get("issueDate") ?? ""),
+    // Same HH:MM contract as the create path above.
+    issueTime: nonEmpty(formData.get("issueTime")),
     dueDate: nonEmpty(formData.get("dueDate")),
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
     terms: nonEmpty(formData.get("terms")),
     items,
+    // Spread only when renaming: omitting the key keeps updateDraft's
+    // preserve path (undefined), so legacy/auto callers are untouched.
+    ...(requestedNumber ? { invoiceNumber: requestedNumber } : {}),
   };
 
   try {
@@ -216,11 +285,21 @@ export async function updateDraftInvoiceAction(
     );
     const wasIssued = before?.status === "issued";
 
+    // Blank-on-edit decision needs the status: issued + cleared number is a
+    // friendly reject BEFORE any write; draft + cleared falls through to the
+    // auto path (no rename, IssueInvoice allocates as today).
+    if (numberFieldPresent && !requestedNumber && wasIssued) {
+      return { status: "error", message: MISSING_INVOICE_NUMBER_MESSAGE };
+    }
+
     const { UpdateDraftInvoice } = await import("@/application/use-cases/update-draft-invoice");
     await new UpdateDraftInvoice(container.invoiceRepository).execute(input);
 
     if (!wasIssued) {
       // Former draft (or legacy draft rows): publish it now. Errors surface.
+      // Forward the same custom number so issuance reuses it instead of
+      // auto-allocating over the value updateDraft just stored (IssueInvoice
+      // excludes the issuing row itself from its duplicate pre-check).
       await new IssueInvoice(
         container.invoiceRepository,
         container.companyRepository,
@@ -229,13 +308,18 @@ export async function updateDraftInvoiceAction(
         container.idempotencyStore,
         container.db,
         container.receiptVoucherRepository,
-      ).execute({ invoiceId });
+      ).execute(
+        requestedNumber ? { invoiceId, customInvoiceNumber: requestedNumber } : { invoiceId },
+      );
     } else {
       // Issued invoice was edited: rebuild ZATCA QR (totals changed) and
       // sync the linked receipt voucher amount. Best-effort but logged —
       // the totals edit itself already succeeded above.
       try {
         const { buildQrPayload } = await import("@/domain/services/zatca-qr-service");
+        const { invoiceDateTimeToUtcIso } = await import(
+          "@/domain/services/invoice-datetime"
+        );
         const after = await container.invoiceRepository.findByIdWithItems(
           asInvoiceId(invoiceId),
         );
@@ -243,10 +327,18 @@ export async function updateDraftInvoiceAction(
           ? await container.companyRepository.findById(after.companyId)
           : null;
         if (after && company) {
+          // Edit-path refresh uses the (possibly just-edited) invoice
+          // datetime read post-update — same source as the issue path. now()
+          // survives only as the corrupt-data fallback, never the timestamp.
+          const timestampIso = invoiceDateTimeToUtcIso(
+            after.issueDate,
+            after.issueTime ?? "00:00",
+            new Date(),
+          );
           const qrPayload = buildQrPayload({
             sellerName: company.nameAr,
             vatNumber: company.vatNumber,
-            timestampIso: new Date().toISOString(),
+            timestampIso,
             invoiceTotal: after.total,
             vatTotal: after.vatAmount,
           });
@@ -257,17 +349,30 @@ export async function updateDraftInvoiceAction(
           const voucher =
             await container.receiptVoucherRepository.findByInvoiceId(invoiceId);
           if (voucher) {
-            await container.receiptVoucherRepository.delete(voucher.id);
-            await container.receiptVoucherRepository.create({
-              companyId: after.companyId as unknown as string,
-              customerId: after.customerId as unknown as string,
-              invoiceId,
-              voucherDate: after.issueDate,
-              amount: after.total as unknown as number,
-              paymentMethod: "other",
-              reference: after.invoiceNumber ?? undefined,
-              notes: `سند قبض للفاتورة رقم ${after.invoiceNumber ?? ""}`,
-            } as never);
+            // Atomic swap in ONE transaction: delete + recreate together.
+            // The old code deleted first and recreated after OUTSIDE a tx, so
+            // any recreate failure left the issued invoice with NO voucher
+            // and only a console.error behind.
+            // Failed deletes in prod ate vouchers the same way. If anything
+            // inside throws, the delete rolls back and the old voucher
+            // survives — a stale amount beats a missing voucher.
+            await db.transaction(async (tx) => {
+              await container.receiptVoucherRepository.delete(voucher.id, tx);
+              await container.receiptVoucherRepository.create(
+                {
+                  companyId: after.companyId as unknown as string,
+                  customerId: after.customerId as unknown as string,
+                  invoiceId,
+                  // Receipt vouchers stay date-only: date part of the invoice datetime.
+                  voucherDate: after.issueDate,
+                  amount: after.total as unknown as number,
+                  paymentMethod: "other",
+                  reference: after.invoiceNumber ?? undefined,
+                  notes: `سند قبض للفاتورة رقم ${after.invoiceNumber ?? ""}`,
+                } as never,
+                tx,
+              );
+            });
           }
         }
       } catch (qrError) {
@@ -316,7 +421,11 @@ function parseItemsFromFormData(formData: FormData): RawItem[] {
       // use-case via lineSubtotalHalalasExact/priceStringToHalalas.
       const unitPrice = String(formData.get(`items[${idx}].unitPrice`) ?? "").trim() || "0";
       const discountAmount = parseInt(String(formData.get(`items[${idx}].discountAmount`) ?? "0"), 10) || 0;
-      const vatRate = parseFloat(String(formData.get(`items[${idx}].vatRate`) ?? "0.15")) || 0.15;
+      // Never `|| 0.15` here: parseFloat("0") is 0 (falsy), so a legit 0% VAT
+      // line would silently become 15%. Only fall back when truly unparseable;
+      // out-of-range values (e.g. >1) are left for Zod (0..1) to reject.
+      const parsedVat = parseFloat(String(formData.get(`items[${idx}].vatRate`) ?? "0.15"));
+      const vatRate = Number.isFinite(parsedVat) ? parsedVat : 0.15;
       const savedProductId = nonEmpty(formData.get(`items[${idx}].savedProductId`));
       const saveToProducts = formData.get(`items[${idx}].saveToProducts`) === "true";
 

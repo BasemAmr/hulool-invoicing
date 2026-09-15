@@ -59,9 +59,17 @@ export function CompanySettingsForm({
   const thousandsSeparator = settings?.thousandsSeparator ?? ",";
   const decimalSeparator = settings?.decimalSeparator ?? ".";
   const decimalPlaces = settings?.decimalPlaces ?? 2;
-  const defaultVatRate = settings?.defaultVatRate
-    ? settings.defaultVatRate.toString()
-    : "0.1500";
+  // WHY toFixed(4) + nullish check (not toString() / truthiness):
+  // - DB stores numeric(5,4) ("0.0500"); repo maps with parseFloat → 0.05;
+  //   toString() gives "0.05", which matches NO <option value> below, so the
+  //   select fell back to the first option (15%) on every reload — the save
+  //   worked, but the page displayed the old value ("doesn't persist").
+  // - A truthiness check (`rate ? ...`) also breaks 0%: 0 is falsy and would
+  //   display "0.1500". The nullish check keeps 0 → "0.0000".
+  const defaultVatRate =
+    settings?.defaultVatRate != null
+      ? settings.defaultVatRate.toFixed(4)
+      : "0.1500";
   const paperSize = settings?.paperSize ?? "A4";
   const paperOrientation = settings?.paperOrientation ?? "portrait";
 
@@ -238,7 +246,10 @@ export function CompanySettingsForm({
               <select
                 id="decimalPlaces"
                 name="decimalPlaces"
-                defaultValue={decimalPlaces}
+                // WHY String(): option values serialize to "2"/"0"/"3" in
+                // the DOM; a numeric defaultValue risks matching nothing and
+                // falling back to the first option (same class of bug as VAT).
+                defaultValue={String(decimalPlaces)}
                 className="w-full px-2.5 h-8 text-xs border border-border bg-background text-foreground focus:outline-none"
               >
                 <option value={2}>منزلتان (0.00)</option>

@@ -89,4 +89,34 @@ export class PostgresSequenceService implements SequencePort {
     }
     return formatInvoiceNumber(prefix, lastValue);
   }
+
+  async ensureSequenceAtLeast(
+    tx: Tx,
+    companyId: CompanyId,
+    seq: number,
+  ): Promise<void> {
+    // Deliberate no-op guard: seq comes from parsing a user-typed number;
+    // non-positive/non-finite values carry nothing to catch up to. NaN would
+    // otherwise be sent to Postgres as a bound parameter and fail the query.
+    const target = Math.trunc(seq);
+    if (!Number.isFinite(target) || target <= 0) return;
+
+    // Single atomic UPSERT on the sentinel row: concurrent catch-ups and
+    // allocations serialize on the row lock, and GREATEST keeps the highest
+    // value ever seen — a lower custom number can never drag the counter
+    // backwards into already-issued numbers.
+    await tx
+      .insert(companySequences)
+      .values({
+        companyId: companyId,
+        year: INVOICE_SEQUENCE_SENTINEL_YEAR,
+        lastValue: target,
+      })
+      .onConflictDoUpdate({
+        target: [companySequences.companyId, companySequences.year],
+        set: {
+          lastValue: sql`GREATEST(${companySequences.lastValue}, ${target})`,
+        },
+      });
+  }
 }

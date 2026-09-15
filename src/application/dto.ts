@@ -29,6 +29,8 @@ export interface InvoiceDto {
   invoiceNumber: string | null;
   status: "draft" | "issued" | "cancelled";
   issueDate: string;
+  /** HH:MM Riyadh wall-time (see invoice-datetime.ts). "00:00" for legacy rows. */
+  issueTime: string;
   dueDate: string | null;
   currency: string;
   subtotal: string;
@@ -53,6 +55,8 @@ export function toInvoiceDto(record: InvoiceRecord): InvoiceDto {
     invoiceNumber: record.invoiceNumber,
     status: record.status,
     issueDate: record.issueDate,
+    // Legacy records/fakes may omit the time — surface midnight, never undefined.
+    issueTime: record.issueTime ?? "00:00",
     dueDate: record.dueDate,
     currency: record.currency,
     subtotal: toDecimalString(record.subtotal),

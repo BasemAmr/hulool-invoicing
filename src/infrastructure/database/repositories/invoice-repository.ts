@@ -8,9 +8,11 @@ import type {
   InvoiceRecord,
   InvoiceRepository,
   MarkIssuedInput,
+  UpdateDraftInvoiceInput,
 } from "@/application/ports/invoice-repository";
 import type { Database, Tx } from "@/application/tx";
 import { InvalidTransitionError, NotFoundError } from "@/domain/errors";
+import { normalizeIssueTime } from "@/domain/services/invoice-datetime";
 import { fromDecimalString, toDecimalString } from "@/domain/value-objects/money";
 import { invoices, invoiceItems, receiptVouchers } from "../schema";
 
@@ -42,6 +44,9 @@ function mapInvoiceRow(inv: InvoiceRow, items: InvoiceItemRow[]): InvoiceRecord 
     invoiceNumber: inv.invoiceNumber,
     status: inv.status,
     issueDate: inv.issueDate,
+    // Legacy rows predate the column: the DB default backfills "00:00", but
+    // null-guard here too so in-memory/older snapshots never leak undefined.
+    issueTime: inv.issueTime ?? "00:00",
     dueDate: inv.dueDate,
     currency: inv.currency,
     subtotal: fromDecimalString(inv.subtotal),
@@ -75,6 +80,9 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           invoiceNumber: null,
           status: "draft",
           issueDate: input.issueDate,
+          // Normalize at the DB boundary: legacy callers omitting the time
+          // (and any corrupt value) persist as midnight, never null/garbage.
+          issueTime: normalizeIssueTime(input.issueTime),
           dueDate: input.dueDate,
           currency: input.currency,
           subtotal: toDecimalString(input.subtotal),
@@ -117,7 +125,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
 
   async updateDraft(
     id: InvoiceId,
-    input: CreateDraftInvoiceInput,
+    input: UpdateDraftInvoiceInput,
     now: Date,
   ): Promise<InvoiceRecord> {
     return this.db.transaction(async (tx) => {
@@ -145,6 +153,9 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           templateId: input.templateId || existing.templateId || "simple_red",
           invoiceType: input.invoiceType,
           issueDate: input.issueDate,
+          // Same midnight fallback as createDraft: an omitted time on edit
+          // (legacy callers) keeps a valid HH:MM instead of nulling the column.
+          issueTime: normalizeIssueTime(input.issueTime),
           dueDate: input.dueDate,
           currency: input.currency,
           subtotal: toDecimalString(input.subtotal),
@@ -153,6 +164,16 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           terms: input.terms,
           notes: input.notes,
           updatedAt: now,
+          // Rename ONLY on explicit request: undefined (every legacy/auto
+          // caller) leaves the stored number untouched, so the auto path is
+          // byte-for-byte identical to before. A defined value comes
+          // pre-validated + pre-checked from UpdateDraftInvoice; a concurrent
+          // duplicate still hitting the unique constraint aborts this whole
+          // transaction (parent UPDATE runs before the item delete/insert
+          // below), so no partial write is possible.
+          ...(input.invoiceNumber !== undefined
+            ? { invoiceNumber: input.invoiceNumber }
+            : {}),
         })
         .where(eq(invoices.id, id))
         .returning();
@@ -234,6 +255,32 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
       .select()
       .from(invoiceItems)
       .where(eq(invoiceItems.invoiceId, id))
+      .orderBy(asc(invoiceItems.position));
+
+    return mapInvoiceRow(inv, items);
+  }
+
+  async findByNumber(
+    companyId: CompanyId,
+    invoiceNumber: string,
+    tx?: Tx,
+  ): Promise<InvoiceRecord | null> {
+    const executor = tx ?? this.db;
+    const [inv] = await executor
+      .select()
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.companyId, companyId),
+          eq(invoices.invoiceNumber, invoiceNumber),
+        ),
+      );
+    if (!inv) return null;
+
+    const items = await executor
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, inv.id))
       .orderBy(asc(invoiceItems.position));
 
     return mapInvoiceRow(inv, items);

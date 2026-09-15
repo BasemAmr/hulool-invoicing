@@ -143,6 +143,12 @@ export const invoices = pgTable(
     status: invoiceStatusEnum("status").notNull().default("draft"),
     invoiceType: invoiceTypeEnum("invoice_type").notNull().default("standard"),
     issueDate: date("issue_date").notNull(),
+    // HH:MM wall-time in Asia/Riyadh (see invoice-datetime.ts for the UTC
+    // convention). Additive column: existing rows backfill to "00:00"
+    // (midnight) via this default; deploy-time `drizzle-kit push --force`
+    // applies the DDL. Kept as text (not timestamptz) so every existing
+    // date-only reader of issue_date keeps compiling and behaving.
+    issueTime: text("issue_time").notNull().default("00:00"),
     dueDate: date("due_date"),
     currency: text("currency").notNull().default("SAR"),
     subtotal: numeric("subtotal", { precision: 15, scale: 2 }).notNull(),
