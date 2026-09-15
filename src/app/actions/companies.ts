@@ -8,6 +8,7 @@ import { db } from "@/infrastructure/database";
 import { CreateCompany } from "@/application/use-cases/create-company";
 import { DomainError, ValidationError } from "@/domain/errors";
 import type { CompanyRecord } from "@/application/ports/company-repository";
+import { toWesternDigits } from "@/lib/format";
 import type { ActionState } from "./types";
 
 
@@ -20,17 +21,17 @@ export async function createCompanyAction(
   const input = {
     nameAr: String(formData.get("nameAr") ?? ""),
     nameEn: nonEmpty(formData.get("nameEn")),
-    vatNumber: String(formData.get("vatNumber") ?? ""),
-    crNumber: nonEmpty(formData.get("crNumber")),
+    vatNumber: westernRequired(formData.get("vatNumber")),
+    crNumber: westernNonEmpty(formData.get("crNumber")),
     prefix: String(formData.get("prefix") ?? "").toUpperCase(),
     clientEmployee: nonEmpty(formData.get("clientEmployee")),
-    addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
+    addressBuildingNumber: westernNonEmpty(formData.get("addressBuildingNumber")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressCity: nonEmpty(formData.get("addressCity")),
-    addressPostalCode: nonEmpty(formData.get("addressPostalCode")),
-    addressAdditionalNumber: nonEmpty(formData.get("addressAdditionalNumber")),
-    phone: nonEmpty(formData.get("phone")),
+    addressPostalCode: westernNonEmpty(formData.get("addressPostalCode")),
+    addressAdditionalNumber: westernNonEmpty(formData.get("addressAdditionalNumber")),
+    phone: westernNonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
     website: nonEmpty(formData.get("website")),
     logoFileId: nonEmpty(formData.get("logoFileId")),
@@ -71,17 +72,17 @@ export async function updateCompanyAction(
     id,
     nameAr: String(formData.get("nameAr") ?? ""),
     nameEn: nonEmpty(formData.get("nameEn")),
-    vatNumber: String(formData.get("vatNumber") ?? ""),
-    crNumber: nonEmpty(formData.get("crNumber")),
+    vatNumber: westernRequired(formData.get("vatNumber")),
+    crNumber: westernNonEmpty(formData.get("crNumber")),
     prefix: String(formData.get("prefix") ?? "").toUpperCase(),
     clientEmployee: nonEmpty(formData.get("clientEmployee")),
-    addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
+    addressBuildingNumber: westernNonEmpty(formData.get("addressBuildingNumber")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressCity: nonEmpty(formData.get("addressCity")),
-    addressPostalCode: nonEmpty(formData.get("addressPostalCode")),
-    addressAdditionalNumber: nonEmpty(formData.get("addressAdditionalNumber")),
-    phone: nonEmpty(formData.get("phone")),
+    addressPostalCode: westernNonEmpty(formData.get("addressPostalCode")),
+    addressAdditionalNumber: westernNonEmpty(formData.get("addressAdditionalNumber")),
+    phone: westernNonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
     website: nonEmpty(formData.get("website")),
     logoFileId: nonEmpty(formData.get("logoFileId")),
@@ -104,6 +105,10 @@ export async function updateCompanyAction(
   }
 
   revalidatePath("/companies");
+  // The company dashboard header (/c/[id]) renders the company name, so it
+  // goes stale after a rename unless revalidated here (redirect throws, so
+  // revalidate first).
+  revalidatePath(`/c/${id}`);
   redirect("/companies");
 }
 
@@ -153,6 +158,18 @@ export async function createCompanyDirectAction(data: {
       container.clock,
     ).execute({
       ...data,
+      vatNumber: toWesternDigits(data.vatNumber.trim()),
+      crNumber: data.crNumber?.trim() ? toWesternDigits(data.crNumber.trim()) : undefined,
+      phone: data.phone?.trim() ? toWesternDigits(data.phone.trim()) : undefined,
+      addressPostalCode: data.addressPostalCode?.trim()
+        ? toWesternDigits(data.addressPostalCode.trim())
+        : undefined,
+      addressAdditionalNumber: data.addressAdditionalNumber?.trim()
+        ? toWesternDigits(data.addressAdditionalNumber.trim())
+        : undefined,
+      addressBuildingNumber: data.addressBuildingNumber?.trim()
+        ? toWesternDigits(data.addressBuildingNumber.trim())
+        : undefined,
       prefix: data.prefix.toUpperCase(),
     });
     const company = await container.companyRepository.findById(asCompanyId(result.id));
@@ -206,6 +223,18 @@ export async function updateCompanyDirectAction(
     ).execute({
       id,
       ...data,
+      vatNumber: toWesternDigits(data.vatNumber.trim()),
+      crNumber: data.crNumber?.trim() ? toWesternDigits(data.crNumber.trim()) : undefined,
+      phone: data.phone?.trim() ? toWesternDigits(data.phone.trim()) : undefined,
+      addressPostalCode: data.addressPostalCode?.trim()
+        ? toWesternDigits(data.addressPostalCode.trim())
+        : undefined,
+      addressAdditionalNumber: data.addressAdditionalNumber?.trim()
+        ? toWesternDigits(data.addressAdditionalNumber.trim())
+        : undefined,
+      addressBuildingNumber: data.addressBuildingNumber?.trim()
+        ? toWesternDigits(data.addressBuildingNumber.trim())
+        : undefined,
       prefix: data.prefix.toUpperCase(),
     });
     const updated = await container.companyRepository.findById(asCompanyId(result.id));
@@ -213,7 +242,10 @@ export async function updateCompanyDirectAction(
       return { status: "error", message: "تعذر العثور على المنشأة بعد تحديثها" };
     }
     revalidatePath("/companies");
+    revalidatePath(`/companies/${id}/edit`);
     revalidatePath(`/c/${id}`);
+    // The settings page header renders the company name.
+    revalidatePath(`/c/${id}/settings`);
     return { status: "success", data: updated };
   } catch (error) {
     if (error instanceof ValidationError || error instanceof DomainError) {
@@ -228,5 +260,19 @@ export async function updateCompanyDirectAction(
 function nonEmpty(value: FormDataEntryValue | null): string | undefined {
   const str = typeof value === "string" ? value.trim() : "";
   return str.length > 0 ? str : undefined;
+}
+
+// WHY: the company edit form (/companies/[id]/edit, linked from the settings
+// page as "تعديل السجل والشعار والختم") posts raw user input, while the
+// drawer normalizes client-side with toWesternDigits. Arabic-Indic digits in
+// vatNumber ("٣٠٠٠٠٠٠٠٠٠٠٠٠٠٣") fail VAT_NUMBER_PATTERN (/^3\d{14}$/) and the
+// save is rejected. Normalizing at the server boundary fixes every caller.
+function westernNonEmpty(value: FormDataEntryValue | null): string | undefined {
+  const str = typeof value === "string" ? toWesternDigits(value).trim() : "";
+  return str.length > 0 ? str : undefined;
+}
+
+function westernRequired(value: FormDataEntryValue | null): string {
+  return typeof value === "string" ? toWesternDigits(value).trim() : "";
 }
 

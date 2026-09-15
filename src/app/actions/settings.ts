@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
 import { companySettingsSchema } from "@/domain/contracts";
+import {
+  parseDecimalPlacesInput,
+  parseVatRateInput,
+} from "@/lib/settings-input";
 import type { ActionState } from "./types";
 
 const container = createContainer(db);
@@ -19,8 +23,11 @@ export async function updateCompanySettingsAction(
   const currencyPosition = formData.get("currencyPosition")?.toString() as "before" | "after";
   const thousandsSeparator = formData.get("thousandsSeparator")?.toString();
   const decimalSeparator = formData.get("decimalSeparator")?.toString();
-  const decimalPlaces = parseInt(formData.get("decimalPlaces")?.toString() ?? "2", 10);
-  const defaultVatRate = parseFloat(formData.get("defaultVatRate")?.toString() ?? "0.15");
+  const decimalPlaces = parseDecimalPlacesInput(formData.get("decimalPlaces")?.toString());
+  // Boundary normalization (Arabic-Indic digits, trailing %, whole-number
+  // percents like "15" → 0.15) so user input never fails validation on
+  // digit shape alone. Unparseable input yields NaN, which Zod rejects below.
+  const defaultVatRate = parseVatRateInput(formData.get("defaultVatRate")?.toString());
   const paperSize = formData.get("paperSize")?.toString() as "A4" | "Letter";
   const paperOrientation = formData.get("paperOrientation")?.toString() as "portrait" | "landscape";
   const defaultTemplateId = formData.get("defaultTemplateId")?.toString() || "simple_red";
@@ -52,8 +59,14 @@ export async function updateCompanySettingsAction(
   try {
     await container.companySettingsRepository.upsert(parsed.data);
     revalidatePath(`/c/${companyId}/settings`);
+    // The new-invoice page consumes defaultVatRate + defaultTemplateId
+    // server-side; without this it keeps serving the pre-save cached page,
+    // which looks exactly like "the setting didn't save".
+    revalidatePath(`/c/${companyId}/invoices/new`);
     return { status: "ok" };
   } catch (error) {
+    // Deliberate swallow: surface a safe message to the form toast; the
+    // raw error (e.g. DB constraint detail) must not leak to the client.
     return {
       status: "error",
       message: error instanceof Error ? error.message : "فشل حفظ الإعدادات",
