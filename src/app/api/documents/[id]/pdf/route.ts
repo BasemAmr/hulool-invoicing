@@ -86,8 +86,23 @@ export async function GET(
   }
 
   const dto = toInvoiceDto(invoice);
-  const qrDataUrl = dto.qrPayload
-    ? await QRCode.toDataURL(dto.qrPayload, { margin: 1, width: 256 })
+  // Read-time safety net: historical rows issued before the seconds-precision
+  // fix carry Tag 3 with millis (e.g. `...07.799Z`) which validators flag.
+  // Normalize the stored payload for the rendered QR; fall back to the raw
+  // payload if it is corrupt so the PDF never 500s on a bad QR.
+  let qrPayloadForRender = dto.qrPayload;
+  if (qrPayloadForRender) {
+    try {
+      const { normalizeStoredQrPayload } = await import(
+        "@/domain/services/zatca-qr-service"
+      );
+      qrPayloadForRender = normalizeStoredQrPayload(qrPayloadForRender);
+    } catch {
+      qrPayloadForRender = dto.qrPayload;
+    }
+  }
+  const qrDataUrl = qrPayloadForRender
+    ? await QRCode.toDataURL(qrPayloadForRender, { margin: 1, width: 256 })
     : null;
 
   const [logoDataUrl, backgroundDataUrl, signatureDataUrl, settings] = await Promise.all([
