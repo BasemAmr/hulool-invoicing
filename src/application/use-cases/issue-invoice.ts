@@ -6,7 +6,10 @@ import {
   ValidationError,
 } from "@/domain/errors";
 import { buildQrPayload } from "@/domain/services/zatca-qr-service";
-import { invoiceDateTimeToUtcIso } from "@/domain/services/invoice-datetime";
+import {
+  applyQrTimestampJitter,
+  invoiceDateTimeToUtcIso,
+} from "@/domain/services/invoice-datetime";
 import {
   DUPLICATE_INVOICE_NUMBER_MESSAGE,
   INVOICE_NUMBER_TOO_LONG_MESSAGE,
@@ -163,17 +166,25 @@ export class IssueInvoice {
       }
 
       // 5. Build ZATCA QR payload
-      // Root fix: Tag 3 is the INVOICE's own datetime (date + Riyadh
-      // wall-time → UTC instant), never server-now. `issuedAt` below stays
-      // the system issuance moment — a different concept. now() survives only
-      // as the corrupt-data fallback inside invoiceDateTimeToUtcIso, not the
-      // normal path.
+      // Base instant is the INVOICE's own datetime (date + Riyadh wall-time
+      // → UTC instant), never server-now. `issuedAt` below stays the system
+      // issuance moment — a different concept. now() survives only as the
+      // corrupt-data fallback inside invoiceDateTimeToUtcIso, not the normal
+      // path.
+      //
+      // CLIENT REQUEST (2026-09-17): Tag 3 does NOT embed the base instant
+      // verbatim. Per client instruction the QR carries a randomized time:
+      // base instant ± a random 180–560 minutes (see applyQrTimestampJitter).
+      // Stored issueDate/issueTime, the printed PDF, and issuedAt keep the
+      // true datetime — ONLY the QR payload is jittered. This deviates from
+      // the ZATCA spec; remove the jitter line to restore compliance.
       const now = this.clock.now();
-      const timestampIso = invoiceDateTimeToUtcIso(
+      const baseTimestampIso = invoiceDateTimeToUtcIso(
         invoice.issueDate,
         invoice.issueTime ?? "00:00",
         now,
       );
+      const timestampIso = applyQrTimestampJitter(baseTimestampIso);
       const qrPayload = buildQrPayload({
         sellerName: company.nameAr,
         vatNumber: company.vatNumber,

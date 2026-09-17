@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { invoiceCreateSchema } from "@/domain/contracts";
 import {
+  applyQrTimestampJitter,
   DEFAULT_ISSUE_TIME,
   invoiceDateTimeToUtcIso,
   isValidIssueTime,
   normalizeIssueTime,
+  QR_TIMESTAMP_JITTER_MAX_MINUTES,
+  QR_TIMESTAMP_JITTER_MIN_MINUTES,
 } from "@/domain/services/invoice-datetime";
 
 const FALLBACK_NOW = new Date("2026-01-01T00:00:00.000Z");
@@ -48,6 +51,55 @@ describe("invoice-datetime — Riyadh wall-time → UTC instant", () => {
     const iso = invoiceDateTimeToUtcIso("2026-09-15", "14:30", FALLBACK_NOW);
     expect(iso.endsWith("Z")).toBe(true);
     expect(Number.isNaN(new Date(iso).getTime())).toBe(false);
+  });
+});
+
+describe("invoice-datetime — CLIENT REQUEST QR timestamp jitter (180–560 min ±)", () => {
+  const BASE = "2026-09-15T11:30:00.000Z";
+  const BASE_MS = new Date(BASE).getTime();
+
+  it("subtracts the minimum (180 min) with stubbed randoms", () => {
+    // First draw → magnitude floor (0 → 180), second draw → sign (0 → subtract).
+    const seq = [0, 0];
+    const out = applyQrTimestampJitter(BASE, () => seq.shift() ?? 0);
+    expect(out).toBe(new Date(BASE_MS - 180 * 60_000).toISOString());
+  });
+
+  it("adds the maximum (560 min) with stubbed randoms", () => {
+    // First draw → magnitude ceiling (~1 → 560), second draw → sign (~1 → add).
+    const seq = [0.999999, 0.999999];
+    const out = applyQrTimestampJitter(BASE, () => seq.shift() ?? 0.999999);
+    expect(out).toBe(new Date(BASE_MS + 560 * 60_000).toISOString());
+  });
+
+  it("stays within [180, 560] minutes of drift over many random draws", () => {
+    for (let i = 0; i < 200; i++) {
+      const out = applyQrTimestampJitter(BASE);
+      const driftMin =
+        Math.abs(new Date(out).getTime() - BASE_MS) / 60_000;
+      expect(driftMin).toBeGreaterThanOrEqual(
+        QR_TIMESTAMP_JITTER_MIN_MINUTES,
+      );
+      expect(driftMin).toBeLessThanOrEqual(
+        QR_TIMESTAMP_JITTER_MAX_MINUTES,
+      );
+      // Whole-minute offsets keep seconds at :00, matching Tag 3 precision.
+      expect(new Date(out).getUTCSeconds()).toBe(0);
+    }
+  });
+
+  it("rolls the date correctly when the offset crosses midnight", () => {
+    // 00:30Z minus 560 min → previous day 15:10Z.
+    const seq = [0.999999, 0];
+    const out = applyQrTimestampJitter(
+      "2026-09-15T00:30:00.000Z",
+      () => seq.shift() ?? 0,
+    );
+    expect(out).toBe("2026-09-14T15:10:00.000Z");
+  });
+
+  it("passes corrupt input through so normalizeQrTimestamp still throws loudly", () => {
+    expect(applyQrTimestampJitter("not-a-date")).toBe("not-a-date");
   });
 });
 

@@ -179,7 +179,16 @@ function harness() {
 }
 
 describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
-  it("picked 14:30 Riyadh wall-time lands in Tag 3 as 11:30Z (not server-now)", async () => {
+  // CLIENT REQUEST (2026-09-17): Tag 3 no longer equals the invoice instant
+  // verbatim — it carries the invoice instant ± a random 180–560 min jitter.
+  // These tests pin the BASE instant via invoiceDateTimeToUtcIso (unchanged
+  // contract) and assert the QR Tag 3 lands inside the jitter window, never
+  // at server-now and never outside [180, 560] minutes of drift.
+  function driftMinutes(qrIso: string, baseIso: string): number {
+    return Math.abs(new Date(qrIso).getTime() - new Date(baseIso).getTime()) / 60_000;
+  }
+
+  it("picked 14:30 Riyadh wall-time lands in Tag 3 as 11:30Z ± jitter (not server-now)", async () => {
     const { invoices, issue } = harness();
     const id = asInvoiceId("dddddddd-dddd-4ddd-8ddd-000000000001");
     invoices.rows.set(
@@ -190,20 +199,24 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
     const dto = await issue.execute({ invoiceId: String(id) });
     expect(dto.qrPayload).toBeTruthy();
     // invoiceDateTimeToUtcIso still emits millis shape (its contract is
-    // unchanged); the QR choke point normalizes Tag 3 to seconds precision —
-    // same second-instant, new shape. Both sides pinned deliberately.
+    // unchanged) — this is the BASE instant the jitter derives from.
     const invoiceInstant = invoiceDateTimeToUtcIso(
       "2026-09-15",
       "14:30",
       new Date("2026-09-15T10:00:00.000Z"),
     );
     expect(invoiceInstant).toBe("2026-09-15T11:30:00.000Z");
-    expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      "2026-09-15T11:30:00Z",
-    );
+    // QR Tag 3 is the base instant ± random 180–560 min (seconds precision).
+    const tag3 = decodeQrTimestamp(dto.qrPayload!);
+    expect(tag3).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    const drift = driftMinutes(tag3, invoiceInstant);
+    expect(drift).toBeGreaterThanOrEqual(180);
+    expect(drift).toBeLessThanOrEqual(560);
+    // And it must NOT leak server-now (10:00Z) verbatim.
+    expect(tag3).not.toBe("2026-09-15T10:00:00Z");
   });
 
-  it("legacy rows without a time issue at midnight (00:00 Riyadh → 21:00Z prev day)", async () => {
+  it("legacy rows without a time issue at midnight ± jitter (00:00 Riyadh → 21:00Z prev day base)", async () => {
     const { invoices, issue } = harness();
     const id = asInvoiceId("dddddddd-dddd-4ddd-8ddd-000000000002");
     invoices.rows.set(
@@ -212,10 +225,14 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
     );
 
     const dto = await issue.execute({ invoiceId: String(id) });
-    // Same instant as before, seconds-precision shape (was `.000Z`).
-    expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      "2026-09-14T21:00:00Z",
-    );
+    // Base instant unchanged (midnight Riyadh → 21:00Z prev day); Tag 3 is
+    // that base ± 180–560 min in seconds-precision shape.
+    const base = "2026-09-14T21:00:00.000Z";
+    const tag3 = decodeQrTimestamp(dto.qrPayload!);
+    expect(tag3).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    const drift = driftMinutes(tag3, base);
+    expect(drift).toBeGreaterThanOrEqual(180);
+    expect(drift).toBeLessThanOrEqual(560);
   });
 
   it("issuedAt still records the system issuance moment (separate concept)", async () => {
@@ -227,11 +244,12 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
     );
 
     const dto = await issue.execute({ invoiceId: String(id) });
-    // Server-now (10:00Z) ≠ invoice instant (11:30Z): proves the two concepts split.
-    // issuedAt keeps millis shape (system moment, untouched); Tag 3 is seconds precision.
+    // Server-now (10:00Z) ≠ base invoice instant (11:30Z): proves the two concepts split.
+    // issuedAt keeps millis shape (system moment, untouched); Tag 3 is seconds precision ± jitter.
     expect(dto.issuedAt).toBe("2026-09-15T10:00:00.000Z");
-    expect(decodeQrTimestamp(dto.qrPayload!)).toBe(
-      "2026-09-15T11:30:00Z",
-    );
+    const tag3 = decodeQrTimestamp(dto.qrPayload!);
+    const drift = driftMinutes(tag3, "2026-09-15T11:30:00.000Z");
+    expect(drift).toBeGreaterThanOrEqual(180);
+    expect(drift).toBeLessThanOrEqual(560);
   });
 });

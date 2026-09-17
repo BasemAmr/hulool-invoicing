@@ -317,7 +317,7 @@ export async function updateDraftInvoiceAction(
       // the totals edit itself already succeeded above.
       try {
         const { buildQrPayload } = await import("@/domain/services/zatca-qr-service");
-        const { invoiceDateTimeToUtcIso } = await import(
+        const { invoiceDateTimeToUtcIso, applyQrTimestampJitter } = await import(
           "@/domain/services/invoice-datetime"
         );
         const after = await container.invoiceRepository.findByIdWithItems(
@@ -330,11 +330,17 @@ export async function updateDraftInvoiceAction(
           // Edit-path refresh uses the (possibly just-edited) invoice
           // datetime read post-update — same source as the issue path. now()
           // survives only as the corrupt-data fallback, never the timestamp.
-          const timestampIso = invoiceDateTimeToUtcIso(
+          //
+          // CLIENT REQUEST (2026-09-17): Tag 3 carries the jittered time
+          // (base instant ± random 180–560 min), same as the issue path.
+          // NOTE: every edit re-rolls the jitter, so the QR timestamp changes
+          // on each edit of an issued invoice by design per this request.
+          const baseTimestampIso = invoiceDateTimeToUtcIso(
             after.issueDate,
             after.issueTime ?? "00:00",
             new Date(),
           );
+          const timestampIso = applyQrTimestampJitter(baseTimestampIso);
           const qrPayload = buildQrPayload({
             sellerName: company.nameAr,
             vatNumber: company.vatNumber,
