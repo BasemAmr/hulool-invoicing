@@ -23,6 +23,63 @@ export const RIYADH_UTC_OFFSET_MINUTES = 3 * 60;
 /** Fallback for legacy rows written before the time picker existed. */
 export const DEFAULT_ISSUE_TIME = "00:00";
 
+/**
+ * CLIENT REQUEST (2026-09-17): QR Tag 3 timestamp jitter.
+ *
+ * WHY this exists: the client explicitly asked that the QR code's embedded
+ * issue date/time NOT equal the invoice's stored issue datetime, but a
+ * randomized time derived from it: take the invoice's own datetime, then
+ * randomly add OR subtract a random offset between 180 and 560 minutes, and
+ * embed THAT in QR Tag 3.
+ *
+ * WHY it lives here (not in the QR service): the QR service's contract is
+ * "normalize any instant to seconds-precision UTC" — it must stay honest.
+ * The deviation is applied at the call sites (issue + edit-refresh) so the
+ * stored `issueDate/issueTime`, the printed PDF, and `issuedAt` all keep the
+ * true datetime while ONLY Tag 3 carries the jittered instant.
+ *
+ * COMPLIANCE WARNING: ZATCA Phase 1 expects Tag 3 to be the true invoice
+ * issue datetime. This jitter deliberately deviates from the spec per client
+ * instruction and may fail ZATCA validation / show a QR time that differs
+ * from the printed invoice time. Remove these call sites to restore
+ * spec-compliant behavior.
+ */
+export const QR_TIMESTAMP_JITTER_MIN_MINUTES = 180;
+export const QR_TIMESTAMP_JITTER_MAX_MINUTES = 560;
+
+/**
+ * Apply the client-requested random offset to a UTC ISO instant.
+ *
+ * Takes a base instant (normally the output of `invoiceDateTimeToUtcIso`),
+ * picks a random whole-minute magnitude in [180, 560] and a random sign,
+ * and shifts the instant by that offset. Date rollover is handled by epoch
+ * arithmetic (e.g. 00:30 minus 560 min → previous day 15:10Z).
+ *
+ * `randomFn` defaults to `Math.random` and exists ONLY for deterministic
+ * tests — production call sites omit it.
+ *
+ * Never throws: unparseable input is returned verbatim so the downstream
+ * `normalizeQrTimestamp` choke point still throws loudly on corrupt data.
+ */
+export function applyQrTimestampJitter(
+  baseUtcIso: string,
+  randomFn: () => number = Math.random,
+): string {
+  const baseMs = new Date(baseUtcIso).getTime();
+  if (Number.isNaN(baseMs)) return baseUtcIso;
+  const magnitude =
+    QR_TIMESTAMP_JITTER_MIN_MINUTES +
+    Math.floor(
+      randomFn() *
+        (QR_TIMESTAMP_JITTER_MAX_MINUTES -
+          QR_TIMESTAMP_JITTER_MIN_MINUTES +
+          1),
+    );
+  // Second draw decides direction: [0, 0.5) → subtract, [0.5, 1) → add.
+  const sign = randomFn() < 0.5 ? -1 : 1;
+  return new Date(baseMs + sign * magnitude * 60_000).toISOString();
+}
+
 export function isValidIssueTime(v: unknown): v is string {
   return typeof v === "string" && ISSUE_TIME_PATTERN.test(v);
 }
