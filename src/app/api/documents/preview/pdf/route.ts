@@ -369,8 +369,22 @@ async function renderPreviewPdfResponse(
     safeLoadFileAsDataUrl(company.signatureFileId),
   ]);
 
-  const qrDataUrl = invoiceDto.qrPayload
-    ? await QRCode.toDataURL(invoiceDto.qrPayload, { margin: 1, width: 256 })
+  // Read-time safety net (same as GET /api/documents/[id]/pdf): historical
+  // payloads with millis Tag 3 normalize here so previews stay valid.
+  // Falls back to the raw payload if corrupt so the PDF never 500s.
+  let qrPayloadForRender = invoiceDto.qrPayload;
+  if (qrPayloadForRender) {
+    try {
+      const { normalizeStoredQrPayload } = await import(
+        "@/domain/services/zatca-qr-service"
+      );
+      qrPayloadForRender = normalizeStoredQrPayload(qrPayloadForRender);
+    } catch {
+      qrPayloadForRender = invoiceDto.qrPayload;
+    }
+  }
+  const qrDataUrl = qrPayloadForRender
+    ? await QRCode.toDataURL(qrPayloadForRender, { margin: 1, width: 256 })
     : null;
 
   let bytes: Uint8Array;

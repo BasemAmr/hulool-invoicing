@@ -106,3 +106,92 @@ export function buildQrPayload(input: QrInput): string {
   }
   return btoa(binary);
 }
+
+/**
+ * Decode a stored Base64 QR payload into ordered [tag, value] fields.
+ *
+ * WHY exposed: repair tooling + read-time safety nets need to inspect and
+ * re-emit historical payloads without trusting their Tag 3 shape. Throws
+ * ValidationError on corrupt base64 / truncated TLV so callers stay loud.
+ */
+export function decodeTlvFields(payload: string): Array<[number, string]> {
+  let binary: string;
+  try {
+    // `atob` exists in Node 16+ and edge runtimes; Buffer fallback keeps
+    // scripts/tests on older harnesses working.
+    binary =
+      typeof atob === "function"
+        ? atob(payload)
+        : Buffer.from(payload, "base64").toString("binary");
+  } catch {
+    throw new ValidationError("Invalid QR payload: not valid base64");
+  }
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const decoder = new TextDecoder();
+  const fields: Array<[number, string]> = [];
+  let offset = 0;
+  while (offset + 2 <= bytes.length) {
+    const tag = bytes[offset]!;
+    const len = bytes[offset + 1]!;
+    if (offset + 2 + len > bytes.length) {
+      throw new ValidationError("Invalid QR payload: truncated TLV field");
+    }
+    fields.push([tag, decoder.decode(bytes.slice(offset + 2, offset + 2 + len))]);
+    offset += 2 + len;
+  }
+  if (fields.length === 0) {
+    throw new ValidationError("Invalid QR payload: empty TLV");
+  }
+  return fields;
+}
+
+/** Read Tag 3 (timestamp) from a stored payload — for diagnostics/repair. */
+export function decodeStoredQrTimestamp(payload: string): string {
+  const fields = decodeTlvFields(payload);
+  const found = fields.find(([tag]) => tag === TAG_TIMESTAMP);
+  if (!found) throw new ValidationError("Invalid QR payload: Tag 3 missing");
+  return found[1];
+}
+
+/**
+ * Repair a HISTORICAL stored payload whose Tag 3 carries fractional seconds
+ * (e.g. `2026-09-11T16:16:07.799Z` from the pre-normalization writer).
+ *
+ * Re-emits the same fields in the same order, with ONLY Tag 3 normalized via
+ * `normalizeQrTimestamp` (truncate to seconds-precision UTC, same instant).
+ * Tags 1/2/4/5 round-trip byte-identically (UTF-8 decode → re-encode).
+ *
+ * Returns the original string untouched when Tag 3 is already clean, so the
+ * repair script is idempotent and already-fixed rows are byte-identical.
+ */
+export function normalizeStoredQrPayload(payload: string): string {
+  const fields = decodeTlvFields(payload);
+  let changed = false;
+  const fixed: Array<[number, string]> = fields.map(([tag, value]) => {
+    if (tag !== TAG_TIMESTAMP) return [tag, value] as [number, string];
+    const clean = normalizeQrTimestamp(value);
+    if (clean !== value) changed = true;
+    return [tag, clean] as [number, string];
+  });
+  if (!changed) return payload;
+  const encoder = new TextEncoder();
+  let total = 0;
+  for (const [, value] of fixed) total += 2 + encoder.encode(value).length;
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const [tag, value] of fixed) {
+    const valueBytes = encoder.encode(value);
+    out[offset] = tag;
+    out[offset + 1] = valueBytes.length;
+    out.set(valueBytes, offset + 2);
+    offset += 2 + valueBytes.length;
+  }
+  let binary = "";
+  for (let i = 0; i < out.length; i++) binary += String.fromCharCode(out[i]!);
+  return typeof btoa === "function"
+    ? btoa(binary)
+    : Buffer.from(binary, "binary").toString("base64");
+}
