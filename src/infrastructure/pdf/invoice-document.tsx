@@ -29,6 +29,18 @@ import { AldailCeramicsTemplate } from "./templates/aldail-ceramics-template";
 import { BazreaPlasticsTemplate } from "./templates/bazrea-plastics-template";
 import { SaAlkoufiTemplate } from "./templates/sa-alkoufi-template";
 import { GenericDeliveryNoteTemplate } from "./templates/generic-delivery-note-template";
+import { GenericDotmatrix22Template } from "./templates/generic-dotmatrix-22-template";
+import { GenericBranch23Template } from "./templates/generic-branch-23-template";
+import { GenericFoodstuffs24Template } from "./templates/generic-foodstuffs-24-template";
+import { GenericSimplified25Template } from "./templates/generic-simplified-25-template";
+import { Template1AlAsma } from "./templates/template-1-al-asma";
+import { Template2MatajerAlwadi } from "./templates/template-2-matajer-alwadi";
+import { Template3FikrAlmakateb } from "./templates/template-3-fikr-almakateb";
+import { Template4JuffaliFood } from "./templates/template-4-juffali-food";
+import { Template5TharaRiyadh } from "./templates/template-5-thara-riyadh";
+import { Template6JabalAlRayan } from "./templates/template-6-jabal-al-rayan";
+import { Template7Alsahah } from "./templates/template-7-alsahah";
+import { Template8SalehAlHaider } from "./templates/template-8-saleh-al-haider";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -141,6 +153,39 @@ export function InvoiceDocument({
   }
   if (templateDef.id === "generic_delivery_21") {
     return <GenericDeliveryNoteTemplate {...props} />;
+  }
+  if (templateDef.id === "generic_dotmatrix_22") {
+    return <GenericDotmatrix22Template {...props} />;
+  }
+  if (templateDef.id === "generic_branch_23") {
+    return <GenericBranch23Template {...props} />;
+  }
+  if (templateDef.id === "generic_foodstuffs_24") {
+    return <GenericFoodstuffs24Template {...props} />;
+  }
+  if (templateDef.id === "template_1_al_asma") {
+    return <Template1AlAsma {...props} />;
+  }
+  if (templateDef.id === "template_2_matajer_alwadi") {
+    return <Template2MatajerAlwadi {...props} />;
+  }
+  if (templateDef.id === "template_3_fikr_almakateb") {
+    return <Template3FikrAlmakateb {...props} />;
+  }
+  if (templateDef.id === "template_4_juffali_food") {
+    return <Template4JuffaliFood {...props} />;
+  }
+  if (templateDef.id === "template_5_thara_riyadh") {
+    return <Template5TharaRiyadh {...props} />;
+  }
+  if (templateDef.id === "template_6_jabal_al_rayan") {
+    return <Template6JabalAlRayan {...props} />;
+  }
+  if (templateDef.id === "template_7_alsahah") {
+    return <Template7Alsahah {...props} />;
+  }
+  if (templateDef.id === "template_8_saleh_al_haider") {
+    return <Template8SalehAlHaider {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
