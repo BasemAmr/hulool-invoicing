@@ -36,6 +36,13 @@
       "when": 1787210000000,
       "tag": "0004_add_default_receipt_template",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787250000000,
+      "tag": "0005_add_issue_time_to_invoices",
+      "breakpoints": true
     }
   ]
 }

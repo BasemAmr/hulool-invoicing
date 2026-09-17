@@ -1,0 +1,1 @@
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "issue_time" text DEFAULT '00:00' NOT NULL;

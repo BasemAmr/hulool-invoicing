@@ -13,7 +13,7 @@ import type { CustomerRecord } from "@/application/ports/customer-repository";
 import type { CompanySettingsRecord } from "@/application/ports/company-settings-repository";
 import type { TemplateDefinition } from "./registry";
 
-export interface GenericDeliveryNoteTemplateProps {
+export interface GenericDotmatrix22TemplateProps {
   invoice: InvoiceDto;
   company: CompanyRecord;
   customer: CustomerRecord;
@@ -25,55 +25,25 @@ export interface GenericDeliveryNoteTemplateProps {
   signatureDataUrl?: string | null;
 }
 
-// ─── Optional extension fields (legacy ERP / dot-matrix columns). ───
-// WHY: InvoiceDto has no salesman field and CompanyRecord has no fax/toll-free
-// fields, so we read them via optional chaining and fall back to "" — never crash,
-// never hardcode. InvoiceItemDto carries no human-readable product-code column
-// (savedProductId is an internal UUID FK), so the Prd Code cell shows the row
-// number instead of leaking UUIDs.
-interface DeliveryNoteInvoiceExtensions {
-  salesman?: string | null;
-  salesmanName?: string | null;
-  salesMan?: string | null;
-}
+// ─── No hardcoded business data ───
+// WHY: the attached scan shows a specific company's header (EN left / logo
+// center / AR right) plus customer/VAT blocks. This template reproduces only
+// the LAYOUT: every printed value comes from CompanyRecord / CustomerRecord /
+// InvoiceDto with "" fallbacks. Logo/QR render only when data URLs are
+// provided — no fallback images, no invented names, numbers, or footers.
+// InvoiceDto has no salesman/channel/credit-note columns, so those scan rows
+// are intentionally omitted rather than fabricated.
 
-interface DeliveryNoteCompanyExtensions {
-  fax?: string | null;
-  faxNumber?: string | null;
-  tollFree?: string | null;
-  tollFreeNumber?: string | null;
-  poBox?: string | null;
-}
-
-function getSalesman(invoice: InvoiceDto): string {
-  const rec = invoice as InvoiceDto & Partial<DeliveryNoteInvoiceExtensions>;
-  return rec.salesman ?? rec.salesmanName ?? rec.salesMan ?? "";
-}
-
-function getCompanyExt(company: CompanyRecord): DeliveryNoteCompanyExtensions {
-  const rec = company as CompanyRecord & Partial<DeliveryNoteCompanyExtensions>;
-  return {
-    fax: rec.fax ?? rec.faxNumber ?? null,
-    tollFree: rec.tollFree ?? rec.tollFreeNumber ?? null,
-    poBox: rec.poBox ?? null,
-  };
-}
-
-// WHY: savedProductId is a UUID foreign key (see domain/contracts: savedProductId
-// is z.string().uuid()), NOT a human-readable product code — printing it verbatim
-// leaks raw UUIDs into the Prd Code column (see annotated scan). InvoiceItemDto
-// carries no real product-code column, so the code cell falls back to the row
-// position and never prints a UUID.
+// WHY: savedProductId is an internal UUID FK (z.string().uuid()), never a
+// printable code — the Prd Code cell shows the row number instead.
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuidLike(value: string): boolean {
   const text = value.trim();
   if (UUID_RE.test(text)) return true;
-  // Lenient fallback: the annotated scan shows wrapped/truncated UUID-ish strings
-  // that may not match the strict 8-4-4-4-12 shape. Anything long (>= 20 chars)
-  // made only of hex + dashes with at least 2 dashes is an internal id, never a
-  // printable product code (real codes are short like "8" or "P-123").
+  // Lenient: long hex-and-dashes strings (wrapped/truncated UUIDs) are also
+  // internal ids, never real product codes (real codes are short).
   if (
     text.length >= 20 &&
     (text.match(/-/g) || []).length >= 2 &&
@@ -85,13 +55,14 @@ function isUuidLike(value: string): boolean {
 }
 
 function getProductCode(item: InvoiceItemDto, index: number): string {
-  const rec = item as InvoiceItemDto & { productCode?: string | null; code?: string | null };
+  const rec = item as InvoiceItemDto & {
+    productCode?: string | null;
+    code?: string | null;
+  };
   const candidates = [rec.productCode, rec.code, rec.savedProductId];
   for (const candidate of candidates) {
     if (candidate === null || candidate === undefined) continue;
     const text = String(candidate).trim();
-    // Skip empties AND anything that looks like an internal UUID — neither is a
-    // printable product code, so keep scanning (eventually falls back to row no).
     if (text === "" || isUuidLike(text)) continue;
     return text;
   }
@@ -109,7 +80,10 @@ function toNumber(value: string | number | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function formatNumber(val: string | number | null | undefined, decimals = 2): string {
+function formatNumber(
+  val: string | number | null | undefined,
+  decimals = 2,
+): string {
   const n = toNumber(val);
   return n.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
@@ -130,7 +104,9 @@ function formatDateShort(iso: string | null | undefined): string {
 
 function companyAddressLine(company: CompanyRecord): string {
   const parts = [
-    company.addressBuildingNumber ? `مبنى ${company.addressBuildingNumber}` : "",
+    company.addressBuildingNumber
+      ? `مبنى ${company.addressBuildingNumber}`
+      : "",
     company.addressStreet ?? "",
     company.addressDistrict ? `حي ${company.addressDistrict}` : "",
     company.addressCity ?? "",
@@ -149,49 +125,58 @@ function customerAddressLine(customer: CustomerRecord): string {
   return parts.join(" ");
 }
 
-export function GenericDeliveryNoteTemplate({
+export function GenericDotmatrix22Template({
   invoice,
   company,
   customer,
   settings,
   qrDataUrl,
   logoDataUrl,
-}: GenericDeliveryNoteTemplateProps) {
-  const paperSize: "A4" | "LETTER" = settings?.paperSize === "Letter" ? "LETTER" : "A4";
+}: GenericDotmatrix22TemplateProps) {
+  const paperSize: "A4" | "LETTER" =
+    settings?.paperSize === "Letter" ? "LETTER" : "A4";
 
-  // ─── Header (all dynamic, "" fallbacks) ───
+  // ─── Header values (all dynamic) ───
   const companyNameAr = company.nameAr || "";
   const companyNameEn = company.nameEn || "";
   const companyAddress = companyAddressLine(company);
   const companyPhone = company.phone || "";
   const companyVat = company.vatNumber || "";
   const companyCr = company.crNumber || "";
-  const companyExt = getCompanyExt(company);
 
-  // ─── Meta (all dynamic) ───
+  // ─── Meta values (all dynamic) ───
+  const docNo = invoice.invoiceNumber ?? "";
   const issueDateStr = formatDateShort(invoice.issueDate);
-  const deliveryNoteNo = invoice.invoiceNumber ?? "";
-  // WHY: CustomerRecord has no dedicated code column; unifiedNumber doubles as
-  // the printed customer code next to the phone.
-  const customerCode = customer.unifiedNumber || "";
-  const customerPhone = customer.phone || "";
+  const issueTimeStr = invoice.issueTime || "";
   const customerName = customer.nameAr || "";
   const customerNameEn = customer.nameEn || "";
+  const customerCode = customer.unifiedNumber || "";
+  const customerPhone = customer.phone || "";
   const customerAddress = customerAddressLine(customer);
   const customerVat = customer.vatNumber || "";
-  const salesman = getSalesman(invoice);
 
-  // ─── Items + totals (all dynamic; empty items render a placeholder row) ───
+  // ─── Items + totals (empty items render a placeholder row) ───
   const items = invoice.items ?? [];
-  // WHY: the scan's "Goods Value" column is the pre-discount extended price, so
-  // it is derived as qty × unitPrice (lineSubtotal is already net of discount).
+  // WHY: unitPrice × qty is the pre-discount extended price; lineSubtotal is
+  // already net of discount, so goods value is derived here.
   const rows = items.map((item, idx) => {
     const qty = toNumber(item.quantity);
-    const goods = qty * toNumber(item.unitPrice);
+    const unit = toNumber(item.unitPrice);
+    const goods = qty * unit;
     const disc = toNumber(item.discountAmount);
     const vat = toNumber(item.lineVat);
     const total = toNumber(item.lineTotal);
-    return { key: item.position ?? idx, code: getProductCode(item, idx), desc: item.description || "", qty, goods, disc, vat, total };
+    return {
+      key: item.position ?? idx,
+      code: getProductCode(item, idx),
+      desc: item.description || "",
+      qty,
+      unit,
+      goods,
+      disc,
+      vat,
+      total,
+    };
   });
   const sumQty = rows.reduce((a, r) => a + r.qty, 0);
   const sumGoods = rows.reduce((a, r) => a + r.goods, 0);
@@ -203,48 +188,76 @@ export function GenericDeliveryNoteTemplate({
 
   return (
     <Document
-      title={`بيان تسليم ${deliveryNoteNo}`}
+      title={`Tax Invoice ${docNo}`}
       author={companyNameAr}
-      subject="Delivery Note"
+      subject="Tax Invoice"
       creator="Hulool Invoicing"
     >
       <Page size={paperSize} orientation="portrait" style={styles.page}>
-        {/* ─── Centered header: logo + bilingual name + address + phones + VAT/CR ─── */}
-        <View style={styles.header}>
-          {logoDataUrl ? <Image src={logoDataUrl} style={styles.logoImg} /> : null}
-          {companyNameAr ? <Text style={styles.companyNameAr}>{companyNameAr}</Text> : null}
-          {companyNameEn ? <Text style={styles.companyNameEn}>{companyNameEn}</Text> : null}
-          {companyAddress ? <Text style={styles.headerLine}>{companyAddress}</Text> : null}
-          {companyExt.poBox ? <Text style={styles.headerLine}>P.O. Box {companyExt.poBox} ص.ب</Text> : null}
-          <Text style={styles.headerLine}>
-            Tel {companyPhone} تليفون{companyExt.fax ? `   Fax ${companyExt.fax} فاكس` : ""}
-          </Text>
-          {companyExt.tollFree ? (
-            <Text style={styles.headerLine}>Toll Free {companyExt.tollFree} الرقم المجاني</Text>
-          ) : null}
-          {companyVat ? (
-            <Text style={styles.headerLine}>الرقم الضريبي VAT No: {companyVat}</Text>
-          ) : null}
-          {companyCr ? <Text style={styles.headerLine}>سجل تجاري C.R: {companyCr}</Text> : null}
+        {/* ─── Header: EN block (left) / logo (center) / AR block (right) ─── */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerColLeft}>
+            {companyNameEn ? (
+              <Text style={styles.companyNameEn}>{companyNameEn}</Text>
+            ) : null}
+            {companyAddress ? (
+              <Text style={styles.headerLine}>{companyAddress}</Text>
+            ) : null}
+            {companyPhone ? (
+              <Text style={styles.headerLine}>Tel: {companyPhone}</Text>
+            ) : null}
+            {companyVat ? (
+              <Text style={styles.headerLine}>VAT No: {companyVat}</Text>
+            ) : null}
+            {companyCr ? (
+              <Text style={styles.headerLine}>C.R: {companyCr}</Text>
+            ) : null}
+          </View>
+          <View style={styles.headerColCenter}>
+            {logoDataUrl ? (
+              <Image src={logoDataUrl} style={styles.logoImg} />
+            ) : null}
+          </View>
+          <View style={styles.headerColRight}>
+            {companyNameAr ? (
+              <Text style={styles.companyNameAr}>{companyNameAr}</Text>
+            ) : null}
+            {companyAddress ? (
+              <Text style={styles.headerLine}>{companyAddress}</Text>
+            ) : null}
+            {companyPhone ? (
+              <Text style={styles.headerLine}>تليفون: {companyPhone}</Text>
+            ) : null}
+            {companyVat ? (
+              <Text style={styles.headerLine}>
+                الرقم الضريبي: {companyVat}
+              </Text>
+            ) : null}
+            {companyCr ? (
+              <Text style={styles.headerLine}>سجل تجاري: {companyCr}</Text>
+            ) : null}
+          </View>
         </View>
 
-        {/* ─── Title band ─── */}
+        {/* ─── Title band (labels only — values are the invoice's own data) ─── */}
         <View style={styles.titleBand}>
-          <Text style={styles.titleOriginal}>أصلي ORIGINAL</Text>
-          <Text style={styles.titleMain}>بيان تسليم بضاعة Delivery Note</Text>
-          <Text style={styles.titleSpacer}> </Text>
+          <Text style={styles.titleMain}>فاتورة ضريبية TAX INVOICE</Text>
+          {docNo ? <Text style={styles.titleDoc}>{docNo}</Text> : null}
         </View>
 
         {/* ─── Meta grid (bilingual labels, dynamic values) ─── */}
         <View style={styles.metaBox}>
           <View style={styles.metaRow}>
             <View style={styles.metaCell}>
-              <Text style={styles.metaLabel}>التاريخ Date</Text>
-              <Text style={styles.metaVal}>{issueDateStr}</Text>
+              <Text style={styles.metaLabel}>رقم المستند Document No</Text>
+              <Text style={styles.metaVal}>{docNo}</Text>
             </View>
             <View style={[styles.metaCell, { borderLeftWidth: 0 }]}>
-              <Text style={styles.metaLabel}>رقم بيان التسليم Delivery Note No</Text>
-              <Text style={styles.metaVal}>{deliveryNoteNo}</Text>
+              <Text style={styles.metaLabel}>التاريخ Date</Text>
+              <Text style={styles.metaVal}>
+                {issueDateStr}
+                {issueTimeStr ? ` ${issueTimeStr}` : ""}
+              </Text>
             </View>
           </View>
           <View style={styles.metaRow}>
@@ -270,30 +283,30 @@ export function GenericDeliveryNoteTemplate({
               <Text style={styles.metaVal}>{customerVat}</Text>
             </View>
             <View style={[styles.metaCell, { borderLeftWidth: 0 }]}>
-              <Text style={styles.metaLabel}>المندوب Salesman</Text>
-              <Text style={styles.metaVal}>{salesman}</Text>
+              <Text style={styles.metaLabel}>العملة Currency</Text>
+              <Text style={styles.metaVal}>{currencyText}</Text>
             </View>
           </View>
         </View>
 
-        {/* ─── Items table (monochrome, thin borders, RTL column order) ─── */}
+        {/* ─── Items table (monochrome dot-matrix feel, RTL column order) ─── */}
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
-            <View style={[styles.thCell, { width: "12%" }]}>
+            <View style={[styles.thCell, { width: "10%" }]}>
               <Text style={styles.thAr}>كود الصنف</Text>
-              <Text style={styles.thEn}>Prd Code</Text>
+              <Text style={styles.thEn}>Code</Text>
             </View>
             <View style={[styles.thCell, { width: "30%" }]}>
-              <Text style={styles.thAr}>وصف الصنف</Text>
-              <Text style={styles.thEn}>Product Description</Text>
+              <Text style={styles.thAr}>اسم الصنف</Text>
+              <Text style={styles.thEn}>Item Name</Text>
             </View>
-            <View style={[styles.thCell, { width: "10%" }]}>
+            <View style={[styles.thCell, { width: "9%" }]}>
               <Text style={styles.thAr}>الكمية</Text>
               <Text style={styles.thEn}>Qty</Text>
             </View>
-            <View style={[styles.thCell, { width: "12%" }]}>
-              <Text style={styles.thAr}>القيمة</Text>
-              <Text style={styles.thEn}>Goods Value</Text>
+            <View style={[styles.thCell, { width: "11%" }]}>
+              <Text style={styles.thAr}>السعر</Text>
+              <Text style={styles.thEn}>Price</Text>
             </View>
             <View style={[styles.thCell, { width: "10%" }]}>
               <Text style={styles.thAr}>الخصم</Text>
@@ -303,9 +316,9 @@ export function GenericDeliveryNoteTemplate({
               <Text style={styles.thAr}>الضريبة</Text>
               <Text style={styles.thEn}>VAT</Text>
             </View>
-            <View style={[styles.thCell, { width: "14%", borderLeftWidth: 0 }]}>
-              <Text style={styles.thAr}>الإجمالي</Text>
-              <Text style={styles.thEn}>Total</Text>
+            <View style={[styles.thCell, { width: "18%", borderLeftWidth: 0 }]}>
+              <Text style={styles.thAr}>المبلغ شامل الضريبة</Text>
+              <Text style={styles.thEn}>Amount Incl VAT</Text>
             </View>
           </View>
 
@@ -318,17 +331,17 @@ export function GenericDeliveryNoteTemplate({
           ) : (
             rows.map((row) => (
               <View key={row.key} style={styles.tableRow}>
-                <View style={[styles.tdCell, { width: "12%" }]}>
+                <View style={[styles.tdCell, { width: "10%" }]}>
                   <Text style={styles.tdMain}>{row.code}</Text>
                 </View>
                 <View style={[styles.tdCell, { width: "30%" }]}>
                   <Text style={styles.tdMain}>{row.desc}</Text>
                 </View>
-                <View style={[styles.tdCell, { width: "10%" }]}>
+                <View style={[styles.tdCell, { width: "9%" }]}>
                   <Text style={styles.tdMain}>{formatQty(row.qty)}</Text>
                 </View>
-                <View style={[styles.tdCell, { width: "12%" }]}>
-                  <Text style={styles.tdMain}>{formatNumber(row.goods)}</Text>
+                <View style={[styles.tdCell, { width: "11%" }]}>
+                  <Text style={styles.tdMain}>{formatNumber(row.unit)}</Text>
                 </View>
                 <View style={[styles.tdCell, { width: "10%" }]}>
                   <Text style={styles.tdMain}>{formatNumber(row.disc)}</Text>
@@ -336,7 +349,9 @@ export function GenericDeliveryNoteTemplate({
                 <View style={[styles.tdCell, { width: "12%" }]}>
                   <Text style={styles.tdMain}>{formatNumber(row.vat)}</Text>
                 </View>
-                <View style={[styles.tdCell, { width: "14%", borderLeftWidth: 0 }]}>
+                <View
+                  style={[styles.tdCell, { width: "18%", borderLeftWidth: 0 }]}
+                >
                   <Text style={styles.tdMain}>{formatNumber(row.total)}</Text>
                 </View>
               </View>
@@ -345,16 +360,16 @@ export function GenericDeliveryNoteTemplate({
 
           {/* ─── Totals row ─── */}
           <View style={[styles.tableRow, styles.totalsRow]}>
-            <View style={[styles.tdCell, { width: "12%" }]}>
+            <View style={[styles.tdCell, { width: "10%" }]}>
               <Text style={styles.tdBold}>TOTAL</Text>
             </View>
             <View style={[styles.tdCell, { width: "30%" }]}>
               <Text style={styles.tdBold}>الإجمالي</Text>
             </View>
-            <View style={[styles.tdCell, { width: "10%" }]}>
+            <View style={[styles.tdCell, { width: "9%" }]}>
               <Text style={styles.tdBold}>{formatQty(sumQty)}</Text>
             </View>
-            <View style={[styles.tdCell, { width: "12%" }]}>
+            <View style={[styles.tdCell, { width: "11%" }]}>
               <Text style={styles.tdBold}>{formatNumber(sumGoods)}</Text>
             </View>
             <View style={[styles.tdCell, { width: "10%" }]}>
@@ -363,30 +378,25 @@ export function GenericDeliveryNoteTemplate({
             <View style={[styles.tdCell, { width: "12%" }]}>
               <Text style={styles.tdBold}>{formatNumber(sumVat)}</Text>
             </View>
-            <View style={[styles.tdCell, { width: "14%", borderLeftWidth: 0 }]}>
+            <View style={[styles.tdCell, { width: "18%", borderLeftWidth: 0 }]}>
               <Text style={styles.tdBold}>{formatNumber(sumTotal)}</Text>
             </View>
           </View>
         </View>
 
-        {/* ─── Footer: signatures + currency note + printed-on + QR ─── */}
-        <View style={styles.footerRow}>
-          <View style={styles.sigBox}>
-            <Text style={styles.sigLabel}>توقيع المندوب Salesman Signature</Text>
-            <Text style={styles.sigSpace}> </Text>
-          </View>
-          <View style={styles.sigBox}>
-            <Text style={styles.sigLabel}>توقيع العميل Customer Signature</Text>
-            <Text style={styles.sigSpace}> </Text>
-          </View>
-          <View style={styles.qrCol}>
-            {qrDataUrl ? <Image src={qrDataUrl} style={styles.qrImage} /> : null}
-          </View>
-        </View>
-
-        <Text style={styles.footerNote}>Amounts are in {toText(currencyText)} المبالغ بالريال</Text>
+        {/* ─── Footer: notes + QR only (no invented signatures/stamps) ─── */}
+        {toText(invoice.notes) ? (
+          <Text style={styles.footerNote}>{toText(invoice.notes)}</Text>
+        ) : null}
+        <Text style={styles.footerNote}>
+          Amounts are in {toText(currencyText)}
+        </Text>
         <Text style={styles.footerNote}>Printed On طبع بتاريخ: {printedOn}</Text>
-        {toText(invoice.notes) ? <Text style={styles.footerNote}>{toText(invoice.notes)}</Text> : null}
+        {qrDataUrl ? (
+          <View style={styles.qrRow}>
+            <Image src={qrDataUrl} style={styles.qrImage} />
+          </View>
+        ) : null}
       </Page>
     </Document>
   );
@@ -402,85 +412,91 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#000000",
   },
-  // ─── Header (centered, dot-matrix feel) ───
-  header: {
-    alignItems: "center",
-    borderBottomWidth: 1.5,
-    borderBottomColor: "#000000",
+  // ─── Header: 3-column scan layout (EN / logo / AR), NADA green theme ───
+  headerRow: {
+    flexDirection: "row",
+    borderBottomWidth: 2,
+    borderBottomColor: "#1E6B3A",
+    backgroundColor: "#F2F8F3",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     paddingBottom: 6,
     marginBottom: 8,
+    alignItems: "flex-start",
+  },
+  headerColLeft: {
+    width: "40%",
+    alignItems: "flex-start",
+  },
+  headerColCenter: {
+    width: "20%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerColRight: {
+    width: "40%",
+    alignItems: "flex-end",
   },
   logoImg: {
     width: 56,
     height: 56,
     objectFit: "contain",
-    marginBottom: 4,
   },
   companyNameAr: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "bold",
-    color: "#000000",
-    textAlign: "center",
+    color: "#1E6B3A",
+    textAlign: "right",
   },
   companyNameEn: {
     fontSize: 9,
     fontWeight: "bold",
-    color: "#333333",
-    textAlign: "center",
-    marginBottom: 2,
+    color: "#1E6B3A",
+    textAlign: "left",
   },
   headerLine: {
     fontSize: 7.5,
-    color: "#333333",
-    textAlign: "center",
+    color: "#3A5A44",
   },
-  // ─── Title band ───
+  // ─── Title band (solid NADA green like the scan's stamped header) ───
   titleBand: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: "#1E6B3A",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#14532D",
     paddingVertical: 4,
     paddingHorizontal: 8,
     marginBottom: 8,
+    alignItems: "center",
   },
   titleMain: {
     fontSize: 11,
     fontWeight: "bold",
-    color: "#000000",
+    color: "#FFFFFF",
     textAlign: "center",
   },
-  titleOriginal: {
-    fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#000000",
-    borderWidth: 1,
-    borderColor: "#000000",
-    paddingVertical: 1,
-    paddingHorizontal: 5,
+  titleDoc: {
+    fontSize: 8,
+    color: "#D9EBDE",
+    textAlign: "center",
+    marginTop: 2,
   },
-  titleSpacer: {
-    fontSize: 7.5,
-    minWidth: 52,
-  },
-  // ─── Meta grid ───
+  // ─── Meta grid (green-ruled dot-matrix boxes) ───
   metaBox: {
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#1E6B3A",
     marginBottom: 8,
   },
   metaRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#666666",
+    borderBottomColor: "#9DBEA9",
     minHeight: 19,
     alignItems: "stretch",
   },
   metaCell: {
     width: "50%",
     borderLeftWidth: 0.5,
-    borderLeftColor: "#666666",
+    borderLeftColor: "#9DBEA9",
     paddingVertical: 2,
     paddingHorizontal: 6,
   },
@@ -492,7 +508,7 @@ const styles = StyleSheet.create({
   metaLabel: {
     fontSize: 7,
     fontWeight: "bold",
-    color: "#333333",
+    color: "#1E6B3A",
     textAlign: "right",
   },
   metaVal: {
@@ -501,22 +517,23 @@ const styles = StyleSheet.create({
     color: "#000000",
     textAlign: "right",
   },
-  // ─── Items table ───
+  // ─── Items table (green-ruled, tinted header like the scan's grid) ───
   table: {
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#1E6B3A",
     marginBottom: 8,
   },
   tableHeaderRow: {
     flexDirection: "row",
+    backgroundColor: "#EAF4EC",
     borderBottomWidth: 1,
-    borderBottomColor: "#000000",
+    borderBottomColor: "#1E6B3A",
     minHeight: 28,
     alignItems: "stretch",
   },
   thCell: {
     borderLeftWidth: 0.75,
-    borderLeftColor: "#000000",
+    borderLeftColor: "#1E6B3A",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 2,
@@ -525,29 +542,30 @@ const styles = StyleSheet.create({
   thAr: {
     fontSize: 7.5,
     fontWeight: "bold",
-    color: "#000000",
+    color: "#14532D",
     textAlign: "center",
   },
   thEn: {
     fontSize: 6.5,
-    color: "#333333",
+    color: "#3A6B4A",
     textAlign: "center",
   },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#666666",
+    borderBottomColor: "#B9D2C0",
     minHeight: 19,
     alignItems: "stretch",
   },
   totalsRow: {
+    backgroundColor: "#EAF4EC",
     borderBottomWidth: 0,
     borderTopWidth: 1,
-    borderTopColor: "#000000",
+    borderTopColor: "#1E6B3A",
   },
   tdCell: {
     borderLeftWidth: 0.5,
-    borderLeftColor: "#666666",
+    borderLeftColor: "#B9D2C0",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 3,
@@ -561,48 +579,22 @@ const styles = StyleSheet.create({
   tdBold: {
     fontSize: 8,
     fontWeight: "bold",
-    color: "#000000",
+    color: "#14532D",
     textAlign: "center",
   },
   // ─── Footer ───
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 8,
-  },
-  sigBox: {
-    width: "38%",
-    borderWidth: 1,
-    borderColor: "#000000",
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    minHeight: 52,
-  },
-  sigLabel: {
+  footerNote: {
     fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#000000",
+    color: "#3A5A44",
     textAlign: "center",
+    marginTop: 2,
   },
-  sigSpace: {
-    fontSize: 7.5,
-    minHeight: 28,
-  },
-  qrCol: {
-    width: "20%",
+  qrRow: {
     alignItems: "center",
-    justifyContent: "flex-end",
+    marginTop: 8,
   },
   qrImage: {
     width: 72,
     height: 72,
-  },
-  footerNote: {
-    fontSize: 7.5,
-    color: "#333333",
-    textAlign: "center",
-    marginTop: 2,
   },
 });
