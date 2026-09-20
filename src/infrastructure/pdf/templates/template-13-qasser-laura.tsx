@@ -206,7 +206,7 @@ export function Template13QasserLaura({
           <View style={styles.headerRow} wrap={false}>
             {/* Left Header Title / English Name in Red */}
             <View style={styles.headerLeftCol}>
-              <Text style={styles.companyNameEnRed}>{company.nameEn || "Qasser Laura Trading Company"}</Text>
+              <Text style={styles.companyNameEnRed}>{company.nameEn || company.nameAr}</Text>
             </View>
 
             {/* Center: Logo & Capsule Badge */}
@@ -222,7 +222,7 @@ export function Template13QasserLaura({
 
             {/* Right: Arabic Company Name in Red */}
             <View style={styles.headerRightCol}>
-              <Text style={styles.companyNameArRed}>{company.nameAr || "شركة قصر لورا التجارية"}</Text>
+              <Text style={styles.companyNameArRed}>{company.nameAr}</Text>
             </View>
           </View>
 

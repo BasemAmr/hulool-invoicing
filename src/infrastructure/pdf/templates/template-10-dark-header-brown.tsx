@@ -677,9 +677,11 @@ const styles = StyleSheet.create({
   },
   thDark: {
     backgroundColor: DARK_HEADER_BG,
+    color: "#ffffff",
   },
   thBrown: {
     backgroundColor: PRIMARY_BROWN,
+    color: "#ffffff",
   },
   th: {
     color: "#ffffff",

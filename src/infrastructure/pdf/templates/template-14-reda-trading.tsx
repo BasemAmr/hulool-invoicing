@@ -372,8 +372,9 @@ export function Template14RedaTrading({
             {logoSource ? (
               <Image src={logoSource} style={styles.logoImage} />
             ) : null}
-            <Text style={styles.logoTaglineAr}>المعدات والمواد الصناعية</Text>
-            <Text style={styles.logoTaglineEn}>INDUSTRIAL SUPPLIES</Text>
+            {company.footerText ? (
+              <Text style={styles.logoTaglineAr}>{company.footerText}</Text>
+            ) : null}
           </View>
 
           {/* Right Column: Arabic Company Title & Products */}
@@ -1030,18 +1031,20 @@ export function Template14RedaTrading({
         </View>
 
         {/* ─── 9. BOTTOM FOOTER ADDRESS & PHONE ─── */}
+        {(company.footerText || company.phone || company.addressCity) ? (
         <View style={styles.footerAddressStrip} wrap={false}>
           <Text style={styles.footerArAddress}>
-            {company.footerText || formatCompanyFullAddress(company)}
+            {company.footerText
+              ? company.footerText
+              : [company.addressCity, company.addressPostalCode].filter(Boolean).join("، ") || "المملكة العربية السعودية"}
             {company.phone ? ` - ${company.phone}` : ""}
           </Text>
           <Text style={styles.footerEnAddress}>
             {company.phone ? `Tel: ${company.phone} - ` : ""}
-            {[company.addressStreet, company.addressDistrict, company.addressCity, company.addressPostalCode]
-              .filter(Boolean)
-              .join(" - ") || "Kingdom of Saudi Arabia"}
+            {company.addressCity || "Kingdom of Saudi Arabia"}
           </Text>
         </View>
+        ) : null}
       </Page>
     </Document>
   );
