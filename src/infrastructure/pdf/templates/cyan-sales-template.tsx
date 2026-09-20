@@ -59,7 +59,7 @@ function convertGroup(n: number): string {
   if (h > 0) res += HUNDREDS[h];
   if (rem > 0) {
     if (res) res += " و ";
-    if (rem <= 10) res += ONES[rem];
+    if (rem < 10) res += ONES[rem];
     else if (rem < 20) res += TEENS[rem - 10];
     else {
       const u = rem % 10;
