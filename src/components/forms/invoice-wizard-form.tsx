@@ -240,6 +240,7 @@ export function InvoiceWizardForm({
   initialInvoice,
   duplicatePrefill,
   suggestedInvoiceNumber,
+  suggestedIssueTime,
   defaultVatRate = VAT_RATE,
   defaultTemplateId = "simple_red",
 }: {
@@ -252,6 +253,7 @@ export function InvoiceWizardForm({
   duplicatePrefill?: DuplicatePrefill;
   /** Server-computed next number preview (max+1), used as the editable default for new invoices. */
   suggestedInvoiceNumber?: string;
+  suggestedIssueTime?: string;
   defaultVatRate?: number;
   defaultTemplateId?: string;
 }) {
@@ -331,12 +333,8 @@ export function InvoiceWizardForm({
     () =>
       initialInvoice?.issueTime ||
       duplicatePrefill?.issueTime ||
-      (() => {
-        const n = new Date();
-        const hh = String(n.getHours()).padStart(2, "0");
-        const mm = String(n.getMinutes()).padStart(2, "0");
-        return `${hh}:${mm}`;
-      })()
+      suggestedIssueTime ||
+      "09:00"
   );
   const [dueDate, setDueDate] = useState(
     initialInvoice?.dueDate || duplicatePrefill?.dueDate || ""
@@ -856,11 +854,6 @@ export function InvoiceWizardForm({
                 title="يمكنك تعديل الرقم — يجب أن يكون فريداً ضمن الشركة"
                 className="text-xs font-mono h-6.5 px-2"
               />
-              <span className="text-[9px] text-muted-foreground">
-                {initialInvoice
-                  ? "قابل للتعديل — يجب أن يكون فريداً ضمن الشركة."
-                  : "عدّله أو اتركه للترقيم التلقائي — يجب أن يكون فريداً ضمن الشركة."}
-              </span>
             </div>
 
             {/* Template Selector Dropdown */}
@@ -940,35 +933,14 @@ export function InvoiceWizardForm({
               </span>
             </div>
 
-            {/* Invoice Type Toggle */}
+            {/* Invoice Type — always B2B (tax invoice); B2C option removed per client request */}
             <div className="col-span-2 flex items-center justify-between pt-1 border-t border-border/60">
               <span className="text-[10px] font-medium text-muted-foreground">
                 نوع الفاتورة
               </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setIsSimplifiedVat(true)}
-                  className={`px-2 py-0.5 text-[10px] font-semibold border ${
-                    isSimplifiedVat
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted text-muted-foreground border-border"
-                  }`}
-                >
-                  مبسطة (B2C)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsSimplifiedVat(false)}
-                  className={`px-2 py-0.5 text-[10px] font-semibold border ${
-                    !isSimplifiedVat
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted text-muted-foreground border-border"
-                  }`}
-                >
-                  معتمدة (B2B)
-                </button>
-              </div>
+              <span className="px-2 py-0.5 text-[10px] font-semibold border bg-primary text-primary-foreground border-primary">
+                ضريبية
+              </span>
             </div>
           </div>
         </div>

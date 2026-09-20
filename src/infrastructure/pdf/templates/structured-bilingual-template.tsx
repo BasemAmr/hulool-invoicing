@@ -25,23 +25,83 @@ export interface StructuredBilingualTemplateProps {
   signatureDataUrl?: string | null;
 }
 
+/**
+ * Formats ISO date to strictly DD/MM/YYYY without hours or time.
+ */
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
   const [y, m, d] = iso.slice(0, 10).split("-");
   return d && m && y ? `${d}/${m}/${y}` : iso;
 }
 
-function formatNumber(val: string | number, decimals?: number): string {
-  const num = typeof val === "number" ? val : parseFloat(val) || 0;
-  if (decimals !== undefined) {
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-  }
-  return num % 1 === 0
-    ? num.toLocaleString("en-US", { maximumFractionDigits: 0 })
-    : num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/**
+ * Format monetary amount with full decimal precision — NEVER floor, ceiling, or round.
+ * Preserves the exact decimal tail (e.g. 23.4646916641601264) and formats the integer part with commas.
+ */
+function formatExactAmount(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === "") return "0";
+  const str = String(val).trim();
+  if (isNaN(Number(str))) return str;
+  const isNegative = str.startsWith("-");
+  const cleanStr = isNegative ? str.slice(1) : str;
+  const parts = cleanStr.split(".");
+  const intPart = parts[0] || "0";
+  const decPart = parts[1];
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const result = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+  return isNegative ? `-${result}` : result;
+}
+
+/**
+ * Top header bilingual metadata row with strict BiDi row-reverse & independent colon:
+ * [Arabic label on RIGHT] + [independent colon ':'] + [value in CENTER] + [English label on LEFT]
+ */
+function HeaderMetaRow({
+  labelEn,
+  labelAr,
+  value,
+}: {
+  labelEn: string;
+  labelAr: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.metaRow}>
+      <Text style={styles.metaKeyAr}>{labelAr}</Text>
+      <Text style={styles.metaColon}>:</Text>
+      <Text style={styles.metaVal}>{value}</Text>
+      <Text style={styles.metaKeyEn}>{labelEn}</Text>
+    </View>
+  );
+}
+
+/**
+ * Structured Dual Party cell with strict BiDi row-reverse & independent middle colon:
+ * [Arabic label on RIGHT] + [independent colon ':'] + [value in CENTER] + [English label on LEFT]
+ */
+function PartyCell({
+  labelEn,
+  labelAr,
+  value,
+  hasLeftBorder = false,
+}: {
+  labelEn: string;
+  labelAr: string;
+  value: string;
+  hasLeftBorder?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.partyCellHalf,
+        hasLeftBorder ? { borderLeftWidth: 1, borderLeftColor: "#000000" } : {},
+      ]}
+    >
+      <Text style={styles.partyKeyAr}>{labelAr}</Text>
+      <Text style={styles.partyValCenter}>{value}</Text>
+      <Text style={styles.partyKeyEn}>{labelEn}</Text>
+    </View>
+  );
 }
 
 export function StructuredBilingualTemplate({
@@ -52,15 +112,15 @@ export function StructuredBilingualTemplate({
   qrDataUrl,
   logoDataUrl,
   backgroundDataUrl,
+  signatureDataUrl,
 }: StructuredBilingualTemplateProps) {
-  const paperSize = settings?.paperSize === "Letter" ? "LETTER" : "A4";
-
   const invoiceNum = invoice.invoiceNumber ?? "";
   const issueDateStr = formatDate(invoice.issueDate);
-  const supplyDateStr = formatDate(invoice.dueDate || invoice.issueDate);
 
   // Seller Details
-  const sellerName = company.nameAr || "";
+  const sellerName = company.nameEn
+    ? `${company.nameAr || ""} / ${company.nameEn}`
+    : company.nameAr || "";
   const sellerBuilding = company.addressBuildingNumber || "";
   const sellerStreet = company.addressStreet || "";
   const sellerDistrict = company.addressDistrict || "";
@@ -70,12 +130,15 @@ export function StructuredBilingualTemplate({
   const sellerPostalCode = company.addressPostalCode || "";
   const sellerAdditionalNo = company.addressAdditionalNumber || "";
   const sellerVat = company.vatNumber || "";
-  // Admin-only clientEmployee ("تابع للعميل") must never print on PDFs —
-  // Other Seller ID falls back to the commercial registration only.
-  const sellerOtherId = company.crNumber || "";
+  const sellerCr = company.crNumber || "";
+  const sellerPhone = company.phone || "";
+  const sellerEmail = company.email || "";
+  const sellerWebsite = company.website || "";
 
   // Buyer Details
-  const buyerName = customer.nameAr || "";
+  const buyerName = customer.nameEn
+    ? `${customer.nameAr || ""} / ${customer.nameEn}`
+    : customer.nameAr || "";
   const buyerBuilding = "";
   const buyerStreet = customer.addressStreet || "";
   const buyerDistrict = "";
@@ -85,18 +148,44 @@ export function StructuredBilingualTemplate({
   const buyerPostalCode = customer.addressPostalCode || "";
   const buyerAdditionalNo = "";
   const buyerVat = customer.vatNumber || "";
-  const buyerOtherId = customer.unifiedNumber || "";
+  const buyerUnifiedOrCr = customer.unifiedNumber || "";
+  const buyerPhone = customer.phone || "";
+  const buyerEmail = customer.email || "";
 
   const items = invoice.items || [];
+  const hasAnyDiscount = items.some(
+    (it) => Number(it.discountAmount || 0) > 0
+  );
+
+  const hasOptionalPhone = Boolean(sellerPhone || buyerPhone);
+  const hasOptionalEmail = Boolean(sellerEmail || buyerEmail);
+  const hasOptionalWebsite = Boolean(sellerWebsite);
+
+  // Dynamic single-page height calculation so the invoice NEVER spills onto a second page
+  const baseA4Height = 842;
+  let extraHeight = Math.max(0, items.length - 4) * 32;
+  if (hasAnyDiscount) extraHeight += items.length * 10;
+  if (hasOptionalPhone) extraHeight += 14;
+  if (hasOptionalEmail) extraHeight += 14;
+  if (hasOptionalWebsite) extraHeight += 14;
+  if (invoice.notes) extraHeight += 35 + invoice.notes.split("\n").length * 12;
+  if (invoice.terms) extraHeight += 35 + invoice.terms.split("\n").length * 12;
+  if (company.footerText) extraHeight += 25;
+  const dynamicPageHeight = Math.max(baseA4Height, baseA4Height + extraHeight);
 
   return (
     <Document
-      title={`Tax Invoice ${invoiceNum}`}
-      author={sellerName}
+      title={`فاتورة ضريبية ${invoiceNum}`}
+      author={company.nameAr || ""}
       subject="TAX INVOICE"
       creator="Hulool Invoicing"
     >
-      <Page size={paperSize as any} orientation="portrait" style={styles.page}>
+      <Page
+        size={[595.28, dynamicPageHeight]}
+        orientation="portrait"
+        style={styles.page}
+      >
+        {/* Background Watermark Image if present */}
         {backgroundDataUrl ? (
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
@@ -106,25 +195,18 @@ export function StructuredBilingualTemplate({
           {/* Left: Invoice Metadata */}
           <View style={styles.headerLeftMeta}>
             {/* Row 1: Invoice Number */}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaKeyEn}>Invoice Number</Text>
-              <Text style={styles.metaVal}>{invoiceNum}</Text>
-              <Text style={styles.metaKeyAr}>رقم الفاتورة</Text>
-            </View>
+            <HeaderMetaRow
+              labelEn="Invoice Number"
+              labelAr="رقم الفاتورة"
+              value={invoiceNum}
+            />
 
             {/* Row 2: Invoice Issue Date */}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaKeyEn}>Invoice Issue Date</Text>
-              <Text style={styles.metaVal}>{issueDateStr}</Text>
-              <Text style={styles.metaKeyAr}>تاريخ إصدار الفاتورة</Text>
-            </View>
-
-            {/* Row 3: Date of Supply */}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaKeyEn}>Date of Supply</Text>
-              <Text style={styles.metaVal}>{supplyDateStr}</Text>
-              <Text style={styles.metaKeyAr}>تاريخ التوريد</Text>
-            </View>
+            <HeaderMetaRow
+              labelEn="Invoice Issue Date"
+              labelAr="تاريخ إصدار الفاتورة"
+              value={issueDateStr}
+            />
           </View>
 
           {/* Center: Main Title and optional Logo */}
@@ -155,167 +237,253 @@ export function StructuredBilingualTemplate({
             </View>
 
             {/* Right: Buyer Header */}
-            <View style={[styles.partyHeaderHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
+            <View
+              style={[
+                styles.partyHeaderHalf,
+                { borderLeftWidth: 1, borderLeftColor: "#000000" },
+              ]}
+            >
               <Text style={styles.partyHeaderEn}>Buyer</Text>
               <Text style={styles.partyHeaderAr}>العميل</Text>
             </View>
           </View>
 
-          {/* Body: 11 Structured Rows */}
+          {/* Body: Structured Rows */}
           <View style={styles.partiesBody}>
             {/* Row 1: Name */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Name</Text>
-                <Text style={styles.partyValCenter}>{sellerName}</Text>
-                <Text style={styles.partyKeyAr}>اسم</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Name</Text>
-                <Text style={styles.partyValCenter}>{buyerName}</Text>
-                <Text style={styles.partyKeyAr}>اسم</Text>
-              </View>
+              <PartyCell
+                labelEn="Name"
+                labelAr="الاسم"
+                value={sellerName}
+              />
+              <PartyCell
+                labelEn="Name"
+                labelAr="الاسم"
+                value={buyerName}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 2: Building No. */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Building No.</Text>
-                <Text style={styles.partyValCenter}>{sellerBuilding}</Text>
-                <Text style={styles.partyKeyAr}>رقم المبنى</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Building No.</Text>
-                <Text style={styles.partyValCenter}>{buyerBuilding}</Text>
-                <Text style={styles.partyKeyAr}>رقم المبنى</Text>
-              </View>
+              <PartyCell
+                labelEn="Building No."
+                labelAr="رقم المبنى"
+                value={sellerBuilding}
+              />
+              <PartyCell
+                labelEn="Building No."
+                labelAr="رقم المبنى"
+                value={buyerBuilding}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 3: Street Name */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Street Name</Text>
-                <Text style={styles.partyValCenter}>{sellerStreet}</Text>
-                <Text style={styles.partyKeyAr}>اسم الشارع</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Street Name</Text>
-                <Text style={styles.partyValCenter}>{buyerStreet}</Text>
-                <Text style={styles.partyKeyAr}>اسم الشارع</Text>
-              </View>
+              <PartyCell
+                labelEn="Street Name"
+                labelAr="اسم الشارع"
+                value={sellerStreet}
+              />
+              <PartyCell
+                labelEn="Street Name"
+                labelAr="اسم الشارع"
+                value={buyerStreet}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 4: District */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>District</Text>
-                <Text style={styles.partyValCenter}>{sellerDistrict}</Text>
-                <Text style={styles.partyKeyAr}>المنطقة</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>District</Text>
-                <Text style={styles.partyValCenter}>{buyerDistrict}</Text>
-                <Text style={styles.partyKeyAr}>المنطقة</Text>
-              </View>
+              <PartyCell
+                labelEn="District"
+                labelAr="الحي"
+                value={sellerDistrict}
+              />
+              <PartyCell
+                labelEn="District"
+                labelAr="الحي"
+                value={buyerDistrict}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 5: City */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>City</Text>
-                <Text style={styles.partyValCenter}>{sellerCity}</Text>
-                <Text style={styles.partyKeyAr}>مدينة</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>City</Text>
-                <Text style={styles.partyValCenter}>{buyerCity}</Text>
-                <Text style={styles.partyKeyAr}>مدينة</Text>
-              </View>
+              <PartyCell
+                labelEn="City"
+                labelAr="المدينة"
+                value={sellerCity}
+              />
+              <PartyCell
+                labelEn="City"
+                labelAr="المدينة"
+                value={buyerCity}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 6: Province/State */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Province/State</Text>
-                <Text style={styles.partyValCenter}>{sellerState}</Text>
-                <Text style={styles.partyKeyAr}>الولاية/المقاطعة</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Province/State</Text>
-                <Text style={styles.partyValCenter}>{buyerState}</Text>
-                <Text style={styles.partyKeyAr}>الولاية/المقاطعة</Text>
-              </View>
+              <PartyCell
+                labelEn="Province/State"
+                labelAr="المنطقة"
+                value={sellerState}
+              />
+              <PartyCell
+                labelEn="Province/State"
+                labelAr="المنطقة"
+                value={buyerState}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 7: Country */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Country</Text>
-                <Text style={styles.partyValCenter}>{sellerCountry}</Text>
-                <Text style={styles.partyKeyAr}>دولة</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Country</Text>
-                <Text style={styles.partyValCenter}>{buyerCountry}</Text>
-                <Text style={styles.partyKeyAr}>دولة</Text>
-              </View>
+              <PartyCell
+                labelEn="Country"
+                labelAr="الدولة"
+                value={sellerCountry}
+              />
+              <PartyCell
+                labelEn="Country"
+                labelAr="الدولة"
+                value={buyerCountry}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 8: Postal Code */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Postal Code</Text>
-                <Text style={styles.partyValCenter}>{sellerPostalCode}</Text>
-                <Text style={styles.partyKeyAr}>رمز بريدي</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Postal Code</Text>
-                <Text style={styles.partyValCenter}>{buyerPostalCode}</Text>
-                <Text style={styles.partyKeyAr}>رمز بريدي</Text>
-              </View>
+              <PartyCell
+                labelEn="Postal Code"
+                labelAr="الرمز البريدي"
+                value={sellerPostalCode}
+              />
+              <PartyCell
+                labelEn="Postal Code"
+                labelAr="الرمز البريدي"
+                value={buyerPostalCode}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 9: Additional No. */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Additional No.</Text>
-                <Text style={styles.partyValCenter}>{sellerAdditionalNo}</Text>
-                <Text style={styles.partyKeyAr}>رقم إضافي</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Additional No.</Text>
-                <Text style={styles.partyValCenter}>{buyerAdditionalNo}</Text>
-                <Text style={styles.partyKeyAr}>رقم إضافي</Text>
-              </View>
+              <PartyCell
+                labelEn="Additional No."
+                labelAr="الرقم الإضافي"
+                value={sellerAdditionalNo}
+              />
+              <PartyCell
+                labelEn="Additional No."
+                labelAr="الرقم الإضافي"
+                value={buyerAdditionalNo}
+                hasLeftBorder
+              />
             </View>
 
             {/* Row 10: VAT Number */}
             <View style={styles.partyRow}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>VAT Number</Text>
-                <Text style={styles.partyValCenter}>{sellerVat}</Text>
-                <Text style={styles.partyKeyAr}>رقم ضريبة القيمة المضافة</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>VAT Number</Text>
-                <Text style={styles.partyValCenter}>{buyerVat}</Text>
-                <Text style={styles.partyKeyAr}>رقم ضريبة القيمة المضافة</Text>
-              </View>
+              <PartyCell
+                labelEn="VAT Number"
+                labelAr="الرقم الضريبي"
+                value={sellerVat}
+              />
+              <PartyCell
+                labelEn="VAT Number"
+                labelAr="الرقم الضريبي"
+                value={buyerVat}
+                hasLeftBorder
+              />
             </View>
 
-            {/* Row 11: Other ID */}
-            <View style={[styles.partyRow, { borderBottomWidth: 0 }]}>
-              <View style={styles.partyCellHalf}>
-                <Text style={styles.partyKeyEn}>Other Seller ID</Text>
-                <Text style={styles.partyValCenter}>{sellerOtherId}</Text>
-                <Text style={styles.partyKeyAr}>معرف آخر</Text>
-              </View>
-              <View style={[styles.partyCellHalf, { borderLeftWidth: 1, borderLeftColor: "#000000" }]}>
-                <Text style={styles.partyKeyEn}>Other Buyer ID</Text>
-                <Text style={styles.partyValCenter}>{buyerOtherId}</Text>
-                <Text style={styles.partyKeyAr}>معرف آخر</Text>
-              </View>
+            {/* Row 11: CR / Unified Number */}
+            <View
+              style={[
+                styles.partyRow,
+                !hasOptionalPhone && !hasOptionalEmail && !hasOptionalWebsite
+                  ? { borderBottomWidth: 0 }
+                  : {},
+              ]}
+            >
+              <PartyCell
+                labelEn="CR Number"
+                labelAr="السجل التجاري"
+                value={sellerCr}
+              />
+              <PartyCell
+                labelEn="Unified Number"
+                labelAr="الرقم الموحد"
+                value={buyerUnifiedOrCr}
+                hasLeftBorder
+              />
             </View>
+
+            {/* Optional Row 12: Phone */}
+            {hasOptionalPhone ? (
+              <View
+                style={[
+                  styles.partyRow,
+                  !hasOptionalEmail && !hasOptionalWebsite
+                    ? { borderBottomWidth: 0 }
+                    : {},
+                ]}
+              >
+                <PartyCell
+                  labelEn="Phone"
+                  labelAr="الهاتف"
+                  value={sellerPhone}
+                />
+                <PartyCell
+                  labelEn="Phone"
+                  labelAr="الهاتف"
+                  value={buyerPhone}
+                  hasLeftBorder
+                />
+              </View>
+            ) : null}
+
+            {/* Optional Row 13: Email */}
+            {hasOptionalEmail ? (
+              <View
+                style={[
+                  styles.partyRow,
+                  !hasOptionalWebsite ? { borderBottomWidth: 0 } : {},
+                ]}
+              >
+                <PartyCell
+                  labelEn="Email"
+                  labelAr="البريد الإلكتروني"
+                  value={sellerEmail}
+                />
+                <PartyCell
+                  labelEn="Email"
+                  labelAr="البريد الإلكتروني"
+                  value={buyerEmail}
+                  hasLeftBorder
+                />
+              </View>
+            ) : null}
+
+            {/* Optional Row 14: Website */}
+            {hasOptionalWebsite ? (
+              <View style={[styles.partyRow, { borderBottomWidth: 0 }]}>
+                <PartyCell
+                  labelEn="Website"
+                  labelAr="الموقع الإلكتروني"
+                  value={sellerWebsite}
+                />
+                <PartyCell
+                  labelEn=""
+                  labelAr=""
+                  value=""
+                  hasLeftBorder
+                />
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -324,13 +492,23 @@ export function StructuredBilingualTemplate({
           {/* Header Row */}
           <View style={styles.tableHeaderRow}>
             {/* 1. Goods or Services */}
-            <View style={[styles.thCell, { width: "24%" }]}>
+            <View
+              style={[
+                styles.thCell,
+                { width: hasAnyDiscount ? "22%" : "24%" },
+              ]}
+            >
               <Text style={styles.thEn}>Goods or Services</Text>
               <Text style={styles.thAr}>السلع أو الخدمات</Text>
             </View>
 
             {/* 2. Qty */}
-            <View style={[styles.thCell, { width: "7%" }]}>
+            <View
+              style={[
+                styles.thCell,
+                { width: hasAnyDiscount ? "6%" : "7%" },
+              ]}
+            >
               <Text style={styles.thEn}>Qty</Text>
               <Text style={styles.thAr}>الكمية</Text>
             </View>
@@ -341,96 +519,204 @@ export function StructuredBilingualTemplate({
               <Text style={styles.thAr}>سعر الوحدة</Text>
             </View>
 
-            {/* 4. Taxable Amount */}
-            <View style={[styles.thCell, { width: "16%" }]}>
+            {/* 4. Optional: Discount Column if any discount exists */}
+            {hasAnyDiscount ? (
+              <View style={[styles.thCell, { width: "10%" }]}>
+                <Text style={styles.thEn}>Discount</Text>
+                <Text style={styles.thAr}>الخصم</Text>
+              </View>
+            ) : null}
+
+            {/* 5. Taxable Amount */}
+            <View
+              style={[
+                styles.thCell,
+                { width: hasAnyDiscount ? "14%" : "16%" },
+              ]}
+            >
               <Text style={styles.thEn}>Taxable Amount</Text>
               <Text style={styles.thAr}>المبلغ الخاضع للضريبة</Text>
             </View>
 
-            {/* 5. Tax Rate */}
-            <View style={[styles.thCell, { width: "11%" }]}>
+            {/* 6. Tax Rate */}
+            <View
+              style={[
+                styles.thCell,
+                { width: hasAnyDiscount ? "10%" : "11%" },
+              ]}
+            >
               <Text style={styles.thEn}>Tax Rate</Text>
               <Text style={styles.thAr}>نسبة الضريبة</Text>
             </View>
 
-            {/* 6. Tax Amount */}
-            <View style={[styles.thCell, { width: "12%" }]}>
+            {/* 7. Tax Amount */}
+            <View
+              style={[
+                styles.thCell,
+                { width: hasAnyDiscount ? "11%" : "12%" },
+              ]}
+            >
               <Text style={styles.thEn}>Tax Amount</Text>
               <Text style={styles.thAr}>مبلغ الضريبة</Text>
             </View>
 
-            {/* 7. Subtotal (Including VAT) */}
-            <View style={[styles.thCell, { width: "20%", borderRightWidth: 0 }]}>
+            {/* 8. Subtotal (Including VAT) */}
+            <View
+              style={[
+                styles.thCell,
+                {
+                  width: hasAnyDiscount ? "17%" : "20%",
+                  borderRightWidth: 0,
+                },
+              ]}
+            >
               <Text style={styles.thEnBold}>Subtotal</Text>
               <Text style={styles.thEnSmall}>(Including VAT)</Text>
               <Text style={styles.thArBold}>المجموع الجزئي</Text>
-              <Text style={styles.thArSmall}>(بما في ذلك ضريبة القيمة المضافة)</Text>
+              <Text style={styles.thArSmall}>
+                (بما في ذلك ضريبة القيمة المضافة)
+              </Text>
             </View>
           </View>
 
           {/* Body Rows */}
-          {invoice.items.map((item, index) => {
+          {items.map((item, index) => {
             const vatPct = Math.round(Number(item.vatRate || 0.15) * 100);
+            const hasItemDiscount = Number(item.discountAmount || 0) > 0;
+            const originalBeforeDiscount =
+              Number(item.quantity) * Number(item.unitPrice);
+
             return (
               <View
                 key={item.position ?? index}
                 style={[
                   styles.tableBodyRow,
-                  index === invoice.items.length - 1 ? { borderBottomWidth: 0 } : {},
+                  index === items.length - 1 ? { borderBottomWidth: 0 } : {},
                 ]}
               >
                 {/* 1. Goods or Services */}
-                <View style={[styles.tdCell, { width: "24%" }]}>
+                <View
+                  style={[
+                    styles.tdCell,
+                    { width: hasAnyDiscount ? "22%" : "24%" },
+                  ]}
+                >
                   <Text style={styles.tdTextRight}>{item.description}</Text>
                 </View>
 
                 {/* 2. Qty */}
-                <View style={[styles.tdCell, { width: "7%" }]}>
-                  <Text style={styles.tdTextCenter}>{item.quantity}</Text>
+                <View
+                  style={[
+                    styles.tdCell,
+                    { width: hasAnyDiscount ? "6%" : "7%" },
+                  ]}
+                >
+                  <Text style={styles.tdTextCenter}>
+                    {formatExactAmount(item.quantity)}
+                  </Text>
                 </View>
 
                 {/* 3. Unit Price */}
                 <View style={[styles.tdCell, { width: "10%" }]}>
-                  <Text style={styles.tdTextCenter}>{formatNumber(item.unitPrice)}</Text>
+                  <Text style={styles.tdTextCenter}>
+                    {formatExactAmount(item.unitPrice)}
+                  </Text>
                 </View>
 
-                {/* 4. Taxable Amount */}
-                <View style={[styles.tdCell, { width: "16%" }]}>
-                  <Text style={styles.tdTextCenter}>{formatNumber(item.lineSubtotal)}</Text>
+                {/* 4. Optional: Discount Column */}
+                {hasAnyDiscount ? (
+                  <View style={[styles.tdCell, { width: "10%" }]}>
+                    <Text style={styles.tdTextCenter}>
+                      {hasItemDiscount
+                        ? formatExactAmount(item.discountAmount)
+                        : "0"}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {/* 5. Taxable Amount */}
+                <View
+                  style={[
+                    styles.tdCell,
+                    { width: hasAnyDiscount ? "14%" : "16%" },
+                  ]}
+                >
+                  <Text style={styles.tdTextCenter}>
+                    {formatExactAmount(item.lineSubtotal)}
+                  </Text>
+                  {hasItemDiscount ? (
+                    <Text style={styles.tdSubtextCenter}>
+                      قبل: {formatExactAmount(originalBeforeDiscount)}
+                    </Text>
+                  ) : null}
                 </View>
 
-                {/* 5. Tax Rate */}
-                <View style={[styles.tdCell, { width: "11%" }]}>
+                {/* 6. Tax Rate */}
+                <View
+                  style={[
+                    styles.tdCell,
+                    { width: hasAnyDiscount ? "10%" : "11%" },
+                  ]}
+                >
                   <Text style={styles.tdTextCenter}>{vatPct}%</Text>
                 </View>
 
-                {/* 6. Tax Amount */}
-                <View style={[styles.tdCell, { width: "12%" }]}>
-                  <Text style={styles.tdTextCenter}>{formatNumber(item.lineVat, 2)}</Text>
+                {/* 7. Tax Amount */}
+                <View
+                  style={[
+                    styles.tdCell,
+                    { width: hasAnyDiscount ? "11%" : "12%" },
+                  ]}
+                >
+                  <Text style={styles.tdTextCenter}>
+                    {formatExactAmount(item.lineVat)}
+                  </Text>
                 </View>
 
-                {/* 7. Subtotal */}
-                <View style={[styles.tdCell, { width: "20%", borderRightWidth: 0 }]}>
-                  <Text style={styles.tdTextCenter}>{formatNumber(item.lineTotal, 2)}</Text>
+                {/* 8. Subtotal (Including VAT) */}
+                <View
+                  style={[
+                    styles.tdCell,
+                    {
+                      width: hasAnyDiscount ? "17%" : "20%",
+                      borderRightWidth: 0,
+                    },
+                  ]}
+                >
+                  <Text style={styles.tdTextCenter}>
+                    {formatExactAmount(item.lineTotal)}
+                  </Text>
                 </View>
               </View>
             );
           })}
         </View>
 
-        {/* ─── 4. BOTTOM AREA: PAYMENT METHOD & TOTALS ─── */}
+        {/* ─── 4. BOTTOM AREA: NOTES, TERMS & TOTALS ─── */}
         <View style={styles.bottomSection}>
-          {/* Left: Payment Method */}
-          <View style={styles.paymentMethodCol}>
-            <Text style={styles.paymentMethodEn}>Payment method</Text>
-            <Text style={styles.paymentMethodAr}>طريقة الدفع او السداد</Text>
-            <Text style={styles.paymentMethodVal}>
-              {(invoice as any).paymentMethod === "card"
-                ? "بطاقة ائتمان / مدى (Card)"
-                : (invoice as any).paymentMethod === "transfer"
-                ? "تحويل بنكي (Bank Transfer)"
-                : "نقدي (Cash)"}
-            </Text>
+          {/* Left: Notes & Terms */}
+          <View style={styles.bottomLeftCol}>
+            {/* Notes if present */}
+            {invoice.notes ? (
+              <View style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <Text style={styles.noteTitleEn}>Notes</Text>
+                  <Text style={styles.noteTitleAr}>ملاحظات</Text>
+                </View>
+                <Text style={styles.noteBody}>{invoice.notes}</Text>
+              </View>
+            ) : null}
+
+            {/* Terms if present */}
+            {invoice.terms ? (
+              <View style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <Text style={styles.noteTitleEn}>Terms and Conditions</Text>
+                  <Text style={styles.noteTitleAr}>الشروط والأحكام</Text>
+                </View>
+                <Text style={styles.noteBody}>{invoice.terms}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Right: Totals Breakdown */}
@@ -439,36 +725,77 @@ export function StructuredBilingualTemplate({
             <View style={styles.totalRow}>
               <View style={styles.totalLabelGroup}>
                 <Text style={styles.totalLabelEn}>Total (Excluding VAT)</Text>
-                <Text style={styles.totalLabelAr}>الاجمالي (غير شاملة ضريبة القمة المضافة)</Text>
+                <Text style={styles.totalLabelAr}>
+                  الإجمالي (غير شامل ضريبة القيمة المضافة)
+                </Text>
               </View>
-              <Text style={styles.totalVal}>{formatNumber(invoice.subtotal)} SAR</Text>
+              <Text style={styles.totalVal}>
+                {formatExactAmount(invoice.subtotal)} SAR
+              </Text>
             </View>
 
             {/* Row 2: Total VAT */}
-            <View style={[styles.totalRow, { borderBottomWidth: 1, borderBottomColor: "#000000", paddingBottom: 4 }]}>
+            <View
+              style={[
+                styles.totalRow,
+                {
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#000000",
+                  paddingBottom: 4,
+                },
+              ]}
+            >
               <View style={styles.totalLabelGroup}>
                 <Text style={styles.totalLabelEn}>Total VAT</Text>
                 <Text style={styles.totalLabelAr}>مجموع ضريبة القيمة المضافة</Text>
               </View>
-              <Text style={styles.totalVal}>{formatNumber(invoice.vatAmount)} SAR</Text>
+              <Text style={styles.totalVal}>
+                {formatExactAmount(invoice.vatAmount)} SAR
+              </Text>
             </View>
 
             {/* Row 3: Total (Including VAT) */}
-            <View style={[styles.totalRow, { borderBottomWidth: 1, borderBottomColor: "#000000", paddingVertical: 4 }]}>
+            <View
+              style={[
+                styles.totalRow,
+                {
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#000000",
+                  paddingVertical: 4,
+                },
+              ]}
+            >
               <View style={styles.totalLabelGroup}>
-                <Text style={styles.totalLabelEnBold}>Total (Including VAT)</Text>
-                <Text style={styles.totalLabelArBold}>الاجمالي (بما في ذلك ضريبة القيمة المضافة)</Text>
+                <Text style={styles.totalLabelEnBold}>
+                  Total (Including VAT)
+                </Text>
+                <Text style={styles.totalLabelArBold}>
+                  الإجمالي (بما في ذلك ضريبة القيمة المضافة)
+                </Text>
               </View>
-              <Text style={styles.totalValBold}>{formatNumber(invoice.total)} SAR</Text>
+              <Text style={styles.totalValBold}>
+                {formatExactAmount(invoice.total)} SAR
+              </Text>
             </View>
 
             {/* Row 4: Invoice Paid */}
-            <View style={[styles.totalRow, { borderBottomWidth: 1, borderBottomColor: "#000000", paddingVertical: 4 }]}>
+            <View
+              style={[
+                styles.totalRow,
+                {
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#000000",
+                  paddingVertical: 4,
+                },
+              ]}
+            >
               <View style={styles.totalLabelGroup}>
                 <Text style={styles.totalLabelEn}>Invoice Paid</Text>
                 <Text style={styles.totalLabelAr}>الفاتورة مدفوعة</Text>
               </View>
-              <Text style={styles.totalVal}>{formatNumber(invoice.total)} SAR</Text>
+              <Text style={styles.totalVal}>
+                {formatExactAmount(invoice.total)} SAR
+              </Text>
             </View>
 
             {/* Row 5: Balance Due (Grey Shaded Box) */}
@@ -481,6 +808,13 @@ export function StructuredBilingualTemplate({
             </View>
           </View>
         </View>
+
+        {/* ─── 5. FOOTER TEXT ─── */}
+        {company.footerText ? (
+          <View style={styles.footerSection}>
+            <Text style={styles.footerText}>{company.footerText}</Text>
+          </View>
+        ) : null}
       </Page>
     </Document>
   );
@@ -489,17 +823,17 @@ export function StructuredBilingualTemplate({
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Amiri",
-    paddingTop: 28,
-    paddingBottom: 28,
-    paddingLeft: 34,
-    paddingRight: 34,
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingLeft: 30,
+    paddingRight: 30,
     backgroundColor: "#FFFFFF",
     color: "#000000",
     fontSize: 8.5,
   },
   backgroundImage: {
     position: "absolute",
-    top: "30%",
+    top: "28%",
     left: "25%",
     width: "50%",
     opacity: 0.05,
@@ -510,34 +844,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerLeftMeta: {
-    width: "36%",
+    width: "40%",
     flexDirection: "column",
-    gap: 4,
+    gap: 3,
     paddingTop: 4,
   },
   metaRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  metaKeyEn: {
-    fontSize: 8,
-    textAlign: "left",
-    width: "42%",
+  metaKeyAr: {
+    fontSize: 7.5,
+    textAlign: "right",
+    width: "36%",
+  },
+  metaColon: {
+    fontSize: 7.5,
+    textAlign: "center",
+    marginHorizontal: 2,
+    width: 6,
   },
   metaVal: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontWeight: "bold",
     textAlign: "center",
-    width: "28%",
+    flex: 1,
   },
-  metaKeyAr: {
-    fontSize: 8,
-    textAlign: "right",
-    width: "30%",
+  metaKeyEn: {
+    fontSize: 7.5,
+    textAlign: "left",
+    width: "36%",
   },
 
   headerCenterTitle: {
@@ -545,32 +885,32 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 6,
+    paddingTop: 4,
   },
   headerLogo: {
-    maxWidth: 100,
-    maxHeight: 50,
+    maxWidth: 90,
+    maxHeight: 46,
     objectFit: "contain",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   titleAr: {
     fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   titleEn: {
-    fontSize: 13,
+    fontSize: 12,
     textAlign: "center",
   },
 
   headerRightQr: {
-    width: "25%",
+    width: "22%",
     alignItems: "flex-end",
   },
   qrImage: {
-    width: 86,
-    height: 86,
+    width: 82,
+    height: 82,
   },
 
   // ─── 2. Dual Party Table ───
@@ -578,7 +918,7 @@ const styles = StyleSheet.create({
     width: "100%",
     borderWidth: 1,
     borderColor: "#000000",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   partiesHeaderRow: {
     flexDirection: "row",
@@ -617,22 +957,11 @@ const styles = StyleSheet.create({
   },
   partyCellHalf: {
     width: "50%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 6,
     paddingVertical: 1.5,
-  },
-  partyKeyEn: {
-    fontSize: 7,
-    textAlign: "left",
-    width: "28%",
-  },
-  partyValCenter: {
-    fontSize: 7,
-    textAlign: "center",
-    flex: 1,
-    paddingHorizontal: 2,
   },
   partyKeyAr: {
     fontSize: 7,
@@ -640,17 +969,29 @@ const styles = StyleSheet.create({
     width: "32%",
   },
 
+  partyValCenter: {
+    fontSize: 7,
+    textAlign: "center",
+    flex: 1,
+    paddingHorizontal: 2,
+  },
+  partyKeyEn: {
+    fontSize: 7,
+    textAlign: "left",
+    width: "30%",
+  },
+
   // ─── 3. Items Table ───
   table: {
     width: "100%",
     borderWidth: 1,
     borderColor: "#000000",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   tableHeaderRow: {
     flexDirection: "row",
     backgroundColor: "#D1D5DB",
-    minHeight: 34,
+    minHeight: 32,
     borderBottomWidth: 1,
     borderBottomColor: "#000000",
   },
@@ -663,17 +1004,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   thEn: {
-    fontSize: 7.5,
+    fontSize: 7,
     textAlign: "center",
     marginBottom: 1,
   },
   thAr: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontWeight: "bold",
     textAlign: "center",
   },
   thEnBold: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontWeight: "bold",
     textAlign: "center",
   },
@@ -682,7 +1023,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   thArBold: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontWeight: "bold",
     textAlign: "center",
   },
@@ -695,22 +1036,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#000000",
-    minHeight: 24,
+    minHeight: 22,
   },
   tdCell: {
     borderRightWidth: 1,
     borderRightColor: "#000000",
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 3,
     justifyContent: "center",
   },
   tdTextRight: {
-    fontSize: 7.5,
+    fontSize: 7,
     textAlign: "right",
   },
   tdTextCenter: {
-    fontSize: 7.5,
+    fontSize: 7,
     textAlign: "center",
+  },
+  tdSubtextCenter: {
+    fontSize: 5.5,
+    textAlign: "center",
+    color: "#4B5563",
+    marginTop: 1,
   },
 
   // ─── 4. Bottom Area ───
@@ -718,32 +1065,50 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    marginBottom: 10,
   },
-  paymentMethodCol: {
-    width: "40%",
+  bottomLeftCol: {
+    width: "48%",
     flexDirection: "column",
-    alignItems: "flex-start",
-    paddingTop: 10,
-  },
-  paymentMethodEn: {
-    fontSize: 9,
-    fontWeight: "bold",
-    textAlign: "left",
-    marginBottom: 1,
-  },
-  paymentMethodAr: {
-    fontSize: 9,
-    fontWeight: "bold",
-    textAlign: "left",
-    marginBottom: 2,
-  },
-  paymentMethodVal: {
-    fontSize: 8.5,
-    textAlign: "left",
+    gap: 8,
   },
 
+
+  noteCard: {
+    borderWidth: 0.5,
+    borderColor: "#9CA3AF",
+    backgroundColor: "#F9FAFB",
+    padding: 5,
+    borderRadius: 2,
+  },
+  noteHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#D1D5DB",
+    paddingBottom: 2,
+    marginBottom: 3,
+  },
+  noteTitleEn: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    textAlign: "left",
+  },
+  noteTitleAr: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    textAlign: "right",
+  },
+  noteBody: {
+    fontSize: 7,
+    textAlign: "right",
+    lineHeight: 1.3,
+  },
+
+
+
   totalsCol: {
-    width: "46%",
+    width: "48%",
     flexDirection: "column",
   },
   totalRow: {
@@ -806,8 +1171,21 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   balanceDueVal: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: "bold",
     textAlign: "right",
+  },
+
+  // ─── 5. Footer Text ───
+  footerSection: {
+    marginTop: 6,
+    paddingTop: 4,
+    borderTopWidth: 0.5,
+    borderTopColor: "#9CA3AF",
+  },
+  footerText: {
+    fontSize: 6.5,
+    textAlign: "center",
+    color: "#4B5563",
   },
 });

@@ -64,6 +64,8 @@ export const companies = pgTable("companies", {
   prefix: text("prefix").notNull().unique(),
   /** The assigned employee/representative for this organization ("تابع للعميل"). */
   clientEmployee: text("client_employee"),
+  /** Type of organization / entity ("نوع المنشأة"). */
+  organizationType: text("organization_type"),
   /** @deprecated — use logoFileId instead. Kept for backward compat. */
   logoUrl: text("logo_url"),
   phone: text("phone"),

@@ -44,12 +44,25 @@ export class PostgresSequenceService implements SequencePort {
         .from(invoices)
         .where(eq(invoices.companyId, companyId));
       let maxSeq = 0;
+      const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const prefixRegex = new RegExp(`^${escapedPrefix}-?(\\d+)$`);
+
       for (const row of existing) {
         const num = row.invoiceNumber;
         if (!num) continue;
-        const m = num.match(/-(\d+)$/);
-        if (m) {
-          const seq = parseInt(m[1]!, 10);
+        
+        // Match prefix first (with or without hyphen)
+        const matchWithPrefix = num.match(prefixRegex);
+        if (matchWithPrefix && matchWithPrefix[1]) {
+          const seq = parseInt(matchWithPrefix[1], 10);
+          if (Number.isFinite(seq) && seq > maxSeq) maxSeq = seq;
+          continue;
+        }
+
+        // Fallback for custom / legacy formats
+        const m = num.match(/(\d+)$/);
+        if (m && m[1]) {
+          const seq = parseInt(m[1], 10);
           if (Number.isFinite(seq) && seq > maxSeq) maxSeq = seq;
         }
       }

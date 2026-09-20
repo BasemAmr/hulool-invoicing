@@ -25,62 +25,11 @@ export interface GenericSimplified25TemplateProps {
   signatureDataUrl?: string | null;
 }
 
-// ─── Scan mapping (AL-ASMA simplified tax invoice, B&W minimal) ───
-// WHY each scan region is handled this way:
-// - Outer thin black rounded rectangle: a wrapping View (borderRadius) holds
-//   the whole invoice on the white page.
-// - Header (company stacked lines left / QR in bordered box right): company
-//   lines render from CompanyRecord (nameEn/nameAr/address/phone/email with
-//   "" fallbacks) left-aligned; the QR box renders only when qrDataUrl is
-//   provided — no placeholder graphic. A full-width divider sits below.
-// - Info grid (Customer Name|Invoice No, Address|Date, VAT Number|blank):
-//   values are the invoice's own data; the Gregorian date renders with an
-//   Eastern-Arabic-digit second line beneath it (same date, converted digits
-//   — not a second data source).
-// - Centered underlined bilingual title: static layout labels only.
-// - Table (black header, white rows, thin grid): SI is the row position
-//   (never a UUID); Description is item.description as-is (single field —
-//   no invented EN/AR split); Unit reads an optional extension field and
-//   stays "" when absent; Gross is derived qty × unitPrice; VAT/Total come
-//   from the DTO. All numbers right-aligned.
-// - Footer (Amount in Words left / 4-row summary right): the DTO carries no
-//   amount-in-words, so the label renders with a blank value (layout without
-//   invented text); the summary sums the rows (Gross/Discount/VAT/Grand).
-
-// WHY: savedProductId is an internal UUID FK (z.string().uuid()), never a
-// printable code — SI shows the row position instead.
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function isUuidLike(value: string): boolean {
-  const text = value.trim();
-  if (UUID_RE.test(text)) return true;
-  if (
-    text.length >= 20 &&
-    (text.match(/-/g) || []).length >= 2 &&
-    /^[0-9a-f-]+$/i.test(text)
-  ) {
-    return true;
-  }
-  return false;
-}
-
-// InvoiceItemDto carries no unit column; read it only when a caller provides
-// one via extension fields, otherwise the cell stays empty (never invented).
-interface ItemUnitExtensions {
-  unit?: string | null;
-  unitName?: string | null;
-  uom?: string | null;
-}
-
-function getItemUnit(item: InvoiceItemDto): string {
-  const rec = item as InvoiceItemDto & Partial<ItemUnitExtensions>;
-  return rec.unit ?? rec.unitName ?? rec.uom ?? "";
-}
+// ─── Helpers ───
 
 function toText(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
-  return String(value);
+  return String(value).trim();
 }
 
 function toNumber(value: string | number | null | undefined): number {
@@ -89,52 +38,121 @@ function toNumber(value: string | number | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function formatNumber(
-  val: string | number | null | undefined,
-  decimals = 2,
-): string {
-  const n = toNumber(val);
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-}
-
 function formatQty(val: string | number | null | undefined): string {
-  const n = toNumber(val);
+  if (val === null || val === undefined || val === "") return "0";
+  const n = typeof val === "number" ? val : parseFloat(String(val));
+  if (!Number.isFinite(n)) return "0";
   if (Number.isInteger(n)) return String(n);
   return String(Math.round(n * 100) / 100);
 }
 
-function formatDateShort(iso: string | null | undefined): string {
+/**
+ * Strict date formatting: DD/MM/YYYY only — NO hours/time/HHMMSS.
+ */
+function formatDate(iso?: string | null): string {
   if (!iso) return "";
-  return iso.slice(0, 10);
+  try {
+    const clean = iso.slice(0, 10);
+    const parts = clean.split("-");
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      return `${d}/${m}/${y}`;
+    }
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return iso || "";
+  }
 }
 
-const EASTERN_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-
-// Same calendar date, Eastern-Arabic glyphs — a presentation variant of the
-// Gregorian line above it, matching the scan's two-line date cell.
-function toEasternArabicDigits(str: string): string {
-  return str.replace(/\d/g, (d) => EASTERN_DIGITS[Number(d)] ?? d);
+/**
+ * Monetary formatting without rounding or truncation:
+ * Preserves raw exact decimal tails while adding thousands commas to integer part.
+ */
+function formatExactAmount(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === "") return "0.00";
+  const str = String(val).trim();
+  if (isNaN(Number(str))) return str;
+  const isNegative = str.startsWith("-");
+  const cleanStr = isNegative ? str.slice(1) : str;
+  const parts = cleanStr.split(".");
+  const intPart = parts[0] || "0";
+  const decPart = parts[1];
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const result = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+  return isNegative ? `-${result}` : result;
 }
 
-function companyLine2(company: CompanyRecord): string {
-  const parts = [company.addressDistrict ?? "", company.addressCity ?? ""]
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-  return parts.join(" ");
+// ─── Arabic Words (Tafqeet) ───
+const ONES = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
+const TEENS = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+const TENS = ["", "عشرة", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+const HUNDREDS = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+
+function convertGroup(n: number): string {
+  let res = "";
+  const h = Math.floor(n / 100);
+  const rem = n % 100;
+  if (h > 0) res += HUNDREDS[h];
+  if (rem > 0) {
+    if (res) res += " و ";
+    if (rem <= 10) res += ONES[rem];
+    else if (rem < 20) res += TEENS[rem - 10];
+    else {
+      const u = rem % 10;
+      const t = Math.floor(rem / 10);
+      if (u > 0) res += ONES[u] + " و " + TENS[t];
+      else res += TENS[t];
+    }
+  }
+  return res;
 }
 
-function companyLine3(company: CompanyRecord): string {
-  const parts = [
-    company.addressStreet ?? "",
-    company.addressCity ?? "",
-    company.addressPostalCode ?? "",
-  ]
-    .map((p) => (p ?? "").trim())
-    .filter((p) => p.length > 0);
-  return parts.join(" ");
+function numberToArabicWords(num: number): string {
+  if (num === 0) return "صفر";
+  const millions = Math.floor(num / 1000000);
+  const thousands = Math.floor((num % 1000000) / 1000);
+  const remainder = Math.floor(num % 1000);
+  let out = "";
+
+  if (millions > 0) {
+    if (millions === 1) out += "مليون";
+    else if (millions === 2) out += "مليونان";
+    else if (millions >= 3 && millions <= 10) out += convertGroup(millions) + " ملايين";
+    else out += convertGroup(millions) + " مليون";
+  }
+
+  if (thousands > 0) {
+    if (out) out += " و ";
+    if (thousands === 1) out += "ألف";
+    else if (thousands === 2) out += "ألفان";
+    else if (thousands >= 3 && thousands <= 10) out += convertGroup(thousands) + " آلاف";
+    else out += convertGroup(thousands) + " ألف";
+  }
+
+  if (remainder > 0) {
+    if (out) out += " و ";
+    out += convertGroup(remainder);
+  }
+
+  return out;
+}
+
+function tafqeet(val: string | number): string {
+  const num = typeof val === "number" ? val : parseFloat(String(val)) || 0;
+  if (num <= 0) return "صفر ريال سعودي";
+  const riyals = Math.floor(num);
+  const halalas = Math.round((num - riyals) * 100);
+
+  let text = "فقط " + numberToArabicWords(riyals) + " ريال سعودي";
+  if (halalas > 0) {
+    text += " و " + numberToArabicWords(halalas) + " هللة";
+  }
+  return text + " لا غير";
 }
 
 export function GenericSimplified25Template({
@@ -143,92 +161,209 @@ export function GenericSimplified25Template({
   customer,
   settings,
   qrDataUrl,
+  logoDataUrl,
+  backgroundDataUrl,
 }: GenericSimplified25TemplateProps) {
   const paperSize: "A4" | "LETTER" =
     settings?.paperSize === "Letter" ? "LETTER" : "A4";
 
-  // ─── Header values (all dynamic, "" fallbacks) ───
-  const companyTitle = company.nameEn || company.nameAr || "";
-  const companySub1 = companyLine2(company);
-  const companySub2 = companyLine3(company);
+  // ─── Company & Supplier Values ───
+  const companyNameAr = company.nameAr || "";
+  const companyNameEn = company.nameEn || "";
+  const companyLogo = logoDataUrl || company.logoUrl;
+
+  const companyAddressParts = [
+    company.addressBuildingNumber ? `مبنى ${company.addressBuildingNumber}` : null,
+    company.addressStreet,
+    company.addressDistrict ? `حي ${company.addressDistrict}` : null,
+    company.addressCity,
+    company.addressPostalCode ? `الرمز البريدي ${company.addressPostalCode}` : null,
+    company.addressAdditionalNumber ? `الرقم الإضافي ${company.addressAdditionalNumber}` : null,
+    "المملكة العربية السعودية",
+  ].filter(Boolean);
+  const companyAddress = companyAddressParts.join(" - ");
+
   const companyPhone = company.phone || "";
   const companyEmail = company.email || "";
+  const companyVat = company.vatNumber || "";
+  const companyCr = company.crNumber || (company as any).unifiedNumber || "";
 
-  // ─── Info-grid values (all dynamic) ───
-  const customerName =
-    [customer.nameEn, customer.nameAr].filter((p) => (p ?? "").trim().length > 0).join(" / ") || "";
-  const customerAddress = [customer.addressStreet ?? "", customer.addressCity ?? ""]
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0)
-    .join(" ");
-  const customerVat = customer.vatNumber || "";
+  // ─── Document Values ───
   const docNo = invoice.invoiceNumber ?? "";
-  const issueDateStr = formatDateShort(invoice.issueDate);
-  const issueDateAr = issueDateStr ? toEasternArabicDigits(issueDateStr) : "";
+  const issueDateStr = formatDate(invoice.issueDate || invoice.issuedAt);
+  const currencyText = invoice.currency || "SAR";
 
-  // ─── Items + totals ───
+  // ─── Customer Values ───
+  const customerName = customer.nameAr || customer.nameEn || "";
+  const customerNameEn = customer.nameEn || "";
+  const customerVat = customer.vatNumber || "";
+  const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
+
+  const customerAddressParts = [
+    (customer as any).addressBuildingNumber ? `مبنى ${(customer as any).addressBuildingNumber}` : null,
+    customer.addressStreet,
+    (customer as any).addressDistrict ? `حي ${(customer as any).addressDistrict}` : null,
+    customer.addressCity,
+    customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : null,
+    (customer as any).addressAdditionalNumber ? `الرقم الإضافي ${(customer as any).addressAdditionalNumber}` : null,
+  ].filter(Boolean);
+  const customerAddress = customerAddressParts.join(" - ");
+
+  const customerPhone = customer.phone || "";
+  const customerEmail = customer.email || "";
+  const customerContacts = [
+    customerPhone ? `هاتف: ${customerPhone}` : null,
+    customerEmail ? `بريد: ${customerEmail}` : null,
+  ].filter(Boolean).join(" | ");
+
+  // ─── Items & Calculations ───
   const items = invoice.items ?? [];
-  // WHY: Gross is the pre-discount extended price (qty × unitPrice);
-  // lineSubtotal is already net of discount so it cannot serve as Gross.
+  let sumQty = 0;
+  let grossTotalCalc = 0;
+  let discountTotalCalc = 0;
+  let taxableTotalCalc = 0;
+  let vatTotalCalc = 0;
+
   const rows = items.map((item, idx) => {
     const qty = toNumber(item.quantity);
-    const unit = toNumber(item.unitPrice);
-    const gross = qty * unit;
-    const disc = toNumber(item.discountAmount);
-    const vat = toNumber(item.lineVat);
-    const total = toNumber(item.lineTotal);
-    void isUuidLike;
+    const unitPrice = toNumber(item.unitPrice);
+    const rawLineGross = qty * unitPrice;
+    const lineDiscount = toNumber(item.discountAmount);
+    const taxableSubtotal = Math.max(0, rawLineGross - lineDiscount);
+    const vatRate = toNumber(item.vatRate ?? 15);
+    const lineVat =
+      item.lineVat !== undefined && item.lineVat !== null
+        ? toNumber(item.lineVat)
+        : taxableSubtotal * (vatRate / 100);
+    const lineTotal =
+      item.lineTotal !== undefined && item.lineTotal !== null
+        ? toNumber(item.lineTotal)
+        : taxableSubtotal + lineVat;
+
+    sumQty += qty;
+    grossTotalCalc += rawLineGross;
+    discountTotalCalc += lineDiscount;
+    taxableTotalCalc += taxableSubtotal;
+    vatTotalCalc += lineVat;
+
     return {
-      key: item.position ?? idx,
-      si: String(idx + 1),
+      index: idx + 1,
       desc: item.description || "",
-      unitName: getItemUnit(item),
       qty,
-      unit,
-      gross,
-      vat,
-      total,
+      unitPrice,
+      rawLineGross,
+      lineDiscount,
+      taxableSubtotal,
+      vatRate,
+      lineVat,
+      lineTotal,
     };
   });
-  const sumGross = rows.reduce((a, r) => a + r.gross, 0);
-  const sumDisc = rows.reduce(
-    (a, r, i) => a + toNumber(items[i]?.discountAmount),
-    0,
-  );
-  const sumVat = rows.reduce((a, r) => a + r.vat, 0);
-  const sumTotal = rows.reduce((a, r) => a + r.total, 0);
-  const currencyText = invoice.currency || "SAR";
-  void currencyText;
+
+  const invoiceSubtotal = toNumber(invoice.subtotal);
+  const invoiceVat = toNumber(invoice.vatAmount);
+  const invoiceTotal = toNumber(invoice.total);
+
+  const finalGross = grossTotalCalc > 0 ? grossTotalCalc : invoiceSubtotal;
+  const finalDiscount = discountTotalCalc;
+  const finalTaxable = taxableTotalCalc > 0 ? taxableTotalCalc : invoiceSubtotal;
+  const finalVat = vatTotalCalc > 0 ? vatTotalCalc : invoiceVat;
+  const finalTotal =
+    invoiceTotal > 0 ? invoiceTotal : finalTaxable + finalVat;
+
+  const tafqeetText = tafqeet(finalTotal);
+
+  // ─── Extra Notes & Terms ───
+  const footerNote = toText(company.footerText ?? "");
+  const invoiceNotes = toText(invoice.notes ?? "");
+  const invoiceTerms = toText(invoice.terms ?? "");
+
+  // ─── Dynamic Height Guarantee (Strict Single-Page Rule) ───
+  const basePageHeight = paperSize === "LETTER" ? 792 : 841.89;
+  const pageWidth = paperSize === "LETTER" ? 612 : 595.28;
+  const extraItemsCount = Math.max(0, items.length - 4);
+  let extraContentHeight = extraItemsCount * 24;
+
+  if (invoiceNotes) {
+    extraContentHeight += 20 + Math.min(invoiceNotes.split("\n").length, 4) * 8;
+  }
+  if (invoiceTerms) {
+    extraContentHeight += 20 + Math.min(invoiceTerms.split("\n").length, 4) * 8;
+  }
+  if (footerNote) {
+    extraContentHeight += 20;
+  }
+  if (finalDiscount > 0) {
+    extraContentHeight += 16;
+  }
+
+  const dynamicHeight = Math.max(basePageHeight, basePageHeight + extraContentHeight);
+  const dynamicPageSize = [pageWidth, dynamicHeight] as [number, number];
 
   return (
     <Document
-      title={`Simplified Tax Invoice ${docNo}`}
-      author={toText(companyTitle)}
-      subject="Simplified Tax Invoice"
+      title={`فاتورة ضريبية ${docNo}`}
+      author={companyNameAr}
+      subject="Tax Invoice"
       creator="Hulool Invoicing"
     >
-      <Page size={paperSize} orientation="portrait" style={styles.page}>
+      <Page size={dynamicPageSize} orientation="portrait" style={styles.page}>
+        {backgroundDataUrl ? (
+          <Image src={backgroundDataUrl} style={styles.backgroundImage} />
+        ) : null}
+
         {/* ─── Outer thin black rounded frame ─── */}
         <View style={styles.frame}>
-          {/* ─── Header: company lines (left) / QR in bordered box (right) ─── */}
+          {/* ─── Header: Company Info (Left) / Center Logo / QR Code (Right) ─── */}
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
-              {companyTitle ? (
-                <Text style={styles.companyTitle}>{companyTitle}</Text>
+              {companyNameAr ? (
+                <Text style={styles.companyTitle}>{companyNameAr}</Text>
               ) : null}
-              {companySub1 ? (
-                <Text style={styles.headerSub}>{companySub1}</Text>
+              {companyNameEn ? (
+                <Text style={styles.companyTitleEn}>{companyNameEn}</Text>
               ) : null}
-              {companySub2 ? (
-                <Text style={styles.headerSub}>{companySub2}</Text>
+              {companyAddress ? (
+                <Text style={styles.headerSub}>{companyAddress}</Text>
+              ) : null}
+              {companyVat ? (
+                <View style={styles.bidiHeaderRow}>
+                  <Text style={styles.bidiHeaderLbl}>الرقم الضريبي VAT No</Text>
+                  <Text style={styles.bidiHeaderColon}>:</Text>
+                  <Text style={styles.bidiHeaderVal}>{companyVat}</Text>
+                </View>
+              ) : null}
+              {companyCr ? (
+                <View style={styles.bidiHeaderRow}>
+                  <Text style={styles.bidiHeaderLbl}>السجل التجاري / الرقم الموحد CR</Text>
+                  <Text style={styles.bidiHeaderColon}>:</Text>
+                  <Text style={styles.bidiHeaderVal}>{companyCr}</Text>
+                </View>
               ) : null}
               {companyPhone ? (
-                <Text style={styles.headerSub}>{companyPhone}</Text>
+                <View style={styles.bidiHeaderRow}>
+                  <Text style={styles.bidiHeaderLbl}>الهاتف Phone</Text>
+                  <Text style={styles.bidiHeaderColon}>:</Text>
+                  <Text style={styles.bidiHeaderVal}>{companyPhone}</Text>
+                </View>
               ) : null}
               {companyEmail ? (
-                <Text style={styles.headerSub}>{companyEmail}</Text>
+                <View style={styles.bidiHeaderRow}>
+                  <Text style={styles.bidiHeaderLbl}>البريد Email</Text>
+                  <Text style={styles.bidiHeaderColon}>:</Text>
+                  <Text style={styles.bidiHeaderVal}>{companyEmail}</Text>
+                </View>
               ) : null}
             </View>
+
+            {/* Center: Conditional Logo (NO dummy box/placeholder) */}
+            <View style={styles.headerCenter}>
+              {companyLogo ? (
+                <Image src={companyLogo} style={styles.logoImg} />
+              ) : null}
+            </View>
+
+            {/* Right: ZATCA 2D QR Code */}
             <View style={styles.headerRight}>
               {qrDataUrl ? (
                 <View style={styles.qrBox}>
@@ -240,150 +375,234 @@ export function GenericSimplified25Template({
 
           <View style={styles.divider} />
 
-          {/* ─── Info grid: label-value pairs ─── */}
+          {/* ─── Centered underlined bilingual title: Clear Tax Invoice Title ─── */}
+          <View style={styles.titleWrap}>
+            <Text style={styles.docTitle}>
+              فاتورة ضريبية / TAX INVOICE
+            </Text>
+          </View>
+
+          {/* ─── Info grid: Customer & Invoice Metadata ─── */}
           <View style={styles.infoGrid}>
             <View style={styles.infoRow}>
               <View style={styles.infoCell}>
-                <Text style={styles.infoLabel}>Customer Name : </Text>
-                <Text style={styles.infoVal}>{customerName}</Text>
+                <View style={styles.bidiRow}>
+                  <Text style={styles.infoLabel}>اسم العميل Customer Name</Text>
+                  <Text style={styles.infoColon}>:</Text>
+                  <Text style={styles.infoVal}>
+                    {customerName}
+                    {customerNameEn && customerNameEn !== customerName ? ` / ${customerNameEn}` : ""}
+                  </Text>
+                </View>
               </View>
               <View style={styles.infoCell}>
-                <Text style={styles.infoLabel}>Invoice No : </Text>
-                <Text style={styles.infoVal}>{docNo}</Text>
+                <View style={styles.bidiRow}>
+                  <Text style={styles.infoLabel}>رقم الفاتورة Invoice No</Text>
+                  <Text style={styles.infoColon}>:</Text>
+                  <Text style={[styles.infoVal, { fontWeight: "bold" }]}>{docNo}</Text>
+                </View>
               </View>
             </View>
+
             <View style={styles.infoRow}>
               <View style={styles.infoCell}>
-                <Text style={styles.infoLabel}>Address : </Text>
-                <Text style={styles.infoVal}>{customerAddress}</Text>
+                <View style={styles.bidiRow}>
+                  <Text style={styles.infoLabel}>الرقم الضريبي للعميل VAT No</Text>
+                  <Text style={styles.infoColon}>:</Text>
+                  <Text style={styles.infoVal}>{customerVat || "—"}</Text>
+                </View>
               </View>
               <View style={styles.infoCell}>
-                <Text style={styles.infoLabel}>Date : </Text>
-                <Text style={styles.infoVal}>{issueDateStr}</Text>
+                <View style={styles.bidiRow}>
+                  <Text style={styles.infoLabel}>تاريخ الإصدار Date</Text>
+                  <Text style={styles.infoColon}>:</Text>
+                  <Text style={styles.infoVal}>{issueDateStr}</Text>
+                </View>
               </View>
             </View>
+
             <View style={styles.infoRow}>
               <View style={styles.infoCell}>
-                <Text style={styles.infoLabel}>VAT Number : </Text>
-                <Text style={styles.infoVal}>{customerVat}</Text>
+                <View style={styles.bidiRow}>
+                  <Text style={styles.infoLabel}>السجل / الرقم الموحد CR / Unified</Text>
+                  <Text style={styles.infoColon}>:</Text>
+                  <Text style={styles.infoVal}>{customerCrOrUnified || "—"}</Text>
+                </View>
               </View>
               <View style={styles.infoCell}>
-                {issueDateAr ? (
-                  <Text style={styles.infoValAr}>{issueDateAr}</Text>
-                ) : null}
+                <View style={styles.bidiRow}>
+                  <Text style={styles.infoLabel}>العنوان الوطني Address</Text>
+                  <Text style={styles.infoColon}>:</Text>
+                  <Text style={styles.infoVal}>{customerAddress || "—"}</Text>
+                </View>
               </View>
             </View>
+
+            {customerContacts ? (
+              <View style={styles.infoRow}>
+                <View style={[styles.infoCell, { width: "100%" }]}>
+                  <View style={styles.bidiRow}>
+                    <Text style={styles.infoLabel}>بيانات التواصل Phone & Email</Text>
+                    <Text style={styles.infoColon}>:</Text>
+                    <Text style={styles.infoVal}>{customerContacts}</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
           </View>
 
-          {/* ─── Centered underlined bilingual title ─── */}
-          <Text style={styles.docTitle}>
-            Simplified Tax Invoice - فاتورة ضريبية مبسطة
-          </Text>
-
-          {/* ─── Items table (black header, thin grid) ─── */}
+          {/* ─── Items Table (Black header, thin grid, NO Unit column) ─── */}
           <View style={styles.table}>
             <View style={styles.tableHeaderRow}>
               <View style={[styles.thCell, { width: "6%" }]}>
-                <Text style={styles.thMain}>SI</Text>
-                <Text style={styles.thSub}>رقم</Text>
+                <Text style={styles.thMain}>م</Text>
+                <Text style={styles.thSub}>#</Text>
               </View>
-              <View style={[styles.thCell, { width: "32%" }]}>
-                <Text style={styles.thMain}>Description</Text>
-                <Text style={styles.thSub}>وصف</Text>
+              <View style={[styles.thCell, { width: "38%" }]}>
+                <Text style={styles.thMain}>الوصف</Text>
+                <Text style={styles.thSub}>Description</Text>
               </View>
-              <View style={[styles.thCell, { width: "9%" }]}>
-                <Text style={styles.thMain}>Qty</Text>
-                <Text style={styles.thSub}>الكمية</Text>
+              <View style={[styles.thCell, { width: "10%" }]}>
+                <Text style={styles.thMain}>الكمية</Text>
+                <Text style={styles.thSub}>Qty</Text>
               </View>
-              <View style={[styles.thCell, { width: "9%" }]}>
-                <Text style={styles.thMain}>Unit</Text>
-                <Text style={styles.thSub}>وحدة</Text>
+              <View style={[styles.thCell, { width: "14%" }]}>
+                <Text style={styles.thMain}>سعر الوحدة</Text>
+                <Text style={styles.thSub}>Unit Price</Text>
               </View>
-              <View style={[styles.thCell, { width: "11%" }]}>
-                <Text style={styles.thMain}>Unit Price</Text>
-                <Text style={styles.thSub}>السعر</Text>
+              <View style={[styles.thCell, { width: "10%" }]}>
+                <Text style={styles.thMain}>الخصم</Text>
+                <Text style={styles.thSub}>Discount</Text>
               </View>
-              <View style={[styles.thCell, { width: "11%" }]}>
-                <Text style={styles.thMain}>Gross</Text>
-                <Text style={styles.thSub}>إجمالي</Text>
+              <View style={[styles.thCell, { width: "10%" }]}>
+                <Text style={styles.thMain}>الضريبة</Text>
+                <Text style={styles.thSub}>VAT</Text>
               </View>
-              <View style={[styles.thCell, { width: "11%" }]}>
-                <Text style={styles.thMain}>VAT Amount</Text>
-                <Text style={styles.thSub}>ضريبة</Text>
-              </View>
-              <View style={[styles.thCell, { width: "11%", borderRightWidth: 0 }]}>
-                <Text style={styles.thMain}>Total</Text>
-                <Text style={styles.thSub}>مجموع</Text>
+              <View style={[styles.thCell, { width: "12%", borderRightWidth: 0 }]}>
+                <Text style={styles.thMain}>المجموع</Text>
+                <Text style={styles.thSub}>Total</Text>
               </View>
             </View>
 
             {rows.length === 0 ? (
               <View style={styles.tableRow}>
                 <View style={[styles.tdCell, { width: "100%", borderRightWidth: 0 }]}>
-                  <Text style={styles.tdDesc}>No items / لا توجد أصناف</Text>
+                  <Text style={styles.tdDesc}>لا توجد أصناف / No items</Text>
                 </View>
               </View>
             ) : (
               rows.map((row) => (
-                <View key={row.key} style={styles.tableRow}>
+                <View key={row.index} style={styles.tableRow}>
                   <View style={[styles.tdCell, { width: "6%" }]}>
-                    <Text style={styles.tdNum}>{row.si}</Text>
+                    <Text style={styles.tdNum}>{row.index}</Text>
                   </View>
-                  <View style={[styles.tdCell, styles.tdDescCell, { width: "32%" }]}>
+                  <View style={[styles.tdCell, styles.tdDescCell, { width: "38%" }]}>
                     <Text style={styles.tdDesc}>{row.desc}</Text>
                   </View>
-                  <View style={[styles.tdCell, { width: "9%" }]}>
+                  <View style={[styles.tdCell, { width: "10%" }]}>
                     <Text style={styles.tdNum}>{formatQty(row.qty)}</Text>
                   </View>
-                  <View style={[styles.tdCell, { width: "9%" }]}>
-                    <Text style={styles.tdNum}>{row.unitName}</Text>
+                  <View style={[styles.tdCell, { width: "14%" }]}>
+                    <Text style={styles.tdNum}>{formatExactAmount(row.unitPrice)}</Text>
                   </View>
-                  <View style={[styles.tdCell, { width: "11%" }]}>
-                    <Text style={styles.tdNum}>{formatNumber(row.unit)}</Text>
+                  <View style={[styles.tdCell, { width: "10%" }]}>
+                    {row.lineDiscount > 0 ? (
+                      <View style={{ alignItems: "center" }}>
+                        <Text style={styles.tdNum}>{formatExactAmount(row.lineDiscount)}</Text>
+                        <View style={styles.discBadge}>
+                          <Text style={styles.discBadgeText}>خصم</Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <Text style={styles.tdNum}>0.00</Text>
+                    )}
                   </View>
-                  <View style={[styles.tdCell, { width: "11%" }]}>
-                    <Text style={styles.tdNum}>{formatNumber(row.gross)}</Text>
+                  <View style={[styles.tdCell, { width: "10%" }]}>
+                    <Text style={styles.tdNum}>{formatExactAmount(row.lineVat)}</Text>
+                    <Text style={styles.tdSubRate}>({row.vatRate}%)</Text>
                   </View>
-                  <View style={[styles.tdCell, { width: "11%" }]}>
-                    <Text style={styles.tdNum}>{formatNumber(row.vat)}</Text>
-                  </View>
-                  <View style={[styles.tdCell, { width: "11%", borderRightWidth: 0 }]}>
-                    <Text style={styles.tdNum}>{formatNumber(row.total)}</Text>
+                  <View style={[styles.tdCell, { width: "12%", borderRightWidth: 0 }]}>
+                    <Text style={[styles.tdNum, { fontWeight: "bold" }]}>
+                      {formatExactAmount(row.lineTotal)}
+                    </Text>
                   </View>
                 </View>
               ))
             )}
           </View>
 
-          {/* ─── Footer: Amount in Words (left) / summary box (right) ─── */}
+          {/* ─── Footer: Tafqeet Amount in Words (Left) / 7-Row Summary (Right) ─── */}
           <View style={styles.footerRow}>
+            {/* Left: Arabic Spelled-out Words (Tafqeet) */}
             <View style={styles.wordsBox}>
               <Text style={styles.wordsLabel}>
-                Amount in Words : المبلغ بالكلمات
+                المبلغ المستحق كتابة Amount in Words :
               </Text>
-              {toText(invoice.notes) ? (
-                <Text style={styles.wordsVal}>{toText(invoice.notes)}</Text>
-              ) : null}
+              <Text style={styles.wordsVal}>{tafqeetText}</Text>
             </View>
+
+            {/* Right: Comprehensive Summary */}
             <View style={styles.summaryBox}>
               <View style={styles.sumRow}>
-                <Text style={styles.sumLabel}>Total Gross / مجموع الإجمالي</Text>
-                <Text style={styles.sumVal}>{formatNumber(sumGross)}</Text>
+                <Text style={styles.sumLabel}>إجمالي المبلغ قبل الخصم Gross Total</Text>
+                <Text style={styles.sumVal}>{formatExactAmount(finalGross)} {currencyText}</Text>
               </View>
+
+              {finalDiscount > 0 ? (
+                <View style={styles.sumRow}>
+                  <Text style={styles.sumLabel}>مجموع الخصومات Total Discount</Text>
+                  <Text style={[styles.sumVal, { color: "#991B1B" }]}>
+                    -{formatExactAmount(finalDiscount)} {currencyText}
+                  </Text>
+                </View>
+              ) : null}
+
               <View style={styles.sumRow}>
-                <Text style={styles.sumLabel}>Total Discount / مجموع الخصم</Text>
-                <Text style={styles.sumVal}>{formatNumber(sumDisc)}</Text>
+                <Text style={styles.sumLabel}>الإجمالي الخاضع للضريبة Taxable Amount</Text>
+                <Text style={styles.sumVal}>{formatExactAmount(finalTaxable)} {currencyText}</Text>
               </View>
+
               <View style={styles.sumRow}>
-                <Text style={styles.sumLabel}>Total VAT / مجموع الضريبة</Text>
-                <Text style={styles.sumVal}>{formatNumber(sumVat)}</Text>
+                <Text style={styles.sumLabel}>ضريبة القيمة المضافة VAT (15%)</Text>
+                <Text style={styles.sumVal}>{formatExactAmount(finalVat)} {currencyText}</Text>
               </View>
+
               <View style={[styles.sumRow, styles.sumGrandRow]}>
-                <Text style={styles.sumGrandLabel}>Grand Total / المجموع الكلي</Text>
-                <Text style={styles.sumGrandVal}>{formatNumber(sumTotal)}</Text>
+                <Text style={styles.sumGrandLabel}>المجموع الكلي شامل الضريبة Total Incl. VAT</Text>
+                <Text style={styles.sumGrandVal}>{formatExactAmount(finalTotal)} {currencyText}</Text>
+              </View>
+
+              <View style={styles.sumRow}>
+                <Text style={styles.sumLabel}>المبلغ المدفوع Paid Amount</Text>
+                <Text style={styles.sumVal}>{formatExactAmount(finalTotal)} {currencyText}</Text>
+              </View>
+
+              <View style={[styles.sumRow, { borderBottomWidth: 0 }]}>
+                <Text style={styles.sumLabel}>المبلغ المتبقي Balance Due</Text>
+                <Text style={styles.sumVal}>0.00 {currencyText}</Text>
               </View>
             </View>
           </View>
+
+          {/* ─── Notes & Terms Section ─── */}
+          {invoiceNotes ? (
+            <View style={styles.notesBox}>
+              <Text style={styles.notesTitle}>ملاحظات الفاتورة / Notes :</Text>
+              <Text style={styles.notesText}>{invoiceNotes}</Text>
+            </View>
+          ) : null}
+
+          {invoiceTerms ? (
+            <View style={styles.notesBox}>
+              <Text style={styles.notesTitle}>الشروط والأحكام / Terms & Conditions :</Text>
+              <Text style={styles.notesText}>{invoiceTerms}</Text>
+            </View>
+          ) : null}
+
+          {/* ─── Company Footer Text ─── */}
+          {footerNote ? (
+            <Text style={styles.footerNote}>{footerNote}</Text>
+          ) : null}
         </View>
       </Page>
     </Document>
@@ -394,11 +613,18 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: "Amiri",
     backgroundColor: "#FFFFFF",
-    paddingTop: 18,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
-    fontSize: 8,
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 18,
+    fontSize: 7.5,
     color: "#000000",
+  },
+  backgroundImage: {
+    position: "absolute",
+    top: "28%",
+    left: "25%",
+    width: "50%",
+    opacity: 0.04,
   },
   // ─── Outer thin black rounded frame ───
   frame: {
@@ -412,78 +638,130 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 6,
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   headerLeft: {
-    width: "65%",
+    width: "55%",
     alignItems: "flex-start",
   },
+  headerCenter: {
+    width: "20%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoImg: {
+    maxHeight: 50,
+    maxWidth: 90,
+    objectFit: "contain",
+  },
   headerRight: {
-    width: "35%",
+    width: "25%",
     alignItems: "flex-end",
   },
   companyTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "bold",
     color: "#000000",
     textAlign: "left",
   },
-  headerSub: {
-    fontSize: 7.5,
+  companyTitleEn: {
+    fontSize: 9,
+    fontWeight: "bold",
     color: "#333333",
     textAlign: "left",
+    marginBottom: 1,
+  },
+  headerSub: {
+    fontSize: 7,
+    color: "#333333",
+    textAlign: "left",
+    lineHeight: 1.2,
+    marginBottom: 1,
+  },
+  bidiHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 1,
+  },
+  bidiHeaderLbl: {
+    fontSize: 6.5,
+    fontWeight: "bold",
+    color: "#111111",
+  },
+  bidiHeaderColon: {
+    fontSize: 6.5,
+    marginHorizontal: 2,
+    color: "#111111",
+  },
+  bidiHeaderVal: {
+    fontSize: 6.5,
+    color: "#222222",
   },
   qrBox: {
     borderWidth: 0.75,
     borderColor: "#000000",
-    padding: 4,
+    padding: 3,
   },
   qrImage: {
-    width: 72,
-    height: 72,
+    width: 64,
+    height: 64,
   },
   divider: {
     borderBottomWidth: 1,
     borderBottomColor: "#000000",
-    marginBottom: 6,
+    marginVertical: 4,
   },
-  // ─── Info grid ───
-  infoGrid: {
+  // ─── Centered Title ───
+  titleWrap: {
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 4,
   },
-  infoRow: {
-    flexDirection: "row",
-    minHeight: 14,
-  },
-  infoCell: {
-    width: "50%",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 1,
-    paddingHorizontal: 2,
-  },
-  infoLabel: {
-    fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#000000",
-  },
-  infoVal: {
-    fontSize: 7.5,
-    color: "#000000",
-  },
-  infoValAr: {
-    fontSize: 7.5,
-    color: "#000000",
-    textAlign: "right",
-  },
-  // ─── Underlined bilingual title ───
   docTitle: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: "bold",
     color: "#000000",
     textAlign: "center",
     textDecorationLine: "underline",
-    marginVertical: 6,
+  },
+  // ─── Info grid ───
+  infoGrid: {
+    borderWidth: 0.75,
+    borderColor: "#000000",
+    borderRadius: 3,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    marginBottom: 6,
+    backgroundColor: "#FAFAFA",
+  },
+  infoRow: {
+    flexDirection: "row",
+    minHeight: 14,
+    alignItems: "center",
+  },
+  infoCell: {
+    width: "50%",
+    paddingVertical: 1,
+    paddingHorizontal: 2,
+  },
+  bidiRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  infoLabel: {
+    fontSize: 6.5,
+    fontWeight: "bold",
+    color: "#000000",
+  },
+  infoColon: {
+    fontSize: 6.5,
+    marginHorizontal: 2,
+    color: "#000000",
+  },
+  infoVal: {
+    fontSize: 7,
+    color: "#111111",
   },
   // ─── Items table (black header, thin gray grid) ───
   table: {
@@ -494,7 +772,7 @@ const styles = StyleSheet.create({
   tableHeaderRow: {
     flexDirection: "row",
     backgroundColor: "#000000",
-    minHeight: 26,
+    minHeight: 22,
     alignItems: "stretch",
   },
   thCell: {
@@ -502,46 +780,63 @@ const styles = StyleSheet.create({
     borderRightColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 2,
+    paddingVertical: 1.5,
     paddingHorizontal: 1,
   },
   thMain: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontWeight: "bold",
     color: "#FFFFFF",
     textAlign: "center",
   },
   thSub: {
-    fontSize: 6.5,
-    color: "#FFFFFF",
+    fontSize: 5.5,
+    color: "#D1D5DB",
     textAlign: "center",
   },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: "#999999",
-    minHeight: 18,
+    minHeight: 16,
     alignItems: "stretch",
   },
   tdCell: {
     borderRightWidth: 0.5,
     borderRightColor: "#999999",
     justifyContent: "center",
-    paddingVertical: 2,
+    alignItems: "center",
+    paddingVertical: 1.5,
     paddingHorizontal: 2,
   },
   tdDescCell: {
     alignItems: "flex-start",
   },
   tdNum: {
-    fontSize: 7.5,
+    fontSize: 6.5,
     color: "#000000",
     textAlign: "right",
   },
+  tdSubRate: {
+    fontSize: 5,
+    color: "#4B5563",
+  },
   tdDesc: {
-    fontSize: 7.5,
+    fontSize: 6.5,
     color: "#000000",
     textAlign: "left",
+  },
+  discBadge: {
+    backgroundColor: "#F3E8FF",
+    borderRadius: 2,
+    paddingHorizontal: 2,
+    paddingVertical: 0.5,
+    marginTop: 0.5,
+  },
+  discBadgeText: {
+    fontSize: 5,
+    fontWeight: "bold",
+    color: "#7E22CE",
   },
   // ─── Footer ───
   footerRow: {
@@ -550,57 +845,93 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   wordsBox: {
-    width: "55%",
-    paddingVertical: 2,
+    width: "48%",
+    borderWidth: 0.75,
+    borderColor: "#000000",
+    borderRadius: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    backgroundColor: "#F9FAFB",
   },
   wordsLabel: {
-    fontSize: 7.5,
+    fontSize: 6.5,
     fontWeight: "bold",
     color: "#000000",
     textAlign: "left",
+    marginBottom: 2,
   },
   wordsVal: {
-    fontSize: 7.5,
-    color: "#333333",
+    fontSize: 7,
+    fontWeight: "bold",
+    color: "#111827",
     textAlign: "left",
-    marginTop: 2,
   },
   summaryBox: {
-    width: "45%",
+    width: "52%",
     borderWidth: 1,
     borderColor: "#000000",
+    borderRadius: 3,
   },
   sumRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#999999",
+    borderBottomColor: "#CCCCCC",
     paddingVertical: 2,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
+    alignItems: "center",
   },
   sumGrandRow: {
-    borderBottomWidth: 0,
+    backgroundColor: "#F3F4F6",
+    borderTopWidth: 0.75,
+    borderTopColor: "#000000",
   },
   sumLabel: {
-    fontSize: 7.5,
+    fontSize: 6.5,
     color: "#000000",
     textAlign: "left",
   },
   sumVal: {
-    fontSize: 7.5,
+    fontSize: 6.5,
     color: "#000000",
     textAlign: "right",
   },
   sumGrandLabel: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: "bold",
     color: "#000000",
     textAlign: "left",
   },
   sumGrandVal: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontWeight: "bold",
     color: "#000000",
     textAlign: "right",
+  },
+  // ─── Extra Elements ───
+  notesBox: {
+    borderWidth: 0.5,
+    borderColor: "#999999",
+    borderRadius: 2,
+    backgroundColor: "#F9FAFB",
+    paddingVertical: 2.5,
+    paddingHorizontal: 5,
+    marginTop: 4,
+  },
+  notesTitle: {
+    fontSize: 6,
+    fontWeight: "bold",
+    color: "#000000",
+    marginBottom: 1,
+  },
+  notesText: {
+    fontSize: 6,
+    color: "#374151",
+  },
+  footerNote: {
+    fontSize: 6,
+    color: "#4B5563",
+    textAlign: "center",
+    marginTop: 4,
   },
 });

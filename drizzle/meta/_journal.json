@@ -43,6 +43,13 @@
       "when": 1787250000000,
       "tag": "0005_add_issue_time_to_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787260000000,
+      "tag": "0006_add_organization_type",
+      "breakpoints": true
     }
   ]
 }

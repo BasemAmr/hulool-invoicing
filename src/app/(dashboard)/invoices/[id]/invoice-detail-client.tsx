@@ -19,6 +19,7 @@ interface InvoiceDetailClientActionsProps {
     customerEmail?: string | null;
     companyId?: string;
     customerId?: string;
+    issueTime?: string | null;
   };
 }
 
@@ -130,6 +131,7 @@ export function InvoiceDetailClientActions({
         invoiceId={invoice.id}
         companyId={invoice.companyId}
         defaultCustomerId={invoice.customerId}
+        defaultIssueTime={invoice.issueTime ?? undefined}
         itemName={invoice.invoiceNumber ?? undefined}
       />
     </div>

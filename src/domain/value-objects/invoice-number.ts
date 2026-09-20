@@ -9,7 +9,7 @@ export interface ParsedInvoiceNumber {
 
 /**
  * Format an invoice number started by the company prefix:
- * `PREFIX-nnnnn` (no year date, single dash, unique sequential number).
+ * `PREFIXnnnnn` (no hyphens, unique sequential number).
  */
 export function formatInvoiceNumber(
   prefix: string,
@@ -17,10 +17,37 @@ export function formatInvoiceNumber(
   maybeSeq?: number,
 ): string {
   const sequence = maybeSeq !== undefined ? maybeSeq : yearOrSeq;
-  return `${prefix}-${String(sequence).padStart(
+  return `${prefix}${String(sequence).padStart(
     INVOICE_NUMBER_SEQ_PAD,
     "0",
   )}`;
+}
+
+/**
+ * Increment the last invoice number by 1.
+ * Finds the trailing digits, increments them by 1, preserving padding (minimum 5 digits).
+ * If no invoice number exists, returns `${prefix}00001`.
+ */
+export function incrementInvoiceNumber(lastInvoiceNumber: string | null | undefined, prefix: string): string {
+  if (!lastInvoiceNumber || !lastInvoiceNumber.trim()) {
+    return formatInvoiceNumber(prefix, 1);
+  }
+
+  const trimmed = lastInvoiceNumber.trim();
+  const match = trimmed.match(/^(.*?)(\d+)$/);
+
+  if (!match || match[2] === undefined) {
+    // If no trailing digits found in the string, append 00001
+    return `${trimmed}00001`;
+  }
+
+  const basePrefix = match[1] ?? "";
+  const digitsStr = match[2];
+  const nextNum = (BigInt(digitsStr) + BigInt(1)).toString();
+  const minPad = Math.max(digitsStr.length, INVOICE_NUMBER_SEQ_PAD);
+  const paddedNext = nextNum.padStart(minPad, "0");
+
+  return `${basePrefix}${paddedNext}`;
 }
 
 export function isValidInvoiceNumber(s: string): boolean {
@@ -29,7 +56,7 @@ export function isValidInvoiceNumber(s: string): boolean {
 
 /**
  * Parse an invoice number into its components.
- * Supports both `PREFIX-nnnnn` and legacy `PREFIX-YYYY-nnnnn`.
+ * Supports `PREFIXnnnnn`, `PREFIX-nnnnn` and legacy `PREFIX-YYYY-nnnnn`.
  * Throws ValidationError on malformed input.
  */
 export function parseInvoiceNumber(s: string): ParsedInvoiceNumber {
@@ -50,6 +77,16 @@ export function parseInvoiceNumber(s: string): ParsedInvoiceNumber {
       sequence: parseInt(parts[1]!, 10),
     };
   }
+  
+  // Format without hyphen: PREFIXnnnnn (where sequence is at least INVOICE_NUMBER_SEQ_PAD digits)
+  const match = s.match(/^([A-Z0-9]+?)(\d{5,})$/);
+  if (match) {
+    return {
+      prefix: match[1]!,
+      sequence: parseInt(match[2]!, 10),
+    };
+  }
+
   throw new ValidationError(`Invalid invoice number: "${s}"`);
 }
 
@@ -95,8 +132,8 @@ export function normalizeCustomInvoiceNumber(
 
 /**
  * Extract the trailing sequence for sentinel catch-up.
- * Returns the sequence ONLY when the custom number is exactly
- * `PREFIX-nnnnn` for THIS company's prefix (strict single-dash form).
+ * Returns the sequence when the custom number matches the auto-generated
+ * form for THIS company's prefix (`PREFIXnnnnn` or `PREFIX-nnnnn`).
  * Anything else (free text, Arabic, `PREFIX-YYYY-nnnnn` legacy shape,
  * other company's prefix) returns null → caller skips catch-up but still
  * enforces uniqueness. A later auto-allocation can only collide with a
@@ -110,7 +147,10 @@ export function extractSequenceForCatchUp(
   // Prefix comes from our own companies table, but escape anyway: it is
   // interpolated into a RegExp and must never act as a pattern.
   const escaped = companyPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const m = new RegExp(`^${escaped}-(\\d+)$`).exec(customNumber.trim());
+  let m = new RegExp(`^${escaped}(\\d+)$`).exec(customNumber.trim());
+  if (!m) {
+    m = new RegExp(`^${escaped}-(\\d+)$`).exec(customNumber.trim());
+  }
   if (!m) return null;
   const seq = parseInt(m[1]!, 10);
   return Number.isFinite(seq) && seq > 0 ? seq : null;

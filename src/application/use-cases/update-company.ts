@@ -31,6 +31,7 @@ export class UpdateCompany {
         crNumber: data.crNumber ?? null,
         prefix: data.prefix,
         clientEmployee: data.clientEmployee ?? null,
+        organizationType: data.organizationType ?? null,
         phone: data.phone ?? null,
         email: data.email ?? null,
         website: data.website ?? null,

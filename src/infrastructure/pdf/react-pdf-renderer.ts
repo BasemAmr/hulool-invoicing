@@ -25,13 +25,17 @@ function ensureFontsRegistered(): void {
     { src: path.join(fontsDir, "Amiri-Regular.ttf"), fontWeight: "normal" as const },
     { src: path.join(fontsDir, "Amiri-Bold.ttf"), fontWeight: "bold" as const },
   ];
+  const tajawalFonts = [
+    { src: path.join(fontsDir, "Tajawal-Regular.ttf"), fontWeight: "normal" as const },
+    { src: path.join(fontsDir, "Tajawal-Bold.ttf"), fontWeight: "bold" as const },
+  ];
   Font.register({
     family: "Amiri",
     fonts: amiriFonts,
   });
   Font.register({
     family: "Tajawal",
-    fonts: amiriFonts,
+    fonts: tajawalFonts,
   });
   // Disable hyphenation — Arabic + short English labels don't need it,
   // and the default English hyphenator mis-breaks Arabic words.

@@ -94,6 +94,33 @@ export function normalizeIssueTime(v: unknown): string {
 }
 
 /**
+ * Calculates a new issue time by taking a base time (HH:MM) and adding a random
+ * increment in 10-minute steps between 2:30 hours (150 min) and 3:30 hours (210 min).
+ * Clamps at 23:50. Defaults to "09:00" if no base time or corrupt.
+ */
+export function computeIncrementedIssueTime(baseTime?: string | null): string {
+  if (!baseTime) return "09:00";
+  const [hStr, mStr] = baseTime.split(":");
+  let h = parseInt(hStr ?? "0", 10);
+  let m = parseInt(mStr ?? "0", 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "09:00";
+
+  const increments = [150, 160, 170, 180, 190, 200, 210];
+  const increment = increments[Math.floor(Math.random() * increments.length)] ?? 180;
+
+  m += increment;
+  h += Math.floor(m / 60);
+  m = m % 60;
+
+  if (h > 23 || (h === 23 && m > 50)) {
+    h = 23;
+    m = 50;
+  }
+
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/**
  * Combine a YYYY-MM-DD date + HH:MM Riyadh wall-time into a UTC ISO instant
  * for the ZATCA QR Tag 3.
  *
@@ -123,6 +150,6 @@ export function invoiceDateTimeToUtcIso(
       0,
     ) - RIYADH_UTC_OFFSET_MINUTES * 60_000;
   const d = new Date(utcMs);
-  if (Number.isNaN(d.getTime())) return fallbackNow.toISOString();
-  return d.toISOString();
+  if (Number.isNaN(d.getTime())) return fallbackNow.toISOString().replace(/\.\d+Z$/, 'Z');
+  return d.toISOString().replace(/\.\d+Z$/, 'Z');
 }

@@ -17,33 +17,33 @@ describe("invoice-datetime — Riyadh wall-time → UTC instant", () => {
   it("converts a picked 14:30 Riyadh wall-time to 11:30Z (fixed UTC+3, DST-free)", () => {
     expect(
       invoiceDateTimeToUtcIso("2026-09-15", "14:30", FALLBACK_NOW),
-    ).toBe("2026-09-15T11:30:00.000Z");
+    ).toBe("2026-09-15T11:30:00Z");
   });
 
   it("midnight wall-time maps to the previous day 21:00Z", () => {
     expect(invoiceDateTimeToUtcIso("2026-09-15", "00:00", FALLBACK_NOW)).toBe(
-      "2026-09-14T21:00:00.000Z",
+      "2026-09-14T21:00:00Z",
     );
   });
 
   it("late-evening wall-time stays on the same UTC day", () => {
     expect(invoiceDateTimeToUtcIso("2026-09-15", "23:59", FALLBACK_NOW)).toBe(
-      "2026-09-15T20:59:00.000Z",
+      "2026-09-15T20:59:00Z",
     );
   });
 
   it("missing/unparseable time falls back to midnight (legacy rows), never throws", () => {
     expect(invoiceDateTimeToUtcIso("2026-09-15", undefined, FALLBACK_NOW)).toBe(
-      "2026-09-14T21:00:00.000Z",
+      "2026-09-14T21:00:00Z",
     );
     expect(invoiceDateTimeToUtcIso("2026-09-15", "garbage", FALLBACK_NOW)).toBe(
-      "2026-09-14T21:00:00.000Z",
+      "2026-09-14T21:00:00Z",
     );
   });
 
   it("corrupt date falls back to server-now (corrupt-data guard, not the normal path)", () => {
     expect(invoiceDateTimeToUtcIso("not-a-date", "14:30", FALLBACK_NOW)).toBe(
-      FALLBACK_NOW.toISOString(),
+      FALLBACK_NOW.toISOString().replace(/\.\d+Z$/, "Z"),
     );
   });
 

@@ -103,6 +103,7 @@ export function CompaniesViewClient({
     const headers = [
       "اسم المنشأة",
       "الاسم الإنجليزي",
+      "نوع المنشأة",
       "تابع للعميل",
       "الرقم الضريبي",
       "السجل التجاري",
@@ -114,6 +115,7 @@ export function CompaniesViewClient({
     const rows = filteredCompanies.map((c) => [
       `"${c.nameAr}"`,
       `"${c.nameEn || ""}"`,
+      `"${c.organizationType || ""}"`,
       `"${c.clientEmployee || ""}"`,
       `"${c.vatNumber}"`,
       `"${c.crNumber || ""}"`,
@@ -145,6 +147,7 @@ export function CompaniesViewClient({
         (c) =>
           c.nameAr.toLowerCase().includes(q) ||
           (c.nameEn && c.nameEn.toLowerCase().includes(q)) ||
+          (c.organizationType && c.organizationType.toLowerCase().includes(q)) ||
           (c.clientEmployee && c.clientEmployee.toLowerCase().includes(q)) ||
           c.vatNumber.includes(q) ||
           (c.crNumber && c.crNumber.includes(q)) ||
@@ -273,16 +276,16 @@ export function CompaniesViewClient({
         </div>
       ) : (
         <div className="border border-border bg-card overflow-x-auto shadow-2xs">
-          <table className="w-full text-xs text-center border-collapse">
+          <table className="w-full text-xs text-start border-collapse">
             <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground text-[11px]">
               <tr>
-                <th className="p-2 text-center min-w-[200px]">اسم المنشأة</th>
-                <th className="p-2 text-center min-w-[130px]">تابع للعميل</th>
-                <th className="p-2 text-center w-20">البادئة</th>
-                <th className="p-2 text-center w-40">الرقم الضريبي</th>
-                <th className="p-2 text-center w-28">السجل التجاري</th>
-                <th className="p-2 text-center w-24">المدينة</th>
-                <th className="p-2 text-center w-48">الإجراءات السريعة</th>
+                <th className="p-2 text-start min-w-[200px]">اسم المنشأة</th>
+                <th className="p-2 text-start min-w-[120px]">نوع المنشأة</th>
+                <th className="p-2 text-start min-w-[130px]">تابع للعميل</th>
+                <th className="p-2 text-start w-20">البادئة</th>
+                <th className="p-2 text-start w-28">السجل التجاري</th>
+                <th className="p-2 text-start w-24">المدينة</th>
+                <th className="p-2 text-start w-48">الإجراءات السريعة</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -297,46 +300,43 @@ export function CompaniesViewClient({
                       isPinned ? "bg-primary/[0.02]" : "odd:bg-card even:bg-muted/15"
                     }`}
                   >
-                    {/* 1. Company Name & Logo (First field) */}
-                    <td className="p-2 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="size-6.5 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-[10px] shrink-0 overflow-hidden">
-                          {company.logoFileId ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={`/api/files/${company.logoFileId}`}
-                              alt={company.nameAr}
-                              className="size-6.5 object-contain"
-                            />
-                          ) : (
-                            <span>{getMonogram(company.nameAr)}</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-center min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                              {company.nameAr}
-                            </span>
-                            {isPinned && (
-                              <span title="منشأة مثبتة">
-                                <Pin className="size-3 text-primary fill-primary shrink-0 rotate-45" />
-                              </span>
-                            )}
-                          </div>
-                          {company.nameEn && (
-                            <span
-                              className="text-[10px] font-mono text-muted-foreground truncate"
-                              dir="ltr"
-                            >
-                              {company.nameEn}
+                    {/* 1. Company Name */}
+                    <td className="p-2 text-start">
+                      <div className="flex flex-col items-start min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            {company.nameAr}
+                          </span>
+                          {isPinned && (
+                            <span title="منشأة مثبتة">
+                              <Pin className="size-3 text-primary fill-primary shrink-0 rotate-45" />
                             </span>
                           )}
                         </div>
+                        {company.nameEn && (
+                          <span
+                            className="text-[10px] font-mono text-muted-foreground truncate"
+                            dir="ltr"
+                          >
+                            {company.nameEn}
+                          </span>
+                        )}
                       </div>
                     </td>
 
-                    {/* 2. Client Employee / Representative (تابع للعميل) */}
-                    <td className="p-2 text-center">
+                    {/* 2. Organization Type (نوع المنشأة) */}
+                    <td className="p-2 text-start">
+                      {company.organizationType ? (
+                        <span className="inline-block px-2 py-0.5 bg-primary/5 text-primary font-medium text-[11px] border border-primary/20">
+                          {company.organizationType}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/40 font-mono">—</span>
+                      )}
+                    </td>
+
+                    {/* 3. Client Employee / Representative (تابع للعميل) */}
+                    <td className="p-2 text-start">
                       {company.clientEmployee ? (
                         <span className="inline-block px-2 py-0.5 bg-muted/70 text-foreground font-semibold text-[11px] border border-border/60">
                           {company.clientEmployee}
@@ -346,55 +346,32 @@ export function CompaniesViewClient({
                       )}
                     </td>
 
-                    {/* 3. Prefix */}
-                    <td className="p-2 text-center font-mono font-bold text-[11px]">
+                    {/* 4. Prefix */}
+                    <td className="p-2 text-start font-mono font-bold text-[11px]">
                       <span className="px-1.5 py-0.5 bg-muted border border-border">
                         {company.prefix}
                       </span>
                     </td>
 
-                    {/* 4. VAT Number with 1-click Copy */}
-                    <td
-                      className="p-2 text-center font-mono tabular-nums text-foreground"
-                      dir="ltr"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="inline-flex items-center justify-center gap-1">
-                        <span>{company.vatNumber}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => handleCopyVat(company.vatNumber, company.id, e)}
-                          className="text-muted-foreground hover:text-primary p-0.5 cursor-pointer"
-                          title="نسخ الرقم الضريبي"
-                        >
-                          {copiedVatId === company.id ? (
-                            <Check className="size-3 text-emerald-600" />
-                          ) : (
-                            <Copy className="size-3" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-
                     {/* 5. CR Number */}
                     <td
-                      className="p-2 text-center font-mono tabular-nums text-muted-foreground"
+                      className="p-2 text-start font-mono tabular-nums text-muted-foreground"
                       dir="ltr"
                     >
                       {company.crNumber || "—"}
                     </td>
 
                     {/* 6. City */}
-                    <td className="p-2 text-center text-muted-foreground">
+                    <td className="p-2 text-start text-muted-foreground">
                       {company.addressCity || "—"}
                     </td>
 
-                    {/* 7. Quick Action Buttons (including accessible Pin toggle) */}
+                    {/* 7. Quick Action Buttons */}
                     <td
-                      className="p-2 text-center"
+                      className="p-2 text-start"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="inline-flex items-center justify-center gap-1">
+                      <div className="inline-flex items-center gap-1">
                         {/* Accessible Pin Button */}
                         <button
                           type="button"

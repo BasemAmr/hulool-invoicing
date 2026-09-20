@@ -10,6 +10,7 @@ export interface CompanyRecord {
   crNumber: string | null;
   prefix: string;
   clientEmployee: string | null;
+  organizationType: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -38,6 +39,7 @@ export interface CompanyRepository {
       crNumber: string | null;
       prefix: string;
       clientEmployee?: string | null;
+      organizationType?: string | null;
       phone: string | null;
       email: string | null;
       website: string | null;
@@ -64,6 +66,7 @@ export interface CompanyRepository {
       crNumber: string | null;
       prefix: string;
       clientEmployee?: string | null;
+      organizationType?: string | null;
       phone: string | null;
       email: string | null;
       website: string | null;

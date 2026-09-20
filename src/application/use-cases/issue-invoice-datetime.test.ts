@@ -90,8 +90,8 @@ class FakeInvoices implements InvoiceRepository {
     this.rows.set(String(id), updated);
     return updated;
   }
-  async listByCompany(): Promise<InvoiceRecord[]> {
-    throw new Error("not used");
+  async listByCompany(companyId: string): Promise<InvoiceRecord[]> {
+    return Array.from(this.rows.values()).filter((r) => r.companyId === companyId);
   }
   async listAll(): Promise<InvoiceRecord[]> {
     throw new Error("not used");
@@ -108,6 +108,7 @@ function companyRecord(): CompanyRecord {
     crNumber: null,
     prefix: "INV",
     clientEmployee: null,
+    organizationType: null,
     phone: null,
     email: null,
     website: null,

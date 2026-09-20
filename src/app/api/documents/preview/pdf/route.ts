@@ -43,6 +43,7 @@ function buildSampleCompany(): CompanyRecord {
     crNumber: "1010998877",
     prefix: "HL",
     clientEmployee: null,
+    organizationType: null,
     phone: "0501234567",
     email: "billing@hulool.sa",
     website: "https://hulool.sa",

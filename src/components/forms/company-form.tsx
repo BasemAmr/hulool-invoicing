@@ -41,14 +41,12 @@ export function CompanyForm({
             label="اسم المنشأة (عربي) *"
             name="nameAr"
             defaultValue={initialCompany?.nameAr}
-            placeholder="شركة المثال للتجارة"
             required
           />
           <Field
             label="الاسم (إنجليزي - اختياري)"
             name="nameEn"
             defaultValue={initialCompany?.nameEn ?? ""}
-            placeholder="Example Trading Co."
             dir="ltr"
           />
           <Field
@@ -78,6 +76,11 @@ export function CompanyForm({
             name="clientEmployee"
             defaultValue={initialCompany?.clientEmployee ?? ""}
             placeholder="تابع للعميل"
+          />
+          <Field
+            label="نوع المنشأة"
+            name="organizationType"
+            defaultValue={initialCompany?.organizationType ?? ""}
           />
         </div>
       </div>
@@ -130,7 +133,6 @@ export function CompanyForm({
             label="الشارع"
             name="addressStreet"
             defaultValue={initialCompany?.addressStreet ?? ""}
-            placeholder="شارع صلاح الدين"
           />
           <Field
             label="رقم المبنى"

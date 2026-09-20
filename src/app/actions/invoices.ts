@@ -340,7 +340,7 @@ export async function updateDraftInvoiceAction(
             after.issueTime ?? "00:00",
             new Date(),
           );
-          const timestampIso = applyQrTimestampJitter(baseTimestampIso);
+          const timestampIso = baseTimestampIso;
           const qrPayload = buildQrPayload({
             sellerName: company.nameAr,
             vatNumber: company.vatNumber,

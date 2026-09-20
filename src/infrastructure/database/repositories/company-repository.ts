@@ -17,6 +17,7 @@ function mapCompanyRow(row: CompanyRow): CompanyRecord {
     crNumber: row.crNumber,
     prefix: row.prefix,
     clientEmployee: row.clientEmployee ?? null,
+    organizationType: row.organizationType ?? null,
     phone: row.phone,
     email: row.email,
     website: row.website,
@@ -48,6 +49,7 @@ export class CompanyRepositoryImpl implements CompanyRepository {
       crNumber: string | null;
       prefix: string;
       clientEmployee?: string | null;
+      organizationType?: string | null;
       phone: string | null;
       email: string | null;
       website: string | null;
@@ -74,6 +76,7 @@ export class CompanyRepositoryImpl implements CompanyRepository {
         crNumber: input.crNumber,
         prefix: input.prefix,
         clientEmployee: input.clientEmployee ?? null,
+        organizationType: input.organizationType ?? null,
         phone: input.phone,
         email: input.email,
         website: input.website,
@@ -107,6 +110,7 @@ export class CompanyRepositoryImpl implements CompanyRepository {
       crNumber: string | null;
       prefix: string;
       clientEmployee?: string | null;
+      organizationType?: string | null;
       phone: string | null;
       email: string | null;
       website: string | null;
@@ -133,6 +137,7 @@ export class CompanyRepositoryImpl implements CompanyRepository {
         crNumber: input.crNumber,
         prefix: input.prefix,
         clientEmployee: input.clientEmployee ?? null,
+        organizationType: input.organizationType ?? null,
         phone: input.phone,
         email: input.email,
         website: input.website,

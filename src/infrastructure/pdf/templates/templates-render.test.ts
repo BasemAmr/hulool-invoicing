@@ -20,6 +20,7 @@ const mockCompany: CompanyRecord = {
   crNumber: "1010000000",
   prefix: "INV",
   clientEmployee: null,
+  organizationType: null,
   phone: "0500000000",
   email: "info@example.com",
   website: null,
@@ -101,6 +102,31 @@ describe("Templates PDF Rendering", () => {
     "template_6_jabal_al_rayan",
     "template_7_alsahah",
     "template_8_saleh_al_haider",
+    "structured_bilingual",
+    "kuwait_landmarks",
+    "shami_trading",
+    "bawazeer_plastics",
+    "joy_purchase_invoice",
+    "joy_sales_invoice",
+    "shawager_investment",
+    "madina_plastics",
+    "coffee_ideas",
+    "hasaniah_foam",
+    "top_town",
+    "aldail_ceramics",
+    "sa_alkoufi",
+    "matajer_al_saif",
+    "manahir_pos",
+    "masdar_materials_terms",
+    "masdar_materials_no_terms",
+    "bazrea_plastics",
+    "generic_branch_23",
+    "generic_delivery_21",
+    "generic_dotmatrix_22",
+    "template_9_modern_brown_gray",
+    "template_10_dark_header_brown",
+    "template_11_modern_clean_charcoal",
+    "template_14_reda_trading",
   ];
 
   for (const templateId of templateIds) {
@@ -120,4 +146,122 @@ describe("Templates PDF Rendering", () => {
       expect(buffer.length).toBeGreaterThan(100);
     });
   }
+
+  const refinedTemplates = [
+    "structured_bilingual",
+    "kuwait_landmarks",
+    "shami_trading",
+    "bawazeer_plastics",
+    "joy_purchase_invoice",
+    "joy_sales_invoice",
+    "shawager_investment",
+    "madina_plastics",
+    "coffee_ideas",
+    "hasaniah_foam",
+    "top_town",
+    "aldail_ceramics",
+    "sa_alkoufi",
+    "matajer_al_saif",
+    "manahir_pos",
+    "template_2_matajer_alwadi",
+    "template_4_juffali_food",
+    "masdar_materials_terms",
+    "masdar_materials_no_terms",
+    "bazrea_plastics",
+    "generic_branch_23",
+    "generic_delivery_21",
+    "generic_dotmatrix_22",
+    "template_9_modern_brown_gray",
+    "template_10_dark_header_brown",
+    "template_11_modern_clean_charcoal",
+    "template_14_reda_trading",
+  ];
+
+  for (const templateId of refinedTemplates) {
+    it(`successfully renders ${templateId} with line discount and exact tafqeet`, async () => {
+      const discountedInvoice: InvoiceDto = {
+        ...mockInvoice,
+        templateId,
+        subtotal: "20.00",
+        vatAmount: "1.20",
+        total: "9.20",
+        items: [
+          {
+            position: 1,
+            description: "Product with discount",
+            quantity: 1,
+            unitPrice: "20.00",
+            discountAmount: "12.00",
+            vatRate: 15,
+            lineSubtotal: "8.00",
+            lineVat: "1.20",
+            lineTotal: "9.20",
+          },
+        ],
+      };
+
+      const input: InvoicePdfInput = {
+        invoice: discountedInvoice,
+        company: mockCompany,
+        customer: mockCustomer,
+        templateId,
+        qrDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        logoDataUrl: null,
+        signatureDataUrl: null,
+      };
+
+      const buffer = await renderer.renderInvoicePdf(input);
+      expect(buffer).toBeDefined();
+      expect(buffer.length).toBeGreaterThan(100);
+    });
+  }
+
+  for (const templateId of [
+    "pos_color",
+    "pos_monochrome",
+    "template_9_modern_brown_gray",
+    "template_10_dark_header_brown",
+    "template_11_modern_clean_charcoal",
+    "template_14_reda_trading",
+  ]) {
+    it(`guarantees strictly 1 single page for ${templateId} even with long multiline terms`, async () => {
+      const posInvoice: InvoiceDto = {
+        ...mockInvoice,
+        templateId,
+        terms: 'YOU WILL HAVE TO GIVE US YOUR MONEY! "no, payment!"',
+        notes: "ملاحظات الفاتورة",
+        items: [
+          {
+            position: 1,
+            description: "قهوة اسبريسو خاصة مع حليب",
+            quantity: 2,
+            unitPrice: "20.00",
+            discountAmount: "5.00",
+            vatRate: 15,
+            lineSubtotal: "35.00",
+            lineVat: "5.25",
+            lineTotal: "40.25",
+          },
+        ],
+      };
+
+      const input: InvoicePdfInput = {
+        invoice: posInvoice,
+        company: mockCompany,
+        customer: mockCustomer,
+        templateId,
+        qrDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        logoDataUrl: null,
+        signatureDataUrl: null,
+      };
+
+      const buffer = await renderer.renderInvoicePdf(input);
+      const pdfText = Buffer.from(buffer).toString("latin1");
+      const countMatch = pdfText.match(/\/Count\s+(\d+)/);
+      const typePage = (pdfText.match(/\/Type\s*\/Page\b(?!\s*s)/g) || []).length;
+      const pageCount = countMatch && countMatch[1] ? parseInt(countMatch[1], 10) : typePage;
+      expect(pageCount).toBe(1);
+    });
+  }
 });
+

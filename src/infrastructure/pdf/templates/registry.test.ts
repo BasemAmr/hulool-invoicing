@@ -8,8 +8,8 @@ import {
 
 describe("Templates Registry", () => {
   it("contains registered templates (17 system default + company chosen)", () => {
-    expect(Object.keys(TEMPLATES_REGISTRY)).toHaveLength(51);
-    expect(TEMPLATES_LIST).toHaveLength(51);
+    expect(Object.keys(TEMPLATES_REGISTRY)).toHaveLength(52);
+    expect(TEMPLATES_LIST).toHaveLength(52);
   });
 
   it("contains all requested template IDs", () => {
@@ -65,6 +65,7 @@ describe("Templates Registry", () => {
       "template_6_jabal_al_rayan",
       "template_7_alsahah",
       "template_8_saleh_al_haider",
+      "template_15_reda_modern",
     ];
 
     for (const id of expectedIds) {

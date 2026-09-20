@@ -9,19 +9,19 @@ import { ValidationError } from "@/domain/errors";
 
 describe("invoice-number — formatInvoiceNumber", () => {
   it("formats with company prefix and 5-digit zero-padded sequence", () => {
-    expect(formatInvoiceNumber("ACME", 1)).toBe("ACME-00001");
+    expect(formatInvoiceNumber("ACME", 1)).toBe("ACME00001");
   });
 
   it("formats a two-digit sequence", () => {
-    expect(formatInvoiceNumber("AB", 42)).toBe("AB-00042");
+    expect(formatInvoiceNumber("AB", 42)).toBe("AB00042");
   });
 
   it("formats a large sequence", () => {
-    expect(formatInvoiceNumber("ACME", 99999)).toBe("ACME-99999");
+    expect(formatInvoiceNumber("ACME", 99999)).toBe("ACME99999");
   });
 
   it("does not truncate sequences beyond 5 digits", () => {
-    expect(formatInvoiceNumber("ACME", 100000)).toBe("ACME-100000");
+    expect(formatInvoiceNumber("ACME", 100000)).toBe("ACME100000");
   });
 });
 
