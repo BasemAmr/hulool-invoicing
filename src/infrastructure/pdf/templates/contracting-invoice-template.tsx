@@ -31,17 +31,41 @@ function formatDate(iso?: string | null): string {
   return d && m && y ? `${d}/${m}/${y}` : iso;
 }
 
-function formatNumber(val: string | number, decimals?: number): string {
-  const num = typeof val === "number" ? val : parseFloat(val) || 0;
-  if (decimals !== undefined) {
-    return num.toLocaleString("en-US", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-  }
-  return num % 1 === 0
-    ? num.toLocaleString("en-US", { maximumFractionDigits: 0 })
-    : num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/**
+ * Format monetary amount with full decimal precision — NEVER floor, ceiling, or round.
+ * Preserves the exact decimal tail (e.g. 23.4646916641601264) and formats the integer part with commas.
+ */
+function formatExactAmount(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === "") return "0";
+  const str = String(val).trim();
+  if (isNaN(Number(str))) return str;
+  const isNegative = str.startsWith("-");
+  const cleanStr = isNegative ? str.slice(1) : str;
+  const parts = cleanStr.split(".");
+  const intPart = parts[0] || "0";
+  const decPart = parts[1];
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const result = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+  return isNegative ? `-${result}` : result;
+}
+
+function ContractingMetaRow({
+  label,
+  value,
+  isClient = false,
+}: {
+  label: string;
+  value: string | null | undefined;
+  isClient?: boolean;
+}) {
+  if (!value) return null;
+  return (
+    <View style={isClient ? styles.clientDetailRow : styles.companyDetailRow}>
+      <Text style={isClient ? styles.clientDetailLabel : styles.companyDetailLabel}>{label}</Text>
+      <Text style={isClient ? styles.clientDetailColon : styles.companyDetailColon}>:</Text>
+      <Text style={isClient ? styles.clientDetailValue : styles.companyDetailValue}>{value}</Text>
+    </View>
+  );
 }
 
 export function ContractingInvoiceTemplate({
@@ -53,25 +77,21 @@ export function ContractingInvoiceTemplate({
   logoDataUrl,
   backgroundDataUrl,
 }: ContractingInvoiceTemplateProps) {
-  const paperSize = settings?.paperSize === "Letter" ? "LETTER" : "A4";
-
-  // Address formatting
   const companyAddress = [
-    company.addressCity,
-    company.addressDistrict,
     company.addressStreet,
-    company.addressPostalCode,
-  ]
-    .filter(Boolean)
-    .join(" ");
+    company.addressDistrict,
+    company.addressCity,
+    company.addressPostalCode ? `الرمز البريدي ${company.addressPostalCode}` : null,
+    company.addressAdditionalNumber ? `الرقم الإضافي ${company.addressAdditionalNumber}` : null,
+    "المملكة العربية السعودية",
+  ].filter(Boolean).join(" - ");
 
   const customerAddress = [
-    customer.addressCity,
     customer.addressStreet,
-    customer.addressPostalCode,
-  ]
-    .filter(Boolean)
-    .join(", ");
+    customer.addressCity,
+    customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : null,
+    "المملكة العربية السعودية",
+  ].filter(Boolean).join(" - ");
 
   const invoiceNum = invoice.invoiceNumber ?? "";
   const issueDateStr = formatDate(invoice.issueDate);
@@ -79,21 +99,30 @@ export function ContractingInvoiceTemplate({
   const companyName = company.nameAr || "";
   const customerName = customer.nameAr || "";
   const items = invoice.items || [];
+  const hasAnyDiscount = items.some((it) => Number(it.discountAmount || 0) > 0);
+
+  // Dynamic single-page height calculation so the invoice NEVER spills onto a 2nd page
+  const baseA4Height = 842;
+  let extraHeight = Math.max(0, items.length - 4) * 38;
+  if (invoice.notes) extraHeight += 40 + invoice.notes.split("\n").length * 14;
+  if (invoice.terms) extraHeight += 40 + invoice.terms.split("\n").length * 14;
+  if (company.footerText) extraHeight += 30;
+  const pageHeight = Math.max(baseA4Height, baseA4Height + extraHeight);
 
   return (
     <Document
-      title={`Tax Invoice ${invoiceNum}`}
+      title={`فاتورة ضريبية ${invoiceNum}`}
       author={companyName}
-      subject="TAX INVOICE"
+      subject="TAX INVOICE - ADVANCE"
       creator="Hulool Invoicing"
     >
-      <Page size={paperSize as any} orientation="portrait" style={styles.page}>
-        {/* Optional Watermark */}
+      <Page size={[595.28, pageHeight]} style={styles.page}>
+        {/* Background Watermark if present */}
         {backgroundDataUrl ? (
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
 
-        {/* ─── 1. TOP HEADER SECTION ─── */}
+        {/* ─── 1. TOP HEADER SECTION (LOGO CENTER, COMPANY RIGHT, ADVANCE LEFT) ─── */}
         <View style={styles.topSection}>
           {/* Left: TAX Invoice Title & Frameless QR Code */}
           <View style={styles.topLeft}>
@@ -106,7 +135,7 @@ export function ContractingInvoiceTemplate({
             ) : null}
           </View>
 
-          {/* Center Logo if present */}
+          {/* Center: Company Logo */}
           {logoDataUrl ? (
             <View style={styles.centerLogoWrap}>
               <Image src={logoDataUrl} style={styles.companyLogo} />
@@ -116,21 +145,13 @@ export function ContractingInvoiceTemplate({
           {/* Right: Company Name & Tax Details */}
           <View style={styles.topRight}>
             {companyName ? <Text style={styles.companyName}>{companyName}</Text> : null}
-            {company.vatNumber ? (
-              <Text style={styles.companyDetailLine}>
-                الرقم الضريبي : {company.vatNumber}
-              </Text>
-            ) : null}
-            {company.crNumber ? (
-              <Text style={styles.companyDetailLine}>
-                رقم سجل الموحد {company.crNumber}
-              </Text>
-            ) : null}
-            {companyAddress ? (
-              <Text style={styles.companyDetailLine}>
-                العنوان {companyAddress}
-              </Text>
-            ) : null}
+            {company.nameEn ? <Text style={styles.companyNameEn}>{company.nameEn}</Text> : null}
+            <ContractingMetaRow label="الرقم الضريبي" value={company.vatNumber} />
+            <ContractingMetaRow label="السجل التجاري" value={company.crNumber} />
+            <ContractingMetaRow label="العنوان" value={companyAddress} />
+            <ContractingMetaRow label="الهاتف" value={company.phone} />
+            <ContractingMetaRow label="البريد" value={company.email} />
+            <ContractingMetaRow label="الموقع" value={company.website} />
           </View>
         </View>
 
@@ -164,16 +185,11 @@ export function ContractingInvoiceTemplate({
           <View style={styles.clientBlock}>
             <View style={styles.clientDetailsCol}>
               {customerName ? <Text style={styles.clientName}>{customerName}</Text> : null}
-              {customer.vatNumber ? (
-                <Text style={styles.clientDetailLine}>
-                  الرقم الضريبي: {customer.vatNumber}
-                </Text>
-              ) : null}
-              {customerAddress ? (
-                <Text style={styles.clientDetailLine}>
-                  {customerAddress}
-                </Text>
-              ) : null}
+              <ContractingMetaRow label="الرقم الضريبي" value={customer.vatNumber} isClient />
+              <ContractingMetaRow label="الرقم الموحد" value={customer.unifiedNumber} isClient />
+              <ContractingMetaRow label="العنوان" value={customerAddress} isClient />
+              <ContractingMetaRow label="الهاتف" value={customer.phone} isClient />
+              <ContractingMetaRow label="البريد" value={customer.email} isClient />
             </View>
             <View style={styles.clientLabelCol}>
               <Text style={styles.clientLabelAr}>العميل</Text>
@@ -187,58 +203,61 @@ export function ContractingInvoiceTemplate({
           {/* Table Header (Right to Left) */}
           <View style={styles.tableHeaderRow}>
             {/* 1. البند / Item (Right-most) */}
-            <View style={[styles.thCell, { width: "12%" }]}>
-              <Text style={styles.thAr}>البند</Text>
-              <Text style={styles.thEn}>Item</Text>
+            <View style={[styles.thCell, { width: hasAnyDiscount ? "20%" : "26%" }]}>
+              <Text style={styles.thAr}>البند / الوصف</Text>
+              <Text style={styles.thEn}>Item / Description</Text>
             </View>
 
-            {/* 2. الوصف / Description */}
-            <View style={[styles.thCell, { width: "16%" }]}>
-              <Text style={styles.thAr}>الوصف</Text>
-              <Text style={styles.thEn}>Description</Text>
-            </View>
-
-            {/* 3. السعر / Price */}
-            <View style={[styles.thCell, { width: "9%" }]}>
-              <Text style={styles.thAr}>السعر</Text>
-              <Text style={styles.thEn}>Price</Text>
-            </View>
-
-            {/* 4. الكمية / Qty */}
+            {/* 2. الكمية / Qty */}
             <View style={[styles.thCell, { width: "8%" }]}>
               <Text style={styles.thAr}>الكمية</Text>
               <Text style={styles.thEn}>Qty</Text>
             </View>
 
-            {/* 5. المجموع قبل الضريبة / Total Before Tax */}
-            <View style={[styles.thCell, { width: "17%" }]}>
+            {/* 3. السعر / Price */}
+            <View style={[styles.thCell, { width: hasAnyDiscount ? "10%" : "12%" }]}>
+              <Text style={styles.thAr}>السعر</Text>
+              <Text style={styles.thEn}>Price</Text>
+            </View>
+
+            {/* Optional: الخصم / Discount */}
+            {hasAnyDiscount ? (
+              <View style={[styles.thCell, { width: "10%" }]}>
+                <Text style={styles.thAr}>الخصم</Text>
+                <Text style={styles.thEn}>Discount</Text>
+              </View>
+            ) : null}
+
+            {/* 4. المجموع قبل الضريبة / Total Before Tax */}
+            <View style={[styles.thCell, { width: hasAnyDiscount ? "14%" : "16%" }]}>
               <Text style={styles.thAr}>المجموع قبل</Text>
               <Text style={styles.thAr}>الضريبة</Text>
-              <Text style={styles.thEn}>Total Before Tax</Text>
+              <Text style={styles.thEn}>Total Excl. VAT</Text>
             </View>
 
-            {/* 6. نسبة الضريبة / VAT 15% */}
-            <View style={[styles.thCell, { width: "11%" }]}>
+            {/* 5. نسبة الضريبة / VAT % */}
+            <View style={[styles.thCell, { width: "10%" }]}>
               <Text style={styles.thAr}>نسبة الضريبة</Text>
-              <Text style={styles.thEn}>VAT 15%</Text>
+              <Text style={styles.thEn}>VAT %</Text>
             </View>
 
-            {/* 7. قيمة الضريبة / VAT Amount */}
-            <View style={[styles.thCell, { width: "12%" }]}>
+            {/* 6. قيمة الضريبة / VAT Amount */}
+            <View style={[styles.thCell, { width: hasAnyDiscount ? "12%" : "13%" }]}>
               <Text style={styles.thAr}>قيمة الضريبة</Text>
               <Text style={styles.thEn}>VAT Amount</Text>
             </View>
 
-            {/* 8. المجموع مع الضريبة / Total With VAT (Left-most) */}
-            <View style={[styles.thCell, { width: "15%", borderLeftWidth: 0 }]}>
-              <Text style={styles.thAr}>المجموع مع الضريبة</Text>
-              <Text style={styles.thEn}>Total With VAT</Text>
+            {/* 7. المجموع مع الضريبة / Total With VAT (Left-most) */}
+            <View style={[styles.thCell, { width: hasAnyDiscount ? "16%" : "15%", borderLeftWidth: 0 }]}>
+              <Text style={styles.thAr}>المجموع شامل</Text>
+              <Text style={styles.thEn}>Total Incl. VAT</Text>
             </View>
           </View>
 
           {/* Table Rows */}
           {invoice.items.map((item, index) => {
-            const lineVatPct = Math.round(Number(item.vatRate || 0.15) * 100);
+            const lineVatPct = Number(item.vatRate || 0.15) * 100;
+            const hasItemDiscount = Number(item.discountAmount || 0) > 0;
             return (
               <View
                 key={item.position ?? index}
@@ -248,43 +267,47 @@ export function ContractingInvoiceTemplate({
                 ]}
               >
                 {/* 1. البند / Item */}
-                <View style={[styles.tdCell, { width: "12%" }]}>
-                  <Text style={styles.tdText}>{item.description}</Text>
+                <View style={[styles.tdCell, { width: hasAnyDiscount ? "20%" : "26%" }]}>
+                  <Text style={styles.tdTextRight}>{item.description}</Text>
                 </View>
 
-                {/* 2. الوصف / Description */}
-                <View style={[styles.tdCell, { width: "16%" }]}>
-                  <Text style={styles.tdText}> </Text>
+                {/* 2. الكمية / Qty */}
+                <View style={[styles.tdCell, { width: "8%" }]}>
+                  <Text style={styles.tdText}>{formatExactAmount(item.quantity)}</Text>
                 </View>
 
                 {/* 3. السعر / Price */}
-                <View style={[styles.tdCell, { width: "9%" }]}>
-                  <Text style={styles.tdText}>{formatNumber(item.unitPrice)}</Text>
+                <View style={[styles.tdCell, { width: hasAnyDiscount ? "10%" : "12%" }]}>
+                  <Text style={styles.tdText}>{formatExactAmount(item.unitPrice)}</Text>
                 </View>
 
-                {/* 4. الكمية / Qty */}
-                <View style={[styles.tdCell, { width: "8%" }]}>
-                  <Text style={styles.tdText}>{formatNumber(item.quantity)}</Text>
+                {/* Optional: الخصم / Discount */}
+                {hasAnyDiscount ? (
+                  <View style={[styles.tdCell, { width: "10%" }]}>
+                    <Text style={styles.tdText}>
+                      {hasItemDiscount ? formatExactAmount(item.discountAmount) : "0"}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {/* 4. المجموع قبل الضريبة / Total Before Tax */}
+                <View style={[styles.tdCell, { width: hasAnyDiscount ? "14%" : "16%" }]}>
+                  <Text style={styles.tdText}>{formatExactAmount(item.lineSubtotal)}</Text>
                 </View>
 
-                {/* 5. المجموع قبل الضريبة / Total Before Tax */}
-                <View style={[styles.tdCell, { width: "17%" }]}>
-                  <Text style={styles.tdText}>{formatNumber(item.lineSubtotal, 2)}</Text>
-                </View>
-
-                {/* 6. نسبة الضريبة / VAT 15% */}
-                <View style={[styles.tdCell, { width: "11%" }]}>
+                {/* 5. نسبة الضريبة / VAT % */}
+                <View style={[styles.tdCell, { width: "10%" }]}>
                   <Text style={styles.tdText}>{lineVatPct}%</Text>
                 </View>
 
-                {/* 7. قيمة الضريبة / VAT Amount */}
-                <View style={[styles.tdCell, { width: "12%" }]}>
-                  <Text style={styles.tdText}>{formatNumber(item.lineVat)}</Text>
+                {/* 6. قيمة الضريبة / VAT Amount */}
+                <View style={[styles.tdCell, { width: hasAnyDiscount ? "12%" : "13%" }]}>
+                  <Text style={styles.tdText}>{formatExactAmount(item.lineVat)}</Text>
                 </View>
 
-                {/* 8. المجموع مع الضريبة / Total With VAT */}
-                <View style={[styles.tdCell, { width: "15%", borderLeftWidth: 0 }]}>
-                  <Text style={styles.tdText}>{formatNumber(item.lineTotal)}</Text>
+                {/* 7. المجموع مع الضريبة / Total With VAT */}
+                <View style={[styles.tdCell, { width: hasAnyDiscount ? "16%" : "15%", borderLeftWidth: 0 }]}>
+                  <Text style={styles.tdText}>{formatExactAmount(item.lineTotal)}</Text>
                 </View>
               </View>
             );
@@ -295,7 +318,7 @@ export function ContractingInvoiceTemplate({
         <View style={styles.totalsContainer}>
           {/* Row 1: Subtotal Before VAT */}
           <View style={styles.totalRow}>
-            <Text style={styles.totalVal}>﷼ {formatNumber(invoice.subtotal)}</Text>
+            <Text style={styles.totalVal}>﷼ {formatExactAmount(invoice.subtotal)}</Text>
             <View style={styles.totalLabelWrap}>
               <Text style={styles.totalLabelAr}>الإجمالي قبل الضريبة</Text>
               <Text style={styles.totalLabelEn}>Total Before VAT</Text>
@@ -304,15 +327,15 @@ export function ContractingInvoiceTemplate({
 
           {/* Row 2: VAT Amount */}
           <View style={styles.totalRow}>
-            <Text style={styles.totalVal}>﷼ {formatNumber(invoice.vatAmount)}</Text>
+            <Text style={styles.totalVal}>﷼ {formatExactAmount(invoice.vatAmount)}</Text>
             <View style={styles.totalLabelWrap}>
-              <Text style={styles.totalLabelSingle}>(VAT (15%</Text>
+              <Text style={styles.totalLabelSingle}>ضريبة القيمة المضافة (VAT)</Text>
             </View>
           </View>
 
           {/* Row 3: Total After VAT (Highlighted Bar) */}
           <View style={[styles.totalRow, styles.totalRowHighlight]}>
-            <Text style={styles.totalValBold}>﷼ {formatNumber(invoice.total)}</Text>
+            <Text style={styles.totalValBold}>﷼ {formatExactAmount(invoice.total)}</Text>
             <View style={styles.totalLabelWrap}>
               <Text style={styles.totalLabelArBold}>الإجمالي بعد الضريبة</Text>
               <Text style={styles.totalLabelEnBold}>Total After VAT</Text>
@@ -321,22 +344,47 @@ export function ContractingInvoiceTemplate({
 
           {/* Row 4: Paid Amount (مدفوع) */}
           <View style={styles.totalRow}>
-            <Text style={styles.totalVal}>﷼ -{formatNumber(invoice.total)}</Text>
+            <Text style={styles.totalVal}>﷼ -{formatExactAmount(invoice.total)}</Text>
             <View style={styles.totalLabelWrap}>
-              <Text style={styles.totalLabelArBold}>مدفوع</Text>
+              <Text style={styles.totalLabelArBold}>الفاتورة مدفوعة</Text>
               <Text style={styles.totalLabelEnBold}>Paid</Text>
             </View>
           </View>
 
           {/* Row 5: Due Balance (الرصيد المستحق) */}
           <View style={[styles.totalRow, styles.totalRowFinal]}>
-            <Text style={styles.totalVal}>﷼ 0.00</Text>
+            <Text style={styles.totalVal}>﷼ 0</Text>
             <View style={styles.totalLabelWrap}>
               <Text style={styles.totalLabelArBold}>الرصيد المستحق</Text>
               <Text style={styles.totalLabelEnBold}>Due Amount</Text>
             </View>
           </View>
         </View>
+
+        {/* ─── 6. NOTES & TERMS ─── */}
+        {invoice.notes || invoice.terms ? (
+          <View style={styles.notesSection}>
+            {invoice.notes ? (
+              <View style={styles.noteBlock}>
+                <Text style={styles.noteTitle}>ملاحظات</Text>
+                <Text style={styles.noteBody}>{invoice.notes}</Text>
+              </View>
+            ) : null}
+            {invoice.terms ? (
+              <View style={styles.noteBlock}>
+                <Text style={styles.noteTitle}>الشروط والأحكام</Text>
+                <Text style={styles.noteBody}>{invoice.terms}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* ─── 7. FOOTER TEXT ─── */}
+        {company.footerText ? (
+          <View style={styles.footerSection}>
+            <Text style={styles.footerText}>{company.footerText}</Text>
+          </View>
+        ) : null}
       </Page>
     </Document>
   );
@@ -420,6 +468,28 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginBottom: 2,
   },
+  companyDetailRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  companyDetailLabel: {
+    fontSize: 9.5,
+    fontFamily: "Amiri",
+    textAlign: "right",
+  },
+  companyDetailColon: {
+    fontSize: 9.5,
+    fontFamily: "Amiri",
+    textAlign: "center",
+    marginHorizontal: 2,
+  },
+  companyDetailValue: {
+    fontSize: 9.5,
+    fontFamily: "Amiri",
+    textAlign: "left",
+  },
 
   // ─── Horizontal Divider Line ───
   horizontalDivider: {
@@ -486,6 +556,28 @@ const styles = StyleSheet.create({
     fontSize: 9,
     textAlign: "right",
     marginBottom: 2,
+  },
+  clientDetailRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  clientDetailLabel: {
+    fontSize: 9,
+    fontFamily: "Amiri",
+    textAlign: "right",
+  },
+  clientDetailColon: {
+    fontSize: 9,
+    fontFamily: "Amiri",
+    textAlign: "center",
+    marginHorizontal: 2,
+  },
+  clientDetailValue: {
+    fontSize: 9,
+    fontFamily: "Amiri",
+    textAlign: "left",
   },
   clientLabelCol: {
     flexDirection: "column",
@@ -611,5 +703,58 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: "bold",
     textAlign: "right",
+  },
+
+  companyNameEn: {
+    fontSize: 9,
+    color: "#374151",
+    textAlign: "right",
+    marginBottom: 2,
+  },
+
+  tdTextRight: {
+    fontSize: 8.5,
+    textAlign: "right",
+    paddingHorizontal: 2,
+  },
+
+  // ─── Notes & Terms Section ───
+  notesSection: {
+    marginTop: 14,
+    borderTopWidth: 0.75,
+    borderTopColor: "#D1D5DB",
+    paddingTop: 8,
+    flexDirection: "column",
+    gap: 6,
+  },
+  noteBlock: {
+    flexDirection: "column",
+    marginBottom: 4,
+  },
+  noteTitle: {
+    fontSize: 8.5,
+    fontWeight: "bold",
+    textAlign: "right",
+    marginBottom: 2,
+  },
+  noteBody: {
+    fontSize: 8,
+    color: "#374151",
+    textAlign: "right",
+    lineHeight: 1.3,
+  },
+
+  // ─── Footer Section ───
+  footerSection: {
+    marginTop: 16,
+    borderTopWidth: 0.5,
+    borderTopColor: "#E5E7EB",
+    paddingTop: 6,
+    alignItems: "center",
+  },
+  footerText: {
+    fontSize: 8,
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

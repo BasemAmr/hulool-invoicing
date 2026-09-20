@@ -15,40 +15,44 @@ describe("custom invoice numbers — normalizeCustomInvoiceNumber", () => {
     expect(normalizeCustomInvoiceNumber("  INV-00042  ")).toBe("INV-00042");
   });
 
-  it("maps empty/whitespace/missing/non-string input to undefined (no override)", () => {
-    expect(normalizeCustomInvoiceNumber("")).toBeUndefined();
-    expect(normalizeCustomInvoiceNumber("   ")).toBeUndefined();
-    expect(normalizeCustomInvoiceNumber(undefined)).toBeUndefined();
-    expect(normalizeCustomInvoiceNumber(null)).toBeUndefined();
-    expect(normalizeCustomInvoiceNumber(42)).toBeUndefined();
+  it("trims whitespace from valid strings", () => {
+    expect(normalizeCustomInvoiceNumber("  INV00042  ")).toBe("INV00042");
   });
 
-  it("keeps inner content and permissive charset (Arabic, dashes, spaces)", () => {
-    expect(normalizeCustomInvoiceNumber("فاتورة-مخصص-١")).toBe(
-      "فاتورة-مخصص-١",
-    );
+  it("returns undefined for empty or whitespace-only strings", () => {
+    expect(normalizeCustomInvoiceNumber("")).toBeUndefined();
+    expect(normalizeCustomInvoiceNumber("   ")).toBeUndefined();
+  });
+
+  it("preserves non-standard characters (letting the DB and downstream layers handle them)", () => {
+    expect(normalizeCustomInvoiceNumber("فاتورة-٢٠٢٦")).toBe("فاتورة-٢٠٢٦");
     expect(normalizeCustomInvoiceNumber("INV-2026-001")).toBe("INV-2026-001");
   });
 });
 
 describe("custom invoice numbers — extractSequenceForCatchUp", () => {
-  it("extracts the sequence from an exact PREFIX-nnnnn number", () => {
+  it("extracts sequence from strict PREFIXnnnnn", () => {
+    expect(extractSequenceForCatchUp("INV00042", "INV")).toBe(42);
+    expect(extractSequenceForCatchUp("INV100000", "INV")).toBe(100000);
+  });
+
+  it("extracts sequence from legacy PREFIX-nnnnn", () => {
     expect(extractSequenceForCatchUp("INV-00042", "INV")).toBe(42);
     expect(extractSequenceForCatchUp("INV-100000", "INV")).toBe(100000);
   });
 
-  it("returns null when the prefix differs (another company's shape)", () => {
-    expect(extractSequenceForCatchUp("OTHER-00042", "INV")).toBeNull();
+  it("ignores sequence if prefix does not match", () => {
+    expect(extractSequenceForCatchUp("OTHER00042", "INV")).toBeNull();
   });
 
-  it("returns null for legacy PREFIX-YYYY-nnnnn (not the auto shape)", () => {
+  it("ignores legacy PREFIX-YYYY-nnnnn", () => {
     expect(extractSequenceForCatchUp("INV-2026-00042", "INV")).toBeNull();
   });
 
-  it("returns null for free text, Arabic, and zero sequences", () => {
-    expect(extractSequenceForCatchUp("فاتورة-مخصص-١", "INV")).toBeNull();
+  it("ignores completely arbitrary text", () => {
+    expect(extractSequenceForCatchUp("فاتورة ٤٢", "INV")).toBeNull();
     expect(extractSequenceForCatchUp("INV-2026-001", "INV")).toBeNull();
-    expect(extractSequenceForCatchUp("INV-0", "INV")).toBeNull();
+    expect(extractSequenceForCatchUp("INV0", "INV")).toBeNull();
     expect(extractSequenceForCatchUp("", "INV")).toBeNull();
   });
 });

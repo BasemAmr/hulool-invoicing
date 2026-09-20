@@ -15,6 +15,7 @@ interface InvoiceTableActionsProps {
     status: string;
     companyId?: string;
     customerId?: string;
+    issueTime?: string | null;
   };
   companyId?: string;
 }
@@ -83,6 +84,7 @@ export function InvoiceTableActions({ invoice, companyId }: InvoiceTableActionsP
         invoiceId={invoice.id}
         companyId={activeCompanyId}
         defaultCustomerId={invoice.customerId}
+        defaultIssueTime={invoice.issueTime ?? undefined}
         itemName={invoice.invoiceNumber ?? undefined}
       />
 

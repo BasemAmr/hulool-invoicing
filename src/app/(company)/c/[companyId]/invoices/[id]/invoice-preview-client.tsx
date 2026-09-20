@@ -349,6 +349,7 @@ export function InvoicePreviewClient({
               invoiceId={invoice.id}
               companyId={companyId}
               defaultCustomerId={invoice.customerId}
+              defaultIssueTime={invoice.issueTime}
               itemName={invoice.invoiceNumber ?? undefined}
             />
 

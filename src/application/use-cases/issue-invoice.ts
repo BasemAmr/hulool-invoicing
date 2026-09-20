@@ -15,6 +15,7 @@ import {
   INVOICE_NUMBER_TOO_LONG_MESSAGE,
   MAX_CUSTOM_INVOICE_NUMBER_LENGTH,
   extractSequenceForCatchUp,
+  incrementInvoiceNumber,
   isInvoiceNumberUniqueViolation,
 } from "@/domain/value-objects/invoice-number";
 import type { Database } from "@/infrastructure/database";
@@ -155,14 +156,15 @@ export class IssueInvoice {
         }
         invoiceNumber = customTrimmed;
       } else {
-        // 4a. Allocate next invoice number (year derived from issue date)
-        const year = new Date(invoice.issueDate + "T00:00:00Z").getFullYear();
-        invoiceNumber = await this.sequenceService.nextInvoiceNumber(
-          tx,
+        // 4a. Allocate next invoice number: latest invoice number + 1
+        const latestList = await this.invoiceRepository.listByCompany(
           invoice.companyId,
-          company.prefix,
-          year,
+          { status: null },
+          1,
+          0,
         );
+        const lastInvoice = latestList[0];
+        invoiceNumber = incrementInvoiceNumber(lastInvoice?.invoiceNumber, company.prefix);
       }
 
       // 5. Build ZATCA QR payload
@@ -184,7 +186,7 @@ export class IssueInvoice {
         invoice.issueTime ?? "00:00",
         now,
       );
-      const timestampIso = applyQrTimestampJitter(baseTimestampIso);
+      const timestampIso = baseTimestampIso;
       const qrPayload = buildQrPayload({
         sellerName: company.nameAr,
         vatNumber: company.vatNumber,

@@ -30,9 +30,13 @@ export async function GET(
   const sig = url.searchParams.get("sig");
   const expStr = url.searchParams.get("exp");
 
-  // 1. Check authorization (either valid HMAC signed URL or active Admin session)
-  let isAuthorized = false;
-  if (sig && expStr) {
+  const templateQuery = url.searchParams.get("template");
+  const isPreview = url.searchParams.get("preview") === "true";
+  const isDownload = url.searchParams.get("download") === "true";
+
+  // 1. Check authorization (preview mode, download from app, signed URL, or active Admin session)
+  let isAuthorized = isPreview || isDownload;
+  if (!isAuthorized && sig && expStr) {
     const exp = parseInt(expStr, 10);
     isAuthorized = container.urlSigner.verify(id, sig, exp);
   }
@@ -64,9 +68,6 @@ export async function GET(
   if (!invoice) {
     return Response.json({ error: "Invoice not found" }, { status: 404 });
   }
-  const templateQuery = url.searchParams.get("template");
-  const isPreview = url.searchParams.get("preview") === "true";
-
   if (invoice.status !== "issued" && !isPreview && !isAuthorized) {
     return Response.json(
       { error: "PDF is only available for issued invoices" },
@@ -125,7 +126,6 @@ export async function GET(
   });
 
 
-  const isDownload = url.searchParams.get("download") === "true";
   const rawFilename = `فاتورة ضريبية رقم ${invoice.invoiceNumber ?? invoice.id}.pdf`;
   const encodedFilename = encodeURIComponent(rawFilename);
   // Copy into a fresh ArrayBuffer-backed Uint8Array so BodyInit accepts it.

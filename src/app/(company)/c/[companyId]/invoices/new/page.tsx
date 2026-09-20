@@ -10,31 +10,50 @@ import { Button } from "@/components/ui/button";
 import { asInvoiceId, type CompanyId } from "@/domain/branding";
 import { toInvoiceDto } from "@/application/dto";
 
+import { incrementInvoiceNumber } from "@/domain/value-objects/invoice-number";
+
 const container = createContainer(db);
 
-/** Best-effort next-number preview (max existing seq + 1). The real number
- *  is allocated atomically on save; this is display-only. */
+/** Best-effort next-number preview based on the latest invoice number + 1.
+ *  If no invoices exist, formats prefix + 00001. */
 async function previewNextInvoiceNumber(companyId: string, prefix: string): Promise<string> {
   try {
     const existing = await container.invoiceRepository.listByCompany(
       companyId as CompanyId,
       { status: null },
-      500,
+      1,
       0,
     );
-    let maxSeq = 0;
-    for (const inv of existing) {
-      const num = inv.invoiceNumber;
-      if (!num) continue;
-      const m = num.match(/-(\d+)$/);
-      if (m) {
-        const seq = parseInt(m[1]!, 10);
-        if (Number.isFinite(seq) && seq > maxSeq) maxSeq = seq;
-      }
-    }
-    return `${prefix}-${String(maxSeq + 1).padStart(INVOICE_NUMBER_SEQ_PAD, "0")}`;
+    const lastInvoice = existing[0];
+    return incrementInvoiceNumber(lastInvoice?.invoiceNumber, prefix);
   } catch {
-    return `${prefix}-${"1".padStart(INVOICE_NUMBER_SEQ_PAD, "0")}`;
+    return incrementInvoiceNumber(null, prefix);
+  }
+}
+
+import { computeIncrementedIssueTime } from "@/domain/services/invoice-datetime";
+
+async function computeSuggestedIssueTime(companyId: string): Promise<string> {
+  try {
+    const existing = await container.invoiceRepository.listByCompany(
+      companyId as CompanyId,
+      { status: "issued" },
+      50,
+      0,
+    );
+    if (existing.length === 0) return "09:00";
+    
+    existing.sort((a, b) => {
+      if (a.issueDate !== b.issueDate) return b.issueDate.localeCompare(a.issueDate);
+      const timeA = a.issueTime || "00:00";
+      const timeB = b.issueTime || "00:00";
+      return timeB.localeCompare(timeA);
+    });
+    
+    const lastInvoice = existing[0];
+    return computeIncrementedIssueTime(lastInvoice?.issueTime);
+  } catch {
+    return "09:00";
   }
 }
 
@@ -60,6 +79,7 @@ export default async function NewCompanyInvoicePage({
   const cPath = `/c/${companyId}`;
 
   const suggestedInvoiceNumber = await previewNextInvoiceNumber(companyId, company.prefix);
+  const suggestedIssueTime = await computeSuggestedIssueTime(companyId);
 
   // Duplicate flow: ?duplicateFrom=<id>&customerId=<new>&issueDate=<new>
   // Loads the source invoice's lines/notes/terms/template, then applies the
@@ -151,6 +171,7 @@ export default async function NewCompanyInvoicePage({
         scopedCompanyId={company.id}
         duplicatePrefill={duplicatePrefill}
         suggestedInvoiceNumber={suggestedInvoiceNumber}
+        suggestedIssueTime={suggestedIssueTime}
         defaultVatRate={defaultVatRate}
         defaultTemplateId={settings?.defaultTemplateId ?? "simple_red"}
       />

@@ -36,6 +36,7 @@ export const companyCreateSchema = z.object({
     ),
   crNumber: z.string().optional(),
   clientEmployee: z.string().optional(),
+  organizationType: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   website: z.string().optional(),

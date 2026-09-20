@@ -7,12 +7,172 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer";
-import type { InvoiceDto } from "@/application/dto";
+import type { InvoiceDto, InvoiceItemDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { CustomerRecord } from "@/application/ports/customer-repository";
 import type { CompanySettingsRecord } from "@/application/ports/company-settings-repository";
 import type { TemplateDefinition } from "./registry";
-import { formatMoney, formatMoneyWithSettings } from "@/lib/format";
+
+// ─── Number to Arabic Words (Tafqeet) ───
+const ONES = [
+  "",
+  "واحد",
+  "اثنان",
+  "ثلاثة",
+  "أربعة",
+  "خمسة",
+  "ستة",
+  "سبعة",
+  "ثمانية",
+  "تسعة",
+  "عشرة",
+];
+const TEENS = [
+  "عشرة",
+  "أحد عشر",
+  "اثنا عشر",
+  "ثلاثة عشر",
+  "أربعة عشر",
+  "خمسة عشر",
+  "ستة عشر",
+  "سبعة عشر",
+  "ثمانية عشر",
+  "تسعة عشر",
+];
+const TENS = [
+  "",
+  "عشرة",
+  "عشرون",
+  "ثلاثون",
+  "أربعون",
+  "خمسون",
+  "ستون",
+  "سبعون",
+  "ثمانون",
+  "تسعون",
+];
+const HUNDREDS = [
+  "",
+  "مائة",
+  "مائتان",
+  "ثلاثمائة",
+  "أربعمائة",
+  "خمسمائة",
+  "ستمائة",
+  "سبعمائة",
+  "ثمانمائة",
+  "تسعمائة",
+];
+
+function convertGroup(n: number): string {
+  let res = "";
+  const h = Math.floor(n / 100);
+  const rem = n % 100;
+  if (h > 0) res += HUNDREDS[h];
+  if (rem > 0) {
+    if (res) res += " و ";
+    if (rem <= 10) res += ONES[rem];
+    else if (rem < 20) res += TEENS[rem - 10];
+    else {
+      const u = rem % 10;
+      const t = Math.floor(rem / 10);
+      if (u > 0) res += ONES[u] + " و " + TENS[t];
+      else res += TENS[t];
+    }
+  }
+  return res;
+}
+
+function numberToArabicWords(num: number): string {
+  if (num === 0) return "صفر";
+  const millions = Math.floor(num / 1000000);
+  const thousands = Math.floor((num % 1000000) / 1000);
+  const remainder = Math.floor(num % 1000);
+  let out = "";
+
+  if (millions > 0) {
+    if (millions === 1) out += "مليون";
+    else if (millions === 2) out += "مليونان";
+    else if (millions >= 3 && millions <= 10) out += convertGroup(millions) + " ملايين";
+    else out += convertGroup(millions) + " مليون";
+  }
+
+  if (thousands > 0) {
+    if (out) out += " و ";
+    if (thousands === 1) out += "ألف";
+    else if (thousands === 2) out += "ألفان";
+    else if (thousands >= 3 && thousands <= 10) out += convertGroup(thousands) + " آلاف";
+    else out += convertGroup(thousands) + " ألف";
+  }
+
+  if (remainder > 0) {
+    if (out) out += " و ";
+    out += convertGroup(remainder);
+  }
+
+  return out;
+}
+
+function tafqeet(val: string | number): string {
+  const num = typeof val === "number" ? val : parseFloat(String(val)) || 0;
+  if (num <= 0) return "فقط صفر ريال سعودي لا غير";
+  const riyals = Math.floor(num);
+  const halalas = Math.round((num - riyals) * 100);
+
+  let text = "فقط " + numberToArabicWords(riyals) + " ريال سعودي";
+  if (halalas > 0) {
+    text += " و " + numberToArabicWords(halalas) + " هللة";
+  }
+  return text + " لا غير";
+}
+
+// ─── Utility Helpers ───
+function toNumber(value: string | number | null | undefined): number {
+  if (value === null || value === undefined || value === "") return 0;
+  const n = typeof value === "number" ? value : parseFloat(String(value));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatExactAmount(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === "") return "0.00";
+  const str = String(val).trim();
+  if (isNaN(Number(str))) return str;
+  const isNegative = str.startsWith("-");
+  const cleanStr = isNegative ? str.slice(1) : str;
+  const parts = cleanStr.split(".");
+  const intPart = parts[0] || "0";
+  const decPart = parts[1];
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const result = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+  return isNegative ? `-${result}` : result;
+}
+
+function formatQty(val: string | number | null | undefined): string {
+  const n = toNumber(val);
+  if (Number.isInteger(n)) return String(n);
+  return String(Math.round(n * 1000) / 1000);
+}
+
+function formatDateFormatted(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const clean = iso.slice(0, 10);
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+  }
+  return clean;
+}
+
+function formatAddress(company: CompanyRecord): string {
+  const parts = [
+    company.addressStreet,
+    company.addressDistrict,
+    company.addressCity,
+    company.addressPostalCode,
+  ].filter((p): p is string => typeof p === "string" && p.length > 0);
+  return parts.join("، ");
+}
 
 export interface ClassicTemplateProps {
   invoice: InvoiceDto;
@@ -35,35 +195,116 @@ export function ClassicTemplate({
   qrDataUrl,
   logoDataUrl,
   backgroundDataUrl,
-  signatureDataUrl,
 }: ClassicTemplateProps) {
   const styles = buildClassicStyles(template.primaryColor);
   const numberLabel = invoice.invoiceNumber ?? "DRAFT";
+  const titleAr = "فاتورة ضريبية";
 
-  const isSimplified = invoice.invoiceType === "simplified";
-  const titleAr = isSimplified ? "فاتورة ضريبية مبسطة" : "فاتورة ضريبية";
+  const isLetter = settings?.paperSize === "Letter";
+  const basePageWidth = isLetter ? 612 : 595.28;
+  const basePageHeight = isLetter ? 792 : 841.89;
 
-  const paperSize = settings?.paperSize === "Letter" ? "LETTER" : "A4";
-  const paperOrientation =
-    settings?.paperOrientation === "landscape" ? "landscape" : "portrait";
+  const logoSource = logoDataUrl || company.logoUrl;
+
+  const items: InvoiceItemDto[] = invoice.items || [];
+  let computedGross = 0;
+  let computedDiscount = 0;
+  let computedVat = 0;
+  let computedTotal = 0;
+
+  const rows = items.map((item, idx) => {
+    const qty = toNumber(item.quantity);
+    const unitPrice = toNumber(item.unitPrice);
+    const gross = qty * unitPrice;
+    const lineDiscount = toNumber(item.discountAmount);
+    const taxableSubtotal = Math.max(0, gross - lineDiscount);
+
+    const vatRate =
+      item.vatRate !== undefined && item.vatRate !== null ? toNumber(item.vatRate) : 15;
+    const lineVat =
+      item.lineVat !== undefined && item.lineVat !== null
+        ? toNumber(item.lineVat)
+        : taxableSubtotal * (vatRate / 100);
+    const lineTotal =
+      item.lineTotal !== undefined && item.lineTotal !== null
+        ? toNumber(item.lineTotal)
+        : taxableSubtotal + lineVat;
+
+    computedGross += gross;
+    computedDiscount += lineDiscount;
+    computedVat += lineVat;
+    computedTotal += lineTotal;
+
+    return {
+      key: item.position ?? idx,
+      index: idx + 1,
+      desc: item.description || "",
+      qty,
+      unitPrice,
+      gross,
+      lineDiscount,
+      taxableSubtotal,
+      vatRate,
+      lineVat,
+      lineTotal,
+    };
+  });
+
+  const sumTaxable = rows.reduce((a, r) => a + r.taxableSubtotal, 0);
+  const taxableAmount =
+    invoice.subtotal !== null && invoice.subtotal !== undefined && invoice.subtotal !== ""
+      ? toNumber(invoice.subtotal)
+      : sumTaxable;
+
+  const totalVat =
+    invoice.vatAmount !== null && invoice.vatAmount !== undefined && invoice.vatAmount !== ""
+      ? toNumber(invoice.vatAmount)
+      : computedVat;
+
+  const grandTotal =
+    invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
+      ? toNumber(invoice.total)
+      : taxableAmount + totalVat;
+
+  const tafqeetText = tafqeet(grandTotal);
+
+  const hasDiscounts = rows.some((r) => r.lineDiscount > 0);
+
+  // Dynamic height calculation
+  const itemsCount = rows.length;
+  const extraItemsCount = Math.max(0, itemsCount - 5);
+  let extraContentHeight = extraItemsCount * 22;
+  const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
+  extraContentHeight += discountItemsCount * 12;
+
+  if (invoice.notes) {
+    extraContentHeight += 20 + Math.min(invoice.notes.split("\n").length, 5) * 8;
+  }
+  if (invoice.terms) {
+    extraContentHeight += 20 + Math.min(invoice.terms.split("\n").length, 5) * 8;
+  }
+  if (company.footerText) {
+    extraContentHeight += 16;
+  }
+
+  const dynamicHeight = Math.max(basePageHeight, basePageHeight + extraContentHeight);
+  const dynamicPageSize = [basePageWidth, dynamicHeight] as [number, number];
 
   const footerText =
     company.footerText?.trim() ||
     "فاتورة تجارية معتمدة — نشكركم لتعاملكم معنا";
 
+  const issueDateStr = formatDateFormatted(invoice.issueDate);
+
   return (
     <Document
-      title={`Invoice ${numberLabel}`}
+      title={`فاتورة ضريبية ${numberLabel}`}
       author={company.nameAr}
       subject={titleAr}
       creator="Hulool Invoicing"
     >
-      <Page
-        size={paperSize as any}
-        orientation={paperOrientation as any}
-        style={styles.page}
-      >
-        {/* Background Watermark Image if present */}
+      <Page size={dynamicPageSize} orientation="portrait" style={styles.page}>
+        {/* Centered Watermark Styling */}
         {backgroundDataUrl ? (
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
@@ -81,22 +322,15 @@ export function ClassicTemplate({
                   <Text style={styles.metaVal}>{numberLabel}</Text>
                 </View>
                 <View style={styles.metaRow}>
-                  <Text style={styles.metaKey}>التاريخ</Text>
+                  <Text style={styles.metaKey}>تاريخ الإصدار</Text>
                   <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaVal}>{invoice.issueDate}</Text>
+                  <Text style={styles.metaVal}>{issueDateStr}</Text>
                 </View>
-                {invoice.dueDate ? (
-                  <View style={styles.metaRow}>
-                    <Text style={styles.metaKey}>الاستحقاق</Text>
-                    <Text style={styles.colon}>:</Text>
-                    <Text style={styles.metaVal}>{invoice.dueDate}</Text>
-                  </View>
-                ) : null}
               </View>
 
               <View style={styles.headerRight}>
-                {logoDataUrl ? (
-                  <Image src={logoDataUrl} style={styles.logo} />
+                {logoSource ? (
+                  <Image src={logoSource} style={styles.logo} />
                 ) : null}
                 <Text style={styles.companyName}>{company.nameAr}</Text>
                 {company.vatNumber ? (
@@ -104,6 +338,13 @@ export function ClassicTemplate({
                     <Text style={styles.detailKey}>الرقم الضريبي</Text>
                     <Text style={styles.colon}>:</Text>
                     <Text style={styles.detailVal}>{company.vatNumber}</Text>
+                  </View>
+                ) : null}
+                {company.crNumber ? (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>السجل التجاري</Text>
+                    <Text style={styles.colon}>:</Text>
+                    <Text style={styles.detailVal}>{company.crNumber}</Text>
                   </View>
                 ) : null}
                 {formatAddress(company) ? (
@@ -127,6 +368,13 @@ export function ClassicTemplate({
                   <Text style={styles.detailVal}>{customer.vatNumber}</Text>
                 </View>
               ) : null}
+              {customer.unifiedNumber ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>الرقم الموحد / السجل</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.detailVal}>{customer.unifiedNumber}</Text>
+                </View>
+              ) : null}
               {customer.phone ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailKey}>الهاتف</Text>
@@ -147,38 +395,75 @@ export function ClassicTemplate({
             <View style={styles.table}>
               <View style={styles.tableHeaderRow}>
                 <Text style={[styles.th, styles.colPos]}>#</Text>
-                <Text style={[styles.th, styles.colDesc]}>البيان / الصنف</Text>
+                <Text
+                  style={[
+                    styles.th,
+                    hasDiscounts ? styles.colDescNarrow : styles.colDesc,
+                  ]}
+                >
+                  البيان / الصنف
+                </Text>
                 <Text style={[styles.th, styles.colQty]}>الكمية</Text>
                 <Text style={[styles.th, styles.colPrice]}>السعر</Text>
+                {hasDiscounts ? (
+                  <Text style={[styles.th, styles.colDisc]}>الخصم</Text>
+                ) : null}
                 <Text style={[styles.th, styles.colVat]}>الضريبة</Text>
                 <Text style={[styles.th, styles.colTotal]}>المجموع</Text>
               </View>
 
-              {invoice.items.map((item, idx) => (
+              {rows.map((item, idx) => (
                 <View
-                  key={item.position ?? idx}
+                  key={item.key}
                   style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : undefined]}
                   wrap={false}
                 >
-                  <Text style={[styles.td, styles.colPos]}>{item.position}</Text>
-                  <Text style={[styles.td, styles.colDesc, styles.textRight]}>
-                    {item.description}
-                  </Text>
-                  <Text style={[styles.td, styles.colQty]}>{item.quantity}</Text>
+                  <Text style={[styles.td, styles.colPos]}>{item.index}</Text>
+                  <View
+                    style={[
+                      styles.td,
+                      hasDiscounts ? styles.colDescNarrow : styles.colDesc,
+                      styles.textRight,
+                    ]}
+                  >
+                    <Text>{item.desc}</Text>
+                    {item.lineDiscount > 0 ? (
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountBadgeText}>
+                          خصم: {formatExactAmount(item.lineDiscount)} SAR
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.td, styles.colQty]}>{formatQty(item.qty)}</Text>
                   <Text style={[styles.td, styles.colPrice]}>
-                    {formatMoney(item.unitPrice)}
+                    {formatExactAmount(item.unitPrice)}
                   </Text>
+                  {hasDiscounts ? (
+                    <Text style={[styles.td, styles.colDisc]}>
+                      {item.lineDiscount > 0
+                        ? formatExactAmount(item.lineDiscount)
+                        : "—"}
+                    </Text>
+                  ) : null}
                   <Text style={[styles.td, styles.colVat]}>
-                    {formatMoney(item.lineVat)}
+                    {formatExactAmount(item.lineVat)}
                   </Text>
                   <Text style={[styles.td, styles.colTotal, styles.boldText]}>
-                    {formatMoney(item.lineTotal)}
+                    {formatExactAmount(item.lineTotal)}
                   </Text>
                 </View>
               ))}
             </View>
 
-            {/* 4. Bottom Section: QR, Notes & Totals */}
+            {/* 4. Tafqeet Banner Strip */}
+            <View style={styles.tafqeetBanner} wrap={false}>
+              <Text style={styles.tafqeetLabel}>المبلغ المستحق كتابة</Text>
+              <Text style={styles.tafqeetColon}>:</Text>
+              <Text style={styles.tafqeetVal}>{tafqeetText}</Text>
+            </View>
+
+            {/* 5. Bottom Section: QR, Notes & 7-Tier Totals */}
             <View style={styles.bottomSection} wrap={false}>
               <View style={styles.bottomLeft}>
                 {qrDataUrl ? (
@@ -186,29 +471,38 @@ export function ClassicTemplate({
                     <Image src={qrDataUrl} style={styles.qrImage} />
                   </View>
                 ) : null}
-
-                {signatureDataUrl ? (
-                  <View style={styles.signatureBox}>
-                    <Image src={signatureDataUrl} style={styles.signatureImage} />
-                    <Text style={styles.signatureCaption}>الختم والتوقيع</Text>
-                  </View>
-                ) : null}
               </View>
 
               <View style={styles.totalsBox}>
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalKey}>المجموع الفرعي</Text>
-                  <Text style={styles.totalVal}>{formatMoney(invoice.subtotal)} SAR</Text>
+                  <Text style={styles.totalKey}>الإجمالي قبل الضريبة</Text>
+                  <Text style={styles.totalVal}>{formatExactAmount(computedGross)} SAR</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalKey}>مجموع الخصومات</Text>
+                  <Text style={styles.totalVal}>{formatExactAmount(computedDiscount)} SAR</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalKey}>المبلغ الخاضع للضريبة</Text>
+                  <Text style={styles.totalVal}>{formatExactAmount(taxableAmount)} SAR</Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalKey}>ضريبة القيمة المضافة (15%)</Text>
-                  <Text style={styles.totalVal}>{formatMoney(invoice.vatAmount)} SAR</Text>
+                  <Text style={styles.totalVal}>{formatExactAmount(totalVat)} SAR</Text>
                 </View>
                 <View style={styles.grandTotalRow}>
-                  <Text style={styles.grandTotalKey}>الإجمالي النهائي</Text>
+                  <Text style={styles.grandTotalKey}>إجمالي المبلغ المستحق</Text>
                   <Text style={styles.grandTotalVal}>
-                    {formatMoneyWithSettings(invoice.total, settings)}
+                    {formatExactAmount(grandTotal)} SAR
                   </Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalKey}>المبلغ المدفوع</Text>
+                  <Text style={styles.totalVal}>{formatExactAmount(grandTotal)} SAR</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalKey}>المبلغ المتبقي</Text>
+                  <Text style={[styles.totalVal, styles.boldText]}>0.00 SAR</Text>
                 </View>
               </View>
             </View>
@@ -232,19 +526,10 @@ export function ClassicTemplate({
   );
 }
 
-function formatAddress(company: CompanyRecord): string {
-  const parts = [
-    company.addressStreet,
-    company.addressDistrict,
-    company.addressCity,
-  ].filter((p): p is string => typeof p === "string" && p.length > 0);
-  return parts.join("، ");
-}
-
 function buildClassicStyles(primary: string) {
   return StyleSheet.create({
     page: {
-      padding: 20,
+      padding: 16,
       fontFamily: "Amiri",
       backgroundColor: "#ffffff",
       fontSize: 8,
@@ -252,32 +537,31 @@ function buildClassicStyles(primary: string) {
     },
     backgroundImage: {
       position: "absolute",
-      top: "22%",
-      left: "15%",
-      width: "70%",
-      height: "55%",
-      opacity: 0.05,
+      top: "28%",
+      left: "25%",
+      width: "50%",
+      opacity: 0.04,
       objectFit: "contain",
     },
     outerFrame: {
       borderWidth: 2,
       borderColor: primary,
-      padding: 3,
+      padding: 2,
       flex: 1,
     },
     innerFrame: {
       borderWidth: 1,
       borderColor: primary,
-      padding: 12,
+      padding: 10,
       flex: 1,
     },
     header: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
-      paddingBottom: 10,
+      paddingBottom: 8,
       borderBottomWidth: 1.5,
       borderBottomColor: primary,
-      marginBottom: 8,
+      marginBottom: 6,
     },
     headerRight: {
       width: "55%",
@@ -321,54 +605,50 @@ function buildClassicStyles(primary: string) {
       alignItems: "flex-start",
     },
     docTitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: "bold",
       color: primary,
-      textAlign: "left",
-      marginBottom: 3,
+      marginBottom: 4,
     },
     metaRow: {
       flexDirection: "row-reverse",
       alignItems: "center",
       gap: 3,
-      marginTop: 1,
+      marginTop: 2,
     },
     metaKey: {
-      fontSize: 7.5,
-      color: "#475569",
-      textAlign: "right",
+      fontSize: 7,
+      color: "#64748b",
     },
     metaVal: {
-      fontSize: 8,
+      fontSize: 7.5,
       fontWeight: "bold",
       color: "#0f172a",
-      textAlign: "left",
     },
     customerBox: {
-      borderWidth: 1,
-      borderColor: "#cbd5e1",
       padding: 6,
-      backgroundColor: "#fafafa",
+      backgroundColor: "#f8fafc",
+      borderWidth: 1,
+      borderColor: "#e2e8f0",
+      marginBottom: 6,
       alignItems: "flex-end",
-      marginBottom: 8,
     },
     customerHeader: {
       fontSize: 7.5,
       fontWeight: "bold",
       color: primary,
-      textAlign: "right",
       marginBottom: 2,
     },
     customerName: {
       fontSize: 9.5,
       fontWeight: "bold",
       color: "#0f172a",
-      textAlign: "right",
+      marginBottom: 2,
     },
     table: {
       borderWidth: 1,
       borderColor: primary,
-      marginBottom: 8,
+      marginBottom: 6,
     },
     tableHeaderRow: {
       flexDirection: "row-reverse",
@@ -388,18 +668,18 @@ function buildClassicStyles(primary: string) {
     },
     th: {
       color: "#ffffff",
-      fontSize: 7.5,
+      fontSize: 7,
       fontWeight: "bold",
-      paddingVertical: 2.5,
-      paddingHorizontal: 4,
+      paddingVertical: 2,
+      paddingHorizontal: 3,
       textAlign: "center",
       borderLeftWidth: 0.5,
       borderLeftColor: "rgba(255, 255, 255, 0.3)",
     },
     td: {
-      fontSize: 7.5,
-      paddingVertical: 2.5,
-      paddingHorizontal: 4,
+      fontSize: 7,
+      paddingVertical: 2,
+      paddingHorizontal: 3,
       textAlign: "center",
       borderLeftWidth: 0.5,
       borderLeftColor: "#e2e8f0",
@@ -413,62 +693,80 @@ function buildClassicStyles(primary: string) {
       color: "#0f172a",
     },
     colPos: { width: "5%", textAlign: "center" },
-    colDesc: { width: "45%", textAlign: "right" },
+    colDesc: { width: "43%", textAlign: "right" },
+    colDescNarrow: { width: "35%", textAlign: "right" },
     colQty: { width: "10%", textAlign: "center" },
-    colPrice: { width: "13%", textAlign: "center" },
-    colVat: { width: "12%", textAlign: "center" },
-    colTotal: { width: "15%", textAlign: "center", borderLeftWidth: 0 },
+    colPrice: { width: "14%", textAlign: "center" },
+    colDisc: { width: "8%", textAlign: "center" },
+    colVat: { width: "14%", textAlign: "center" },
+    colTotal: { width: "14%", textAlign: "center" },
+    discountBadge: {
+      marginTop: 1,
+      paddingHorizontal: 3,
+      paddingVertical: 1,
+      backgroundColor: "#fef2f2",
+      borderRadius: 2,
+      alignSelf: "flex-end",
+    },
+    discountBadgeText: {
+      fontSize: 5.5,
+      color: "#dc2626",
+      fontWeight: "bold",
+    },
+    tafqeetBanner: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      backgroundColor: "#f8fafc",
+      borderWidth: 1,
+      borderColor: "#e2e8f0",
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      marginBottom: 6,
+      gap: 4,
+    },
+    tafqeetLabel: {
+      fontSize: 7,
+      fontWeight: "bold",
+      color: "#475569",
+    },
+    tafqeetColon: {
+      fontSize: 7,
+      color: "#475569",
+    },
+    tafqeetVal: {
+      fontSize: 7.5,
+      fontWeight: "bold",
+      color: primary,
+    },
     bottomSection: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      gap: 10,
-      marginTop: 2,
+      marginTop: 4,
     },
     bottomLeft: {
-      flexDirection: "row-reverse",
-      gap: 8,
-      alignItems: "flex-start",
+      width: "45%",
     },
     qrBox: {
-      width: 76,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    qrImage: {
-      width: 76,
-      height: 76,
-    },
-    signatureBox: {
-      alignItems: "center",
-      justifyContent: "center",
-      width: 65,
-      height: 50,
+      width: 70,
+      height: 70,
+      padding: 2,
       borderWidth: 0.5,
       borderColor: "#cbd5e1",
-      borderStyle: "dashed",
-      padding: 2,
     },
-    signatureImage: {
-      width: 55,
-      height: 35,
-      objectFit: "contain",
-    },
-    signatureCaption: {
-      fontSize: 5.5,
-      color: "#64748b",
-      marginTop: 1,
+    qrImage: {
+      width: 66,
+      height: 66,
     },
     totalsBox: {
-      width: 180,
+      width: 210,
       borderWidth: 1,
       borderColor: primary,
-      backgroundColor: "#ffffff",
     },
     totalRow: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
-      paddingVertical: 2,
+      paddingVertical: 1.5,
       paddingHorizontal: 6,
       borderBottomWidth: 0.5,
       borderBottomColor: "#e2e8f0",
@@ -476,53 +774,54 @@ function buildClassicStyles(primary: string) {
     grandTotalRow: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
-      paddingVertical: 3,
-      paddingHorizontal: 6,
       backgroundColor: primary,
+      paddingVertical: 2.5,
+      paddingHorizontal: 6,
     },
     totalKey: {
-      fontSize: 7,
+      fontSize: 6.8,
       color: "#475569",
       textAlign: "right",
     },
     totalVal: {
-      fontSize: 7.5,
+      fontSize: 7.2,
       color: "#0f172a",
       fontWeight: "bold",
       textAlign: "left",
     },
     grandTotalKey: {
-      fontSize: 7.5,
-      fontWeight: "bold",
       color: "#ffffff",
+      fontWeight: "bold",
+      fontSize: 7.8,
       textAlign: "right",
     },
     grandTotalVal: {
-      fontSize: 8.5,
-      fontWeight: "bold",
       color: "#ffffff",
+      fontWeight: "bold",
+      fontSize: 8.5,
       textAlign: "left",
     },
     notesSection: {
       marginTop: 6,
       padding: 4,
-      borderTopWidth: 0.5,
-      borderTopColor: "#e2e8f0",
+      backgroundColor: "#f8fafc",
+      borderWidth: 0.5,
+      borderColor: "#e2e8f0",
     },
     notesText: {
       fontSize: 6.5,
-      color: "#64748b",
+      color: "#475569",
       textAlign: "right",
     },
     footer: {
       position: "absolute",
-      bottom: 6,
+      bottom: 10,
       left: 20,
       right: 20,
       textAlign: "center",
     },
     footerText: {
-      fontSize: 6,
+      fontSize: 6.5,
       color: "#94a3b8",
       textAlign: "center",
     },

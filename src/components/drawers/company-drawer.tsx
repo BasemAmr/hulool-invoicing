@@ -38,6 +38,7 @@ export function CompanyDrawer({
   const [crNumber, setCrNumber] = useState("");
   const [prefix, setPrefix] = useState(() => generateDefaultCompanyPrefix());
   const [clientEmployee, setClientEmployee] = useState("");
+  const [organizationType, setOrganizationType] = useState("");
   const [addressBuildingNumber, setAddressBuildingNumber] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressDistrict, setAddressDistrict] = useState("");
@@ -62,6 +63,7 @@ export function CompanyDrawer({
       setCrNumber(company.crNumber || "");
       setPrefix(company.prefix || "INV");
       setClientEmployee(company.clientEmployee || "");
+      setOrganizationType(company.organizationType || "");
       setAddressBuildingNumber(company.addressBuildingNumber || "");
       setAddressStreet(company.addressStreet || "");
       setAddressDistrict(company.addressDistrict || "");
@@ -82,6 +84,7 @@ export function CompanyDrawer({
       setCrNumber("");
       setPrefix(generateDefaultCompanyPrefix());
       setClientEmployee("");
+      setOrganizationType("");
       setAddressBuildingNumber("");
       setAddressStreet("");
       setAddressDistrict("");
@@ -124,6 +127,7 @@ export function CompanyDrawer({
       crNumber: crNumber.trim() ? toWesternDigits(crNumber.trim()) : undefined,
       prefix: prefix.trim().toUpperCase(),
       clientEmployee: clientEmployee.trim() || undefined,
+      organizationType: organizationType.trim() || undefined,
       addressBuildingNumber: addressBuildingNumber.trim() || undefined,
       addressStreet: addressStreet.trim() || undefined,
       addressDistrict: addressDistrict.trim() || undefined,
@@ -194,7 +198,6 @@ export function CompanyDrawer({
               <Input
                 value={nameAr}
                 onChange={(e) => setNameAr(e.target.value)}
-                placeholder="مثال: شركة حلول التقنية للتجارة"
                 className="text-xs h-8"
                 required
               />
@@ -205,7 +208,6 @@ export function CompanyDrawer({
               <Input
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
-                placeholder="Hulool Tech Trading Co."
                 dir="ltr"
                 className="text-xs h-8 font-mono"
               />
@@ -262,6 +264,15 @@ export function CompanyDrawer({
                 className="text-xs h-8"
               />
             </div>
+
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs font-medium text-muted-foreground">نوع المنشأة</Label>
+              <Input
+                value={organizationType}
+                onChange={(e) => setOrganizationType(e.target.value)}
+                className="text-xs h-8"
+              />
+            </div>
           </div>
         </div>
 
@@ -309,7 +320,6 @@ export function CompanyDrawer({
               <Input
                 value={addressStreet}
                 onChange={(e) => setAddressStreet(e.target.value)}
-                placeholder="طريق الملك فهد"
                 className="text-xs h-8"
               />
             </div>

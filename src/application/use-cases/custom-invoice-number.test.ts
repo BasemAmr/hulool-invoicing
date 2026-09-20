@@ -178,7 +178,7 @@ class FakeSequence implements SequencePort {
   readonly ensureCalls: number[] = [];
   async nextInvoiceNumber(_tx: Tx, _companyId: CompanyId, prefix: string, _year: number): Promise<string> {
     const v = this.next++;
-    return `${prefix}-${String(v).padStart(5, "0")}`;
+    return `${prefix}${String(v).padStart(5, "0")}`;
   }
   async ensureSequenceAtLeast(_tx: Tx, _companyId: CompanyId, seq: number): Promise<void> {
     this.ensureCalls.push(seq);
@@ -196,6 +196,7 @@ function companyRecord(id: CompanyId, prefix: string): CompanyRecord {
     crNumber: null,
     prefix,
     clientEmployee: null,
+    organizationType: null,
     phone: null,
     email: null,
     website: null,
@@ -270,56 +271,56 @@ describe("IssueInvoice with custom numbers", () => {
     expect(sequence.ensureCalls).toEqual([]);
   });
 
-  it("a custom high-seq PREFIX-nnnnn advances the sentinel so the next auto skips past it", async () => {
+  it("a custom high-seq PREFIXnnnnn advances the sentinel so the next auto skips past it", async () => {
     const first = draftId(1);
     invoices.rows.set(String(first), record({ id: first, companyId: COMPANY_A }));
-    const dto = await issue.execute({ invoiceId: String(first), customInvoiceNumber: "INV-00100" });
-    expect(dto.invoiceNumber).toBe("INV-00100");
+    const dto = await issue.execute({ invoiceId: String(first), customInvoiceNumber: "INV00100" });
+    expect(dto.invoiceNumber).toBe("INV00100");
     expect(sequence.ensureCalls).toEqual([100]);
 
     const second = draftId(2);
     invoices.rows.set(String(second), record({ id: second, companyId: COMPANY_A }));
     const auto = await issue.execute({ invoiceId: String(second) });
-    expect(auto.invoiceNumber).toBe("INV-00101");
+    expect(auto.invoiceNumber).toBe("INV00101");
   });
 
   it("rejects a duplicate custom number in the SAME company, leaving the draft untouched", async () => {
     const taken = draftId(1);
     invoices.rows.set(
       String(taken),
-      record({ id: taken, companyId: COMPANY_A, invoiceNumber: "INV-00007", status: "issued" }),
+      record({ id: taken, companyId: COMPANY_A, invoiceNumber: "INV00007", status: "issued" }),
     );
     const draft = draftId(2);
     invoices.rows.set(String(draft), record({ id: draft, companyId: COMPANY_A }));
 
     await expect(
-      issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV-00007" }),
+      issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV00007" }),
     ).rejects.toThrowError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
 
     const untouched = await invoices.findByIdWithItems(draft);
     expect(untouched?.status).toBe("draft");
     expect(untouched?.invoiceNumber).toBeNull();
     // The conflicting invoice is intact too.
-    expect((await invoices.findByNumber(COMPANY_A, "INV-00007"))?.id).toBe(String(taken));
+    expect((await invoices.findByNumber(COMPANY_A, "INV00007"))?.id).toBe(String(taken));
   });
 
   it("allows the same number across DIFFERENT companies", async () => {
     const other = draftId(1);
     invoices.rows.set(
       String(other),
-      record({ id: other, companyId: COMPANY_B, invoiceNumber: "INV-00007", status: "issued" }),
+      record({ id: other, companyId: COMPANY_B, invoiceNumber: "INV00007", status: "issued" }),
     );
     const draft = draftId(2);
     invoices.rows.set(String(draft), record({ id: draft, companyId: COMPANY_A }));
-    const dto = await issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV-00007" });
-    expect(dto.invoiceNumber).toBe("INV-00007");
+    const dto = await issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV00007" });
+    expect(dto.invoiceNumber).toBe("INV00007");
   });
 
   it("blank custom input falls back to auto-allocation (auto path untouched)", async () => {
     const id = draftId(1);
     invoices.rows.set(String(id), record({ id, companyId: COMPANY_A }));
     const dto = await issue.execute({ invoiceId: String(id), customInvoiceNumber: "   " });
-    expect(dto.invoiceNumber).toBe("INV-00001");
+    expect(dto.invoiceNumber).toBe("INV00001");
     expect(sequence.ensureCalls).toEqual([]);
   });
 
@@ -340,14 +341,14 @@ describe("IssueInvoice with custom numbers", () => {
     const rival = draftId(1);
     invoices.rows.set(
       String(rival),
-      record({ id: rival, companyId: COMPANY_A, invoiceNumber: "INV-00009", status: "issued" }),
+      record({ id: rival, companyId: COMPANY_A, invoiceNumber: "INV00009", status: "issued" }),
     );
     invoices.hiddenFromLookup.add(String(rival));
 
     const draft = draftId(2);
     invoices.rows.set(String(draft), record({ id: draft, companyId: COMPANY_A }));
     await expect(
-      issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV-00009" }),
+      issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV00009" }),
     ).rejects.toThrowError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
 
     // Nothing was written for the loser.
@@ -377,20 +378,20 @@ describe("UpdateDraftInvoice with invoice numbers", () => {
     const id = draftId(1);
     invoices.rows.set(
       String(id),
-      record({ id, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
-    const dto = await update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "INV-00050" }));
-    expect(dto.invoiceNumber).toBe("INV-00050");
+    const dto = await update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "INV00050" }));
+    expect(dto.invoiceNumber).toBe("INV00050");
   });
 
   it("keeping the current number (self) is not a conflict", async () => {
     const id = draftId(1);
     invoices.rows.set(
       String(id),
-      record({ id, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
-    const dto = await update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "INV-00001" }));
-    expect(dto.invoiceNumber).toBe("INV-00001");
+    const dto = await update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "INV00001" }));
+    expect(dto.invoiceNumber).toBe("INV00001");
   });
 
   it("rejects a number taken by ANOTHER invoice of the same company, old number intact", async () => {
@@ -398,74 +399,74 @@ describe("UpdateDraftInvoice with invoice numbers", () => {
     const second = draftId(2);
     invoices.rows.set(
       String(first),
-      record({ id: first, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id: first, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
     invoices.rows.set(
       String(second),
-      record({ id: second, companyId: COMPANY_A, invoiceNumber: "INV-00002", status: "issued" }),
+      record({ id: second, companyId: COMPANY_A, invoiceNumber: "INV00002", status: "issued" }),
     );
     await expect(
-      update.execute(updateInput(first, COMPANY_A, { invoiceNumber: "INV-00002" })),
+      update.execute(updateInput(first, COMPANY_A, { invoiceNumber: "INV00002" })),
     ).rejects.toThrowError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
 
-    expect((await invoices.findByIdWithItems(first))?.invoiceNumber).toBe("INV-00001");
+    expect((await invoices.findByIdWithItems(first))?.invoiceNumber).toBe("INV00001");
   });
 
   it("allows the same number across DIFFERENT companies", async () => {
     const inB = draftId(1);
     invoices.rows.set(
       String(inB),
-      record({ id: inB, companyId: COMPANY_B, invoiceNumber: "INV-00002", status: "issued" }),
+      record({ id: inB, companyId: COMPANY_B, invoiceNumber: "INV00002", status: "issued" }),
     );
     const inA = draftId(2);
     invoices.rows.set(
       String(inA),
-      record({ id: inA, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id: inA, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
-    const dto = await update.execute(updateInput(inA, COMPANY_A, { invoiceNumber: "INV-00002" }));
-    expect(dto.invoiceNumber).toBe("INV-00002");
+    const dto = await update.execute(updateInput(inA, COMPANY_A, { invoiceNumber: "INV00002" }));
+    expect(dto.invoiceNumber).toBe("INV00002");
   });
 
   it("rejects an explicitly cleared number (an issued invoice cannot go numberless)", async () => {
     const id = draftId(1);
     invoices.rows.set(
       String(id),
-      record({ id, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
     // Zod keeps "" as "" (trim, no min) so the use case owns this message.
     await expect(
       update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "   " })),
     ).rejects.toThrowError(MISSING_INVOICE_NUMBER_MESSAGE);
-    expect((await invoices.findByIdWithItems(id))?.invoiceNumber).toBe("INV-00001");
+    expect((await invoices.findByIdWithItems(id))?.invoiceNumber).toBe("INV00001");
   });
 
   it("omitted number preserves the stored number (auto path untouched)", async () => {
     const id = draftId(1);
     invoices.rows.set(
       String(id),
-      record({ id, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
     const dto = await update.execute(updateInput(id, COMPANY_A));
-    expect(dto.invoiceNumber).toBe("INV-00001");
+    expect(dto.invoiceNumber).toBe("INV00001");
   });
 
   it("maps a concurrent-duplicate constraint violation to the friendly message, old number intact", async () => {
     const rival = draftId(1);
     invoices.rows.set(
       String(rival),
-      record({ id: rival, companyId: COMPANY_A, invoiceNumber: "INV-00009", status: "issued" }),
+      record({ id: rival, companyId: COMPANY_A, invoiceNumber: "INV00009", status: "issued" }),
     );
     invoices.hiddenFromLookup.add(String(rival));
 
     const id = draftId(2);
     invoices.rows.set(
       String(id),
-      record({ id, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
     await expect(
-      update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "INV-00009" })),
+      update.execute(updateInput(id, COMPANY_A, { invoiceNumber: "INV00009" })),
     ).rejects.toThrowError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
-    expect((await invoices.findByIdWithItems(id))?.invoiceNumber).toBe("INV-00001");
+    expect((await invoices.findByIdWithItems(id))?.invoiceNumber).toBe("INV00001");
   });
 
   it("full-precision unit prices still flow through untouched alongside a rename", async () => {
@@ -474,7 +475,7 @@ describe("UpdateDraftInvoice with invoice numbers", () => {
     const id = draftId(1);
     invoices.rows.set(
       String(id),
-      record({ id, companyId: COMPANY_A, invoiceNumber: "INV-00001", status: "issued" }),
+      record({ id, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
     const dto = await update.execute(
       updateInput(id, COMPANY_A, {

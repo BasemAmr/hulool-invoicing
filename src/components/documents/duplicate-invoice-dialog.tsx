@@ -40,6 +40,8 @@ function nowTimeHm(): string {
  * today), then opens the create page prefilled with the source invoice's
  * lines/notes/terms/template — but with the chosen client + date applied.
  */
+import { computeIncrementedIssueTime } from "@/domain/services/invoice-datetime";
+
 export function DuplicateInvoiceDialog({
   open,
   onClose,
@@ -54,16 +56,17 @@ export function DuplicateInvoiceDialog({
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customerId, setCustomerId] = useState(defaultCustomerId ?? "");
   const [issueDate, setIssueDate] = useState(defaultIssueDate ?? todayIso());
-  // Duplicate defaults to now (fresh QR instant), not the source time — the
-  // new invoice's QR must carry its own datetime.
-  const [issueTime, setIssueTime] = useState(defaultIssueTime ?? nowTimeHm());
+  // Duplicate defaults to incremented time based on the source invoice time
+  const [issueTime, setIssueTime] = useState(() =>
+    computeIncrementedIssueTime(defaultIssueTime || "09:00")
+  );
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setCustomerId(defaultCustomerId ?? "");
     setIssueDate(defaultIssueDate ?? todayIso());
-    setIssueTime(defaultIssueTime ?? nowTimeHm());
+    setIssueTime(computeIncrementedIssueTime(defaultIssueTime || "09:00"));
     let cancelled = false;
     async function load() {
       setLoadingCustomers(true);
@@ -108,8 +111,8 @@ export function DuplicateInvoiceDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-md border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-150">
+    <div dir="rtl" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150 whitespace-normal">
+      <div className="w-full max-w-md border border-border bg-card shadow-2xl animate-in zoom-in-95 duration-150 overflow-hidden text-start">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border bg-primary/10 px-5 py-4 text-foreground">
           <div className="flex items-center gap-2 font-bold text-sm">
@@ -128,7 +131,7 @@ export function DuplicateInvoiceDialog({
 
         {/* Body */}
         <div className="p-5 flex flex-col gap-3">
-          <p className="text-xs sm:text-sm text-foreground leading-relaxed">
+          <p className="text-xs sm:text-sm text-foreground leading-relaxed break-words whitespace-normal">
             سيتم فتح صفحة فاتورة جديدة بنفس بنود وملاحظات الفاتورة الحالية
             {itemName ? (
               <>

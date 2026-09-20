@@ -41,6 +41,15 @@ import { Template5TharaRiyadh } from "./templates/template-5-thara-riyadh";
 import { Template6JabalAlRayan } from "./templates/template-6-jabal-al-rayan";
 import { Template7Alsahah } from "./templates/template-7-alsahah";
 import { Template8SalehAlHaider } from "./templates/template-8-saleh-al-haider";
+import { Template9ModernBrownGray } from "./templates/template-9-modern-brown-gray";
+import { Template10DarkHeaderBrown } from "./templates/template-10-dark-header-brown";
+import { Template11ModernCleanCharcoal } from "./templates/template-11-modern-clean-charcoal";
+import { Template12MassSteel } from "./templates/template-12-mass-steel";
+import { Template13QasserLaura } from "./templates/template-13-qasser-laura";
+import { Template14RedaTrading } from "./templates/template-14-reda-trading";
+import { Template15RedaModern } from "./templates/template-15-reda-modern";
+import { CyanSalesTemplate } from "./templates/cyan-sales-template";
+
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -163,6 +172,9 @@ export function InvoiceDocument({
   if (templateDef.id === "generic_foodstuffs_24") {
     return <GenericFoodstuffs24Template {...props} />;
   }
+  if (templateDef.id === "generic_simplified_25") {
+    return <GenericSimplified25Template {...props} />;
+  }
   if (templateDef.id === "template_1_al_asma") {
     return <Template1AlAsma {...props} />;
   }
@@ -187,6 +199,27 @@ export function InvoiceDocument({
   if (templateDef.id === "template_8_saleh_al_haider") {
     return <Template8SalehAlHaider {...props} />;
   }
+  if (templateDef.id === "template_9_modern_brown_gray") {
+    return <Template9ModernBrownGray {...props} />;
+  }
+  if (templateDef.id === "template_10_dark_header_brown") {
+    return <Template10DarkHeaderBrown {...props} />;
+  }
+  if (templateDef.id === "template_11_modern_clean_charcoal") {
+    return <Template11ModernCleanCharcoal {...props} />;
+  }
+  if (templateDef.id === "template_12_mass_steel") {
+    return <Template12MassSteel {...props} />;
+  }
+  if (templateDef.id === "template_13_qasser_laura") {
+    return <Template13QasserLaura {...props} />;
+  }
+  if (templateDef.id === "template_14_reda_trading") {
+    return <Template14RedaTrading {...props} />;
+  }
+  if (templateDef.id === "template_15_reda_modern") {
+    return <Template15RedaModern {...props} />;
+  }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
   }
@@ -196,6 +229,12 @@ export function InvoiceDocument({
   if (templateDef.id === "masdar_materials") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
   }
+  
+  // Inside InvoiceDocument component router:
+  if (templateDef.id === "cyan_sales_invoice") {
+    return <CyanSalesTemplate {...props} />;
+  }
+
 
   switch (templateDef.category) {
     case "contracting":
