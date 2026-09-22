@@ -1,5 +1,6 @@
 import type { Clock } from "../ports/clock";
 import type { CompanyRepository } from "../ports/company-repository";
+import type { CompanySettingsRepository } from "../ports/company-settings-repository";
 import { companyCreateSchema } from "@/domain/contracts";
 import { ValidationError } from "@/domain/errors";
 
@@ -17,6 +18,8 @@ export class CreateCompany {
   constructor(
     private readonly companyRepository: CompanyRepository,
     private readonly clock: Clock,
+    private readonly companySettingsRepository?: CompanySettingsRepository,
+    private readonly resolveNextTemplateId?: () => Promise<string>,
   ) {}
 
   async execute(input: unknown): Promise<CreateCompanyResult> {
@@ -52,6 +55,33 @@ export class CreateCompany {
       },
       now,
     );
+
+    // Automatically provision initial company settings with unique sequential template
+    if (this.companySettingsRepository) {
+      try {
+        const defaultTemplateId = this.resolveNextTemplateId
+          ? await this.resolveNextTemplateId()
+          : "contracting_advance";
+
+        await this.companySettingsRepository.upsert({
+          companyId: record.id,
+          numberFormat: "en",
+          dateFormat: "YYYY-MM-DD",
+          currencyCode: "SAR",
+          currencyPosition: "after",
+          thousandsSeparator: ",",
+          decimalSeparator: ".",
+          decimalPlaces: 2,
+          defaultVatRate: 0.15,
+          paperSize: "A4",
+          paperOrientation: "portrait",
+          defaultTemplateId,
+          defaultReceiptTemplateId: "receipt_design_work",
+        });
+      } catch (err) {
+        console.error("Failed to provision initial company settings with sequential template:", err);
+      }
+    }
 
     return { id: record.id, prefix: record.prefix };
   }

@@ -11,7 +11,7 @@ export const targetCustomerCreateSchema = customerCreateSchema;
 
 describe("R3: Customer Schema Validation & Required Fields", () => {
   const validCustomerInput = {
-    nameAr: "شركة الحلول المتقدمة",
+    nameAr: "شركة  المتقدمة",
     vatNumber: "300000000000003",
     unifiedNumber: "7001234567",
     addressCity: "الرياض",
@@ -23,7 +23,7 @@ describe("R3: Customer Schema Validation & Required Fields", () => {
       const result = targetCustomerCreateSchema.safeParse(validCustomerInput);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.nameAr).toBe("شركة الحلول المتقدمة");
+        expect(result.data.nameAr).toBe("شركة  المتقدمة");
         expect(result.data.unifiedNumber).toBe("7001234567");
         expect(result.data.addressPostalCode).toBe("12345");
       }

@@ -329,13 +329,9 @@ export function CompanySettingsForm({
                       {getTemplateDisplayName(activeInvoiceTemplate)}
                     </span>
                     <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${
-                        activeInvoiceTemplate.parentCategory === "company_chosen"
-                          ? "bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-400 dark:border-amber-700"
-                          : "bg-blue-500/10 text-blue-700 border-blue-300 dark:text-blue-400 dark:border-blue-700"
-                      }`}
+                      className="text-[9px] px-1.5 py-0.2 rounded font-semibold border bg-primary/10 text-primary border-primary/25"
                     >
-                      {PARENT_CATEGORY_LABELS[activeInvoiceTemplate.parentCategory]?.badgeAr}
+                      {PARENT_CATEGORY_LABELS[activeInvoiceTemplate.parentCategory]?.badgeAr || "قالب معتمد"}
                     </span>
                   </div>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">
@@ -350,22 +346,11 @@ export function CompanySettingsForm({
                   onChange={(e) => setDefaultTemplateId(e.target.value)}
                   className="h-7.5 px-2 text-xs bg-muted/40 border border-input text-foreground font-medium focus:outline-none"
                 >
-                  {groupTemplatesByParentCategory(TEMPLATES_LIST).companyChosen.length > 0 && (
-                    <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
-                      {groupTemplatesByParentCategory(TEMPLATES_LIST).companyChosen.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          ★ {getTemplateDisplayName(t)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
-                    {groupTemplatesByParentCategory(TEMPLATES_LIST).systemDefault.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {getTemplateDisplayName(t)}
-                      </option>
-                    ))}
-                  </optgroup>
+                  {TEMPLATES_LIST.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {getTemplateDisplayName(t)}
+                    </option>
+                  ))}
                 </select>
 
                 <Button
@@ -412,13 +397,9 @@ export function CompanySettingsForm({
                       {getTemplateDisplayName(activeReceiptTemplate)}
                     </span>
                     <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${
-                        activeReceiptTemplate.parentCategory === "company_chosen"
-                          ? "bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-400 dark:border-amber-700"
-                          : "bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-700"
-                      }`}
+                      className="text-[9px] px-1.5 py-0.2 rounded font-semibold border bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-700"
                     >
-                      {PARENT_CATEGORY_LABELS[activeReceiptTemplate.parentCategory]?.badgeAr}
+                      {PARENT_CATEGORY_LABELS[activeReceiptTemplate.parentCategory]?.badgeAr || "قالب معتمد"}
                     </span>
                   </div>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">
@@ -433,22 +414,11 @@ export function CompanySettingsForm({
                   onChange={(e) => setDefaultReceiptTemplateId(e.target.value)}
                   className="h-7.5 px-2 text-xs bg-muted/40 border border-input text-foreground font-medium focus:outline-none"
                 >
-                  {groupTemplatesByParentCategory(RECEIPT_TEMPLATES_LIST).companyChosen.length > 0 && (
-                    <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
-                      {groupTemplatesByParentCategory(RECEIPT_TEMPLATES_LIST).companyChosen.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          ★ {getTemplateDisplayName(t)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
-                    {groupTemplatesByParentCategory(RECEIPT_TEMPLATES_LIST).systemDefault.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {getTemplateDisplayName(t)}
-                      </option>
-                    ))}
-                  </optgroup>
+                  {RECEIPT_TEMPLATES_LIST.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {getTemplateDisplayName(t)}
+                    </option>
+                  ))}
                 </select>
 
                 <Button

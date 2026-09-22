@@ -32,9 +32,6 @@ export function Sidebar() {
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <Link href="/companies" className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-lg tracking-tight text-primary">
-              حلول
-            </span>
             <span className="text-[11px] text-muted-foreground font-medium">
               للفواتير
             </span>
@@ -124,7 +121,7 @@ export function MobileNav() {
           <Menu className="size-5" />
         </button>
         <Link href="/companies" className="flex items-center gap-1.5">
-          <span className="font-bold text-base text-primary">حلول</span>
+          <span className="font-bold text-base text-primary">نظام الفواتير</span>
         </Link>
       </div>
 
@@ -149,7 +146,6 @@ export function MobileNav() {
           <div className="relative flex w-72 max-w-[80vw] flex-1 flex-col bg-card border-l border-border p-4 shadow-xl z-10 animate-in slide-in-from-right duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-primary">حلول</span>
                 <span className="text-xs text-muted-foreground">الفواتير</span>
               </div>
               <button
