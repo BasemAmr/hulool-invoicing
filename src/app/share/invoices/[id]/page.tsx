@@ -16,7 +16,7 @@ import { ForbiddenError } from "@/domain/errors";
 const container = createContainer(db);
 
 export const metadata: Metadata = {
-  title: "معاينة الفاتورة الضريبية | حلول",
+  title: "معاينة الفاتورة الضريبية",
 };
 
 export default async function PublicSharedInvoicePage({

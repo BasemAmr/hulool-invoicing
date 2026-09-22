@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "حلول — نظام الفواتير",
+  title: "نظام الفواتير",
   description: "نظام إصدار وإدارة الفواتير",
 };
 

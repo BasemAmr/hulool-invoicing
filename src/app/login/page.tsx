@@ -20,7 +20,7 @@ export default function LoginPage() {
             <Shield className="size-5" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            حلول — تسجيل الدخول
+            تسجيل الدخول
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             لوحة إدارة وإصدار الفواتير

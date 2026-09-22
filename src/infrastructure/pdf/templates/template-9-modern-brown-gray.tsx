@@ -137,7 +137,17 @@ function toNumber(value: string | number | null | undefined): number {
 
 function formatExactAmount(val: string | number | null | undefined): string {
   if (val === null || val === undefined || val === "") return "0.00";
-  const str = String(val).trim();
+  // Clean IEEE-754 floating point representation artifacts (e.g. 415.65000000000003 -> 415.65)
+  let str: string;
+  if (typeof val === "number") {
+    str = Number.isFinite(val) ? String(Number(val.toFixed(10))) : "0.00";
+  } else {
+    const rawStr = String(val).trim();
+    const num = Number(rawStr);
+    str = Number.isFinite(num) && rawStr.includes(".") && rawStr.length > 12
+      ? String(Number(num.toFixed(10)))
+      : rawStr;
+  }
   if (isNaN(Number(str))) return str;
   const isNegative = str.startsWith("-");
   const cleanStr = isNegative ? str.slice(1) : str;
@@ -214,20 +224,23 @@ export function Template9ModernBrownGray({
   const rows = items.map((item, idx) => {
     const qty = toNumber(item.quantity);
     const unitPrice = toNumber(item.unitPrice);
-    const gross = qty * unitPrice;
+    const gross = Number((qty * unitPrice).toFixed(10));
     const lineDiscount = toNumber(item.discountAmount);
-    const taxableSubtotal = Math.max(0, gross - lineDiscount);
+    const taxableSubtotal =
+      item.lineSubtotal !== undefined && item.lineSubtotal !== null && item.lineSubtotal !== ""
+        ? toNumber(item.lineSubtotal)
+        : Number(Math.max(0, gross - lineDiscount).toFixed(10));
 
     const vatRate =
       item.vatRate !== undefined && item.vatRate !== null ? toNumber(item.vatRate) : 15;
     const lineVat =
       item.lineVat !== undefined && item.lineVat !== null
         ? toNumber(item.lineVat)
-        : taxableSubtotal * (vatRate / 100);
+        : Number((taxableSubtotal * (vatRate / 100)).toFixed(10));
     const lineTotal =
       item.lineTotal !== undefined && item.lineTotal !== null
         ? toNumber(item.lineTotal)
-        : taxableSubtotal + lineVat;
+        : Number((taxableSubtotal + lineVat).toFixed(10));
 
     computedGross += gross;
     computedDiscount += lineDiscount;
@@ -270,10 +283,11 @@ export function Template9ModernBrownGray({
 
   // Dynamic height calculation for single-page guarantee
   const itemsCount = rows.length;
-  const extraItemsCount = Math.max(0, itemsCount - 6);
+  const extraItemsCount = Math.max(0, itemsCount - 5);
   let extraContentHeight = extraItemsCount * 22;
   const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
   extraContentHeight += discountItemsCount * 12;
+  extraContentHeight += 35; // supplier header metadata allowance
 
   if (invoice.notes) {
     extraContentHeight += 20 + Math.min(invoice.notes.split("\n").length, 5) * 8;
@@ -379,7 +393,7 @@ export function Template9ModernBrownGray({
             </View>
           </View>
 
-          {/* Right: Title & Brand / Logo */}
+          {/* Right: Title & Brand / Logo & Supplier Details */}
           <View style={styles.headerRight}>
             <Text style={styles.docTitleMain}>فاتورة ضريبية</Text>
             {logoSource ? (
@@ -389,6 +403,44 @@ export function Template9ModernBrownGray({
             {company.nameEn ? (
               <Text style={styles.companySubText}>{company.nameEn}</Text>
             ) : null}
+
+            <View style={styles.supplierMetaWrap}>
+              {company.vatNumber ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>الرقم الضريبي</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{company.vatNumber}</Text>
+                </View>
+              ) : null}
+              {company.crNumber ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>السجل التجاري</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{company.crNumber}</Text>
+                </View>
+              ) : null}
+              {formatAddress(company) ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>العنـــــوان</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{formatAddress(company)}</Text>
+                </View>
+              ) : null}
+              {company.phone ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>رقم الهـاتـف</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{company.phone}</Text>
+                </View>
+              ) : null}
+              {company.email ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>البريد الإلكتروني</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{company.email}</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
 
@@ -624,6 +676,14 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     color: "#666666",
     textAlign: "right",
+  },
+  supplierMetaWrap: {
+    marginTop: 6,
+    paddingTop: 4,
+    borderTopWidth: 0.5,
+    borderTopColor: "#E5E7EB",
+    width: "100%",
+    alignItems: "flex-end",
   },
   headerLeft: {
     width: "48%",

@@ -12,6 +12,8 @@ import { toWesternDigits } from "@/lib/format";
 import type { ActionState } from "./types";
 
 
+import { getNextAvailableTemplateId } from "@/domain/services/template-assignment";
+
 const container = createContainer(db);
 
 export async function createCompanyAction(
@@ -45,6 +47,8 @@ export async function createCompanyAction(
     await new CreateCompany(
       container.companyRepository,
       container.clock,
+      container.companySettingsRepository,
+      () => getNextAvailableTemplateId(db),
     ).execute(input);
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -159,6 +163,8 @@ export async function createCompanyDirectAction(data: {
     const result = await new CreateCompany(
       container.companyRepository,
       container.clock,
+      container.companySettingsRepository,
+      () => getNextAvailableTemplateId(db),
     ).execute({
       ...data,
       vatNumber: toWesternDigits(data.vatNumber.trim()),

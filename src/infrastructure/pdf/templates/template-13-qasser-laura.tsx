@@ -206,7 +206,9 @@ export function Template13QasserLaura({
           <View style={styles.headerRow} wrap={false}>
             {/* Left Header Title / English Name in Red */}
             <View style={styles.headerLeftCol}>
-              <Text style={styles.companyNameEnRed}>{company.nameEn || company.nameAr}</Text>
+              {company.nameEn ? (
+                <Text style={styles.companyNameEnRed}>{company.nameEn}</Text>
+              ) : null}
             </View>
 
             {/* Center: Logo & Capsule Badge */}

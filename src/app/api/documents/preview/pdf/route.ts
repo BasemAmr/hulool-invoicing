@@ -37,7 +37,7 @@ const SAMPLE_QR_PAYLOAD =
 function buildSampleCompany(): CompanyRecord {
   return {
     id: asCompanyId("00000000-0000-0000-0000-000000000001"),
-    nameAr: "شركة حلول التقنية المتقدمة",
+    nameAr: "شركة التقنية المتقدمة",
     nameEn: "Hulool Advanced Tech Co.",
     vatNumber: "31111111111123",
     crNumber: "1010998877",

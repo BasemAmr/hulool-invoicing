@@ -277,7 +277,7 @@ export function TemplateBrowserDrawer({
               </button>
             </div>
 
-            {/* Template Select Dropdown with Parent Category Optgroups */}
+            {/* Template Select Dropdown without titled category optgroups */}
             <select
               value={currentTemplateId}
               onChange={(e) => {
@@ -286,22 +286,11 @@ export function TemplateBrowserDrawer({
               }}
               className="h-7.5 bg-background border border-input px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[170px] sm:min-w-[220px]"
             >
-              {groupTemplatesByParentCategory(templatesList).companyChosen.length > 0 && (
-                <optgroup label={PARENT_CATEGORY_LABELS.company_chosen.ar}>
-                  {groupTemplatesByParentCategory(templatesList).companyChosen.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      ★ {getTemplateDisplayName(t)}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <optgroup label={PARENT_CATEGORY_LABELS.system_default.ar}>
-                {groupTemplatesByParentCategory(templatesList).systemDefault.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {getTemplateDisplayName(t)}
-                  </option>
-                ))}
-              </optgroup>
+              {templatesList.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {getTemplateDisplayName(t)}
+                </option>
+              ))}
             </select>
 
             {/* Save / Apply Button */}
