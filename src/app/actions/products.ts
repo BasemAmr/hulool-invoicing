@@ -194,3 +194,17 @@ export async function deleteSavedProductAction(
   }
 }
 
+/**
+ * Server action to search saved products dynamically.
+ * Allows combobox inputs to find any matching product even when the catalog is large.
+ */
+export async function searchSavedProductsAction(query?: string | null) {
+  try {
+    const q = query?.trim() || null;
+    return await container.savedProductRepository.list(q, 100, 0);
+  } catch (error) {
+    console.error("Failed to search saved products:", error);
+    return [];
+  }
+}
+

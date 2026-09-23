@@ -58,11 +58,19 @@ export class SavedProductRepositoryImpl implements SavedProductRepository {
     limit = 100,
     offset = 0
   ): Promise<SavedProductRecord[]> {
-    const where = search
+    const trimmed = search?.trim();
+    const where = trimmed
       ? or(
-          ilike(savedProducts.nameAr, `%${search}%`),
-          ilike(savedProducts.nameEn, `%${search}%`),
-          ilike(savedProducts.description, `%${search}%`),
+          ilike(savedProducts.nameAr, `%${trimmed}%`),
+          ilike(savedProducts.nameEn, `%${trimmed}%`),
+          ilike(savedProducts.description, `%${trimmed}%`),
+          ...(trimmed.includes("أ") || trimmed.includes("إ") || trimmed.includes("آ") || trimmed.includes("ا")
+            ? [
+                ilike(savedProducts.nameAr, `%${trimmed.replace(/[أإآ]/g, "ا")}%`),
+                ilike(savedProducts.nameAr, `%${trimmed.replace(/ا/g, "أ")}%`),
+                ilike(savedProducts.nameAr, `%${trimmed.replace(/ا/g, "إ")}%`),
+              ]
+            : []),
         )
       : undefined;
 

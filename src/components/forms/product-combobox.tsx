@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Package, Search, Plus, Check } from "lucide-react";
+import { Package, Search, Plus, Check, Loader2 } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import type { SavedProductRecord } from "@/application/ports/saved-product-repository";
+import { searchSavedProductsAction } from "@/app/actions/products";
 
 export interface ProductComboboxProps {
   value: string;
@@ -18,9 +19,10 @@ export interface ProductComboboxProps {
 function normalizeArabic(text: string): string {
   if (!text) return "";
   return text
-    .replace(/[أإآ]/g, "ا")
+    .replace(/[أإآٱ]/g, "ا")
     .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
+    .replace(/[ىي]/g, "ي")
+    .replace(/\u0640/g, "") // remove tatweel
     .replace(/[\u064B-\u065F]/g, "") // remove tashkeel
     .toLowerCase()
     .trim();
@@ -37,8 +39,55 @@ export function ProductCombobox({
 }: ProductComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const [catalog, setCatalog] = useState<SavedProductRecord[]>(products);
+  const [isSearchingServer, setIsSearchingServer] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync and merge incoming prop products into catalog
+  useEffect(() => {
+    setCatalog((prev) => {
+      const map = new Map<string, SavedProductRecord>();
+      for (const p of products) map.set(p.id, p);
+      for (const p of prev) {
+        if (!map.has(p.id)) map.set(p.id, p);
+      }
+      return Array.from(map.values());
+    });
+  }, [products]);
+
+  // Live debounced server search to guarantee any product in the database is discoverable
+  useEffect(() => {
+    const trimmed = value?.trim();
+    if (!trimmed) return;
+
+    const timer = setTimeout(async () => {
+      setIsSearchingServer(true);
+      try {
+        const results = await searchSavedProductsAction(trimmed);
+        if (results && results.length > 0) {
+          setCatalog((prev) => {
+            const map = new Map<string, SavedProductRecord>();
+            for (const p of prev) map.set(p.id, p);
+            let hasNew = false;
+            for (const p of results) {
+              if (!map.has(p.id)) {
+                map.set(p.id, p);
+                hasNew = true;
+              }
+            }
+            return hasNew ? Array.from(map.values()) : prev;
+          });
+        }
+      } catch (err) {
+        console.error("Failed live product search:", err);
+      } finally {
+        setIsSearchingServer(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [value]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -54,22 +103,58 @@ export function ProductCombobox({
   }, []);
 
   const filteredProducts = useMemo(() => {
-    if (!products || products.length === 0) return [];
-    if (!value || !value.trim()) return products;
+    if (!catalog || catalog.length === 0) return [];
+    const trimmed = (value ?? "").trim();
+    if (!trimmed) return catalog;
 
-    const query = normalizeArabic(value);
-    return products.filter((p) => {
-      const nameAr = normalizeArabic(p.nameAr);
-      const nameEn = p.nameEn ? p.nameEn.toLowerCase() : "";
-      const desc = p.description ? normalizeArabic(p.description) : "";
+    const rawQuery = trimmed.toLowerCase();
+    const rawTokens = rawQuery.split(/\s+/).filter(Boolean);
 
-      return (
-        nameAr.includes(query) ||
-        nameEn.includes(query) ||
-        desc.includes(query)
-      );
+    const normQuery = normalizeArabic(trimmed);
+    const normTokens = normQuery.split(/\s+/).filter(Boolean);
+
+    return catalog.filter((p) => {
+      const rawNameAr = (p.nameAr ?? "").toLowerCase();
+      const rawNameEn = (p.nameEn ?? "").toLowerCase();
+      const rawDesc = (p.description ?? "").toLowerCase();
+      const rawCombined = `${rawNameAr} ${rawNameEn} ${rawDesc}`;
+
+      // 1. Direct raw substring match (matches Products page search)
+      if (
+        rawNameAr.includes(rawQuery) ||
+        rawNameEn.includes(rawQuery) ||
+        rawDesc.includes(rawQuery)
+      ) {
+        return true;
+      }
+
+      // 2. Multi-word raw tokens
+      if (rawTokens.length > 1 && rawTokens.every((t) => rawCombined.includes(t))) {
+        return true;
+      }
+
+      // 3. Arabic normalized match
+      const normNameAr = normalizeArabic(p.nameAr ?? "");
+      const normNameEn = (p.nameEn ?? "").toLowerCase();
+      const normDesc = normalizeArabic(p.description ?? "");
+      const normCombined = `${normNameAr} ${normNameEn} ${normDesc}`;
+
+      if (
+        normNameAr.includes(normQuery) ||
+        normNameEn.includes(normQuery) ||
+        normDesc.includes(normQuery)
+      ) {
+        return true;
+      }
+
+      // 4. Multi-word normalized tokens
+      if (normTokens.length > 1 && normTokens.every((t) => normCombined.includes(t))) {
+        return true;
+      }
+
+      return false;
     });
-  }, [products, value]);
+  }, [catalog, value]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
@@ -119,6 +204,11 @@ export function ProductCombobox({
           className="w-full text-xs h-7 px-2 bg-background border border-input text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           required
         />
+        {isSearchingServer ? (
+          <span className="absolute left-8 pointer-events-none text-muted-foreground">
+            <Loader2 className="size-3 animate-spin" />
+          </span>
+        ) : null}
         {isSavedProduct ? (
           <span
             className="absolute left-2 text-[9px] px-1 py-0.2 bg-primary/10 text-primary font-medium pointer-events-none"
@@ -131,9 +221,9 @@ export function ProductCombobox({
 
       {/* Dropdown Suggestions Menu */}
       {isOpen && (
-        <div className="absolute top-8 right-0 left-0 bg-popover border border-border shadow-lg z-50 max-h-56 overflow-y-auto flex flex-col p-1 text-xs">
+        <div className="absolute top-8 right-0 left-0 bg-popover border border-border shadow-lg z-50 max-h-60 overflow-y-auto flex flex-col p-1 text-xs">
           {filteredProducts.length > 0 ? (
-            filteredProducts.slice(0, 10).map((product, idx) => {
+            filteredProducts.slice(0, 30).map((product, idx) => {
               const priceSar = product.unitPrice
                 ? (product.unitPrice / 100).toFixed(2)
                 : "0.00";
@@ -179,8 +269,10 @@ export function ProductCombobox({
             })
           ) : (
             <div className="p-2 text-center text-muted-foreground text-[11px]">
-              {products.length === 0
+              {catalog.length === 0
                 ? "لا توجد منتجات مسجلة في الدليل حتى الآن"
+                : isSearchingServer
+                ? "جاري البحث في الدليل..."
                 : "لا يوجد منتج مطابق للبحث"}
             </div>
           )}
