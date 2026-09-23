@@ -31,7 +31,7 @@ export default async function CompanyInvoiceEditPage({
   const [company, customers, products, settings] = await Promise.all([
     container.companyRepository.findById(invoice.companyId),
     container.customerRepository.list(null, DEFAULT_PAGE_SIZE, 0),
-    container.savedProductRepository.list(null, 200, 0),
+    container.savedProductRepository.list(null, 5000, 0),
     // Company VAT/template defaults: blank lines added mid-edit must inherit
     // the company setting (like the new page) instead of the hardcoded 15%.
     container.companySettingsRepository.getByCompanyId(companyId),

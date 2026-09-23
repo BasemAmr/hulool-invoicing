@@ -71,7 +71,7 @@ export default async function NewCompanyInvoicePage({
 
   const [customers, products, settings] = await Promise.all([
     container.customerRepository.list(null, DEFAULT_PAGE_SIZE, 0),
-    container.savedProductRepository.list(null, 200, 0),
+    container.savedProductRepository.list(null, 5000, 0),
     container.companySettingsRepository.getByCompanyId(companyId),
   ]);
 

@@ -9,7 +9,7 @@ const container = createContainer(db);
 
 export default async function GlobalProductsPage() {
   await connection();
-  const products = await container.savedProductRepository.list(null, 500, 0);
+  const products = await container.savedProductRepository.list(null, 5000, 0);
 
   return <ProductsTableClient products={products} />;
 }
