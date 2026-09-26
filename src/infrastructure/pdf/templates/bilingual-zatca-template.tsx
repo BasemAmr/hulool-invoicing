@@ -164,12 +164,14 @@ function formatDateFormatted(iso: string | null | undefined): string {
   return clean;
 }
 
-function formatAddress(company: CompanyRecord): string {
+function formatAddress(record: CompanyRecord | CustomerRecord): string {
   const parts = [
-    company.addressStreet,
-    company.addressDistrict,
-    company.addressCity,
-    company.addressPostalCode,
+    record.addressAdditionalNumber,
+    record.addressPostalCode,
+    record.addressStreet,
+    record.addressBuildingNumber,
+    record.addressDistrict,
+    record.addressCity,
   ].filter((p): p is string => typeof p === "string" && p.length > 0);
   return parts.join("، ");
 }
@@ -469,7 +471,7 @@ export function BilingualZatcaTemplate({
                 </View>
               ) : null}
 
-              {customer.addressCity || customer.addressStreet || customer.addressPostalCode ? (
+              {formatAddress(customer) ? (
                 <View style={styles.partyLineRow}>
                   <View style={styles.partyLineKeyWrap}>
                     <Text style={styles.partyLineKeyAr}>العنوان</Text>
@@ -477,9 +479,7 @@ export function BilingualZatcaTemplate({
                     <Text style={styles.colon}>:</Text>
                   </View>
                   <Text style={styles.partyLineVal}>
-                    {[customer.addressStreet, customer.addressCity, customer.addressPostalCode]
-                      .filter(Boolean)
-                      .join("، ")}
+                    {formatAddress(customer)}
                   </Text>
                 </View>
               ) : null}
@@ -896,8 +896,8 @@ function buildZatcaStyles(primary: string, accent: string) {
       gap: 6,
     },
     qrBox: {
-      width: 70,
-      height: 70,
+      width: 110,
+      height: 110,
       alignItems: "center",
       justifyContent: "center",
       borderWidth: 0.5,
@@ -905,8 +905,12 @@ function buildZatcaStyles(primary: string, accent: string) {
       padding: 2,
     },
     qrImage: {
-      width: 66,
-      height: 66,
+      width: 106,
+      height: 106,
+    },
+    qrPlaceholder: {
+      width: 106,
+      height: 106,
     },
     draftWatermark: {
       fontSize: 6,

@@ -176,12 +176,15 @@ export function ShawagerInvestmentTemplate({
   const customerIdNumber = (customer as any).nationalId || (customer as any).idNumber || "";
   const customerEmail = customer.email || "";
 
-  // Customer address per guidelines: (City - Postal Code - Street - District)
+  // Customer address per guidelines: (Additional No. - Postal Code - Street - Building No. - District - City - Country)
   const customerAddressParts = [
-    customer.addressCity,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : null,
     customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : null,
     customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : null,
+    customer.addressCity,
+    "المملكة العربية السعودية",
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
 
@@ -1051,8 +1054,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   qrImage: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
   },
 
   // ─── Tafqeet ───

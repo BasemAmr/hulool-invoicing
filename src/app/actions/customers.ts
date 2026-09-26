@@ -23,8 +23,11 @@ export async function createCustomerAction(
     phone: nonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
     addressCity: String(formData.get("addressCity") ?? ""),
+    addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
+    addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
     addressPostalCode: String(formData.get("addressPostalCode") ?? ""),
+    addressAdditionalNumber: nonEmpty(formData.get("addressAdditionalNumber")),
   };
 
   try {
@@ -57,8 +60,11 @@ export async function createCustomerDirectAction(input: {
   phone?: string;
   email?: string;
   addressCity: string;
+  addressDistrict?: string;
   addressStreet?: string;
+  addressBuildingNumber?: string;
   addressPostalCode: string;
+  addressAdditionalNumber?: string;
 }): Promise<{ status: "success"; customer: { id: string; nameAr: string } } | { status: "error"; message: string }> {
   try {
     const result = await new CreateCustomer(
@@ -102,8 +108,11 @@ export async function updateCustomerAction(
     phone: nonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
     addressCity: String(formData.get("addressCity") ?? ""),
+    addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
+    addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
     addressPostalCode: String(formData.get("addressPostalCode") ?? ""),
+    addressAdditionalNumber: nonEmpty(formData.get("addressAdditionalNumber")),
   };
 
   try {
@@ -132,8 +141,11 @@ export async function updateCustomerDirectAction(input: {
   phone?: string;
   email?: string;
   addressCity: string;
+  addressDistrict?: string;
   addressStreet?: string;
+  addressBuildingNumber?: string;
   addressPostalCode: string;
+  addressAdditionalNumber?: string;
 }): Promise<{ status: "success"; customer: { id: string; nameAr: string } } | { status: "error"; message: string }> {
   try {
     const { UpdateCustomer } = await import("@/application/use-cases/update-customer");

@@ -215,6 +215,18 @@ export function Template9ModernBrownGray({
   const issueDateStr = formatDateFormatted(invoice.issueDate);
   const logoSource = logoDataUrl || company.logoUrl;
 
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
+
   const items: InvoiceItemDto[] = invoice.items || [];
   let computedGross = 0;
   let computedDiscount = 0;
@@ -341,59 +353,7 @@ export function Template9ModernBrownGray({
 
         {/* ─── Header Section ─── */}
         <View style={styles.headerRow}>
-          {/* Left: Invoice Metadata & Customer Box */}
-          <View style={styles.headerLeft}>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>التـــــاريخ</Text>
-              <Text style={styles.colon}>:</Text>
-              <Text style={styles.metaValue}>{issueDateStr}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>رقم الفاتورة</Text>
-              <Text style={styles.colon}>:</Text>
-              <Text style={styles.metaValue}>{numberLabel}</Text>
-            </View>
-
-            <View style={styles.customerMetaWrap}>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>فاتورة إلى</Text>
-                <Text style={styles.colon}>:</Text>
-                <Text style={[styles.metaValue, styles.bold]}>{customer.nameAr}</Text>
-              </View>
-              {customer.phone ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>رقم الهـاتـف</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaValue}>{customer.phone}</Text>
-                </View>
-              ) : null}
-              {customer.vatNumber ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>الرقم الضريبي</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaValue}>{customer.vatNumber}</Text>
-                </View>
-              ) : null}
-              {customer.unifiedNumber ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>السجل / الموحد</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaValue}>{customer.unifiedNumber}</Text>
-                </View>
-              ) : null}
-              {customer.addressCity || customer.addressStreet ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>العنـــــوان</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaValue}>
-                    {[customer.addressStreet, customer.addressCity].filter(Boolean).join("، ")}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Right: Title & Brand / Logo & Supplier Details */}
+          {/* Right: Title & Brand / Logo & Supplier Details (First in row-reverse -> Right) */}
           <View style={styles.headerRight}>
             <Text style={styles.docTitleMain}>فاتورة ضريبية</Text>
             {logoSource ? (
@@ -438,6 +398,56 @@ export function Template9ModernBrownGray({
                   <Text style={styles.metaLabel}>البريد الإلكتروني</Text>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.metaValue}>{company.email}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Left: Invoice Metadata & Customer Box (Second in row-reverse -> Left) */}
+          <View style={styles.headerLeft}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>التـــــاريخ</Text>
+              <Text style={styles.colon}>:</Text>
+              <Text style={styles.metaValue}>{issueDateStr}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>رقم الفاتورة</Text>
+              <Text style={styles.colon}>:</Text>
+              <Text style={styles.metaValue}>{numberLabel}</Text>
+            </View>
+
+            <View style={styles.customerMetaWrap}>
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>فاتورة إلى</Text>
+                <Text style={styles.colon}>:</Text>
+                <Text style={[styles.metaValue, styles.bold]}>{customer.nameAr}</Text>
+              </View>
+              {customer.phone ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>رقم الهـاتـف</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{customer.phone}</Text>
+                </View>
+              ) : null}
+              {customer.vatNumber ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>الرقم الضريبي</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{customer.vatNumber}</Text>
+                </View>
+              ) : null}
+              {customer.unifiedNumber ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>السجل / الموحد</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{customer.unifiedNumber}</Text>
+                </View>
+              ) : null}
+              {customerAddress ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>العنـــــوان</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaValue}>{customerAddress}</Text>
                 </View>
               ) : null}
             </View>
@@ -552,41 +562,41 @@ export function Template9ModernBrownGray({
           <View style={styles.companyContactsCol}>
             {formatAddress(company) ? (
               <View style={styles.contactRow}>
-                <Text style={styles.contactVal}>{formatAddress(company)}</Text>
-                <Text style={styles.colon}>:</Text>
                 <Text style={styles.contactKey}>العنـــــوان</Text>
+                <Text style={styles.colon}>:</Text>
+                <Text style={styles.contactVal}>{formatAddress(company)}</Text>
               </View>
             ) : null}
 
             {company.phone ? (
               <View style={styles.contactRow}>
-                <Text style={styles.contactVal}>{company.phone}</Text>
-                <Text style={styles.colon}>:</Text>
                 <Text style={styles.contactKey}>رقم الهـاتـف</Text>
+                <Text style={styles.colon}>:</Text>
+                <Text style={styles.contactVal}>{company.phone}</Text>
               </View>
             ) : null}
 
             {company.email ? (
               <View style={styles.contactRow}>
-                <Text style={styles.contactVal}>{company.email}</Text>
-                <Text style={styles.colon}>:</Text>
                 <Text style={styles.contactKey}>البريد الإلكتروني</Text>
+                <Text style={styles.colon}>:</Text>
+                <Text style={styles.contactVal}>{company.email}</Text>
               </View>
             ) : null}
 
             {company.vatNumber ? (
               <View style={styles.contactRow}>
-                <Text style={styles.contactVal}>{company.vatNumber}</Text>
-                <Text style={styles.colon}>:</Text>
                 <Text style={styles.contactKey}>الرقم الضريبي</Text>
+                <Text style={styles.colon}>:</Text>
+                <Text style={styles.contactVal}>{company.vatNumber}</Text>
               </View>
             ) : null}
 
             {company.crNumber ? (
               <View style={styles.contactRow}>
-                <Text style={styles.contactVal}>{company.crNumber}</Text>
-                <Text style={styles.colon}>:</Text>
                 <Text style={styles.contactKey}>السجل التجاري</Text>
+                <Text style={styles.colon}>:</Text>
+                <Text style={styles.contactVal}>{company.crNumber}</Text>
               </View>
             ) : null}
           </View>
@@ -863,7 +873,7 @@ const styles = StyleSheet.create({
   },
   companyContactsCol: {
     width: "60%",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
   },
   contactRow: {
     flexDirection: "row-reverse",
@@ -875,10 +885,12 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: "#4B5563",
     fontWeight: "bold",
+    textAlign: "right",
   },
   contactVal: {
     fontSize: 7,
     color: "#1F2937",
+    textAlign: "right",
   },
   qrCol: {
     width: "35%",
@@ -888,8 +900,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qrImage: {
-    width: 72,
-    height: 72,
+    width: 115,
+    height: 115,
+  },
+  qrPlaceholder: {
+    width: 115,
+    height: 115,
   },
   qrLabel: {
     fontSize: 5.5,

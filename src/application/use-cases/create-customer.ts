@@ -32,8 +32,11 @@ export class CreateCustomer {
         phone: data.phone ?? null,
         email: data.email ?? null,
         addressCity: data.addressCity ?? null,
+        addressDistrict: data.addressDistrict ?? null,
         addressStreet: data.addressStreet ?? null,
+        addressBuildingNumber: data.addressBuildingNumber ?? null,
         addressPostalCode: data.addressPostalCode ?? null,
+        addressAdditionalNumber: data.addressAdditionalNumber ?? null,
       },
       now,
     );

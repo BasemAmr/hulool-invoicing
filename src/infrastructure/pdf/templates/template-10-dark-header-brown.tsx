@@ -205,6 +205,18 @@ export function Template10DarkHeaderBrown({
   const issueDateStr = formatDateFormatted(invoice.issueDate);
   const logoSource = logoDataUrl || company.logoUrl;
 
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
+
   const items: InvoiceItemDto[] = invoice.items || [];
   let computedGross = 0;
   let computedDiscount = 0;
@@ -306,31 +318,7 @@ export function Template10DarkHeaderBrown({
 
         {/* ─── 1. Full-Width Dark Top Banner (Header with Company Branding & Contacts) ─── */}
         <View style={styles.darkHeaderBand} wrap={false}>
-          {/* Company Contacts (Left Side of Dark Banner) */}
-          <View style={styles.darkHeaderContacts}>
-            {company.email ? (
-              <View style={styles.darkContactCol}>
-                <Text style={styles.darkContactKey}>البريد الإلكتروني</Text>
-                <Text style={styles.darkContactVal}>{company.email}</Text>
-              </View>
-            ) : null}
-
-            {company.phone ? (
-              <View style={styles.darkContactCol}>
-                <Text style={styles.darkContactKey}>رقم الهـاتـف</Text>
-                <Text style={styles.darkContactVal}>{company.phone}</Text>
-              </View>
-            ) : null}
-
-            {formatAddress(company) ? (
-              <View style={styles.darkContactCol}>
-                <Text style={styles.darkContactKey}>العنـــــوان</Text>
-                <Text style={styles.darkContactVal}>{formatAddress(company)}</Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Company Logo & Name (Right Side of Dark Banner) */}
+          {/* Company Logo & Name (Start / Right Side of Dark Banner) */}
           <View style={styles.darkHeaderBrand}>
             {logoSource ? (
               <Image src={logoSource} style={styles.darkLogo} />
@@ -343,14 +331,41 @@ export function Template10DarkHeaderBrown({
               <Text style={styles.darkCompanyMeta}>السجل التجاري: {company.crNumber}</Text>
             ) : null}
           </View>
+
+          {/* Company Contacts (Left Side of Dark Banner) */}
+          <View style={styles.darkHeaderContacts}>
+            {formatAddress(company) ? (
+              <View style={styles.darkContactCol}>
+                <Text style={styles.darkContactKey}>العنـــــوان</Text>
+                <Text style={styles.darkContactVal}>{formatAddress(company)}</Text>
+              </View>
+            ) : null}
+
+            {company.phone ? (
+              <View style={styles.darkContactCol}>
+                <Text style={styles.darkContactKey}>رقم الهـاتـف</Text>
+                <Text style={styles.darkContactVal}>{company.phone}</Text>
+              </View>
+            ) : null}
+
+            {company.email ? (
+              <View style={styles.darkContactCol}>
+                <Text style={styles.darkContactKey}>البريد الإلكتروني</Text>
+                <Text style={styles.darkContactVal}>{company.email}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
 
-        {/* ─── 2. Subheader Section: Customer Details (Left) + Document Title & Number (Right) ─── */}
+        {/* ─── 2. Subheader Section: Customer Details (Right) + Document Title & Number (Left) ─── */}
         <View style={styles.subHeaderSection} wrap={false}>
-          {/* Customer Details (Left) */}
+          {/* Customer Details (Start / Right) */}
           <View style={styles.customerBlock}>
-            <Text style={styles.billToLabel}>فاتورة إلى :</Text>
-            <Text style={styles.customerNamePrimary}>{customer.nameAr}</Text>
+            <View style={styles.customerFieldRow}>
+              <Text style={styles.billToLabel}>فاتورة إلى</Text>
+              <Text style={styles.colon}>:</Text>
+              <Text style={styles.customerNamePrimary}>{customer.nameAr}</Text>
+            </View>
             {customer.phone ? (
               <View style={styles.customerFieldRow}>
                 <Text style={styles.custKey}>رقم الهاتف</Text>
@@ -372,18 +387,16 @@ export function Template10DarkHeaderBrown({
                 <Text style={styles.custVal}>{customer.unifiedNumber}</Text>
               </View>
             ) : null}
-            {customer.addressCity || customer.addressStreet ? (
+            {customerAddress ? (
               <View style={styles.customerFieldRow}>
                 <Text style={styles.custKey}>العنـــــوان</Text>
                 <Text style={styles.colon}>:</Text>
-                <Text style={styles.custVal}>
-                  {[customer.addressStreet, customer.addressCity].filter(Boolean).join("، ")}
-                </Text>
+                <Text style={styles.custVal}>{customerAddress}</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Invoice Document Title & Meta (Right) */}
+          {/* Invoice Document Title & Meta (Left) */}
           <View style={styles.titleBlock}>
             <Text style={styles.mainTitleAr}>فاتورة ضريبية</Text>
             <Text style={styles.invoiceNumberHash}># {numberLabel}</Text>
@@ -395,19 +408,33 @@ export function Template10DarkHeaderBrown({
           </View>
         </View>
 
-        {/* ─── 3. Split Two-Tone Header Items Table ─── */}
+        {/* ─── 3. Split Two-Tone Header Items Table: Description then fields ─── */}
         <View style={styles.table}>
-          {/* Unified Two-Tone Header Row matching row columns in exact order */}
+          {/* Two-Tone Header Row */}
           <View style={styles.tableHeaderRow}>
-            <Text style={[styles.th, styles.thDark, styles.colTotal]}>المجموع</Text>
-            <Text style={[styles.th, styles.thDark, styles.colVat]}>الضريبة</Text>
+            <View style={[styles.thCell, styles.thBrown, styles.colNo]}>
+              <Text style={styles.thText}>م</Text>
+            </View>
+            <View style={[styles.thCell, styles.thBrown, hasDiscounts ? styles.colDesc : styles.colDescNoDisc]}>
+              <Text style={[styles.thText, styles.textRight]}>اسم الصنف / البيان</Text>
+            </View>
+            <View style={[styles.thCell, styles.thDark, styles.colQty]}>
+              <Text style={styles.thText}>العدد</Text>
+            </View>
+            <View style={[styles.thCell, styles.thDark, styles.colPrice]}>
+              <Text style={styles.thText}>سعر القطعة</Text>
+            </View>
             {hasDiscounts ? (
-              <Text style={[styles.th, styles.thDark, styles.colDisc]}>الخصم</Text>
+              <View style={[styles.thCell, styles.thDark, styles.colDisc]}>
+                <Text style={styles.thText}>الخصم</Text>
+              </View>
             ) : null}
-            <Text style={[styles.th, styles.thDark, styles.colPrice]}>سعر القطعة</Text>
-            <Text style={[styles.th, styles.thDark, styles.colQty]}>العدد</Text>
-            <Text style={[styles.th, styles.thBrown, hasDiscounts ? styles.colDesc : styles.colDescNoDisc]}>اسم الصنف / البيان</Text>
-            <Text style={[styles.th, styles.thBrown, styles.colNo]}>NO</Text>
+            <View style={[styles.thCell, styles.thDark, styles.colVat]}>
+              <Text style={styles.thText}>الضريبة</Text>
+            </View>
+            <View style={[styles.thCell, styles.thDark, styles.colTotal]}>
+              <Text style={styles.thText}>المجموع</Text>
+            </View>
           </View>
 
           {/* Table Rows with soft alternating stripes */}
@@ -417,19 +444,11 @@ export function Template10DarkHeaderBrown({
               style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : undefined]}
               wrap={false}
             >
-              <Text style={[styles.td, styles.colTotal, styles.bold]}>
-                {formatExactAmount(r.lineTotal)}
-              </Text>
-              <Text style={[styles.td, styles.colVat]}>{formatExactAmount(r.lineVat)}</Text>
-              {hasDiscounts ? (
-                <Text style={[styles.td, styles.colDisc]}>
-                  {r.lineDiscount > 0 ? formatExactAmount(r.lineDiscount) : "—"}
-                </Text>
-              ) : null}
-              <Text style={[styles.td, styles.colPrice]}>{formatExactAmount(r.unitPrice)}</Text>
-              <Text style={[styles.td, styles.colQty]}>{formatQty(r.qty)}</Text>
-              <View style={[styles.td, hasDiscounts ? styles.colDesc : styles.colDescNoDisc, styles.textRight]}>
-                <Text>{r.desc}</Text>
+              <View style={[styles.tdCell, styles.colNo]}>
+                <Text style={styles.tdText}>{r.index}</Text>
+              </View>
+              <View style={[styles.tdCell, hasDiscounts ? styles.colDesc : styles.colDescNoDisc, styles.textRight]}>
+                <Text style={[styles.tdText, styles.textRight]}>{r.desc}</Text>
                 {r.lineDiscount > 0 ? (
                   <View style={styles.discountBadge}>
                     <Text style={styles.discountBadgeText}>
@@ -438,7 +457,27 @@ export function Template10DarkHeaderBrown({
                   </View>
                 ) : null}
               </View>
-              <Text style={[styles.td, styles.colNo]}>{r.index}</Text>
+              <View style={[styles.tdCell, styles.colQty]}>
+                <Text style={styles.tdText}>{formatQty(r.qty)}</Text>
+              </View>
+              <View style={[styles.tdCell, styles.colPrice]}>
+                <Text style={styles.tdText}>{formatExactAmount(r.unitPrice)}</Text>
+              </View>
+              {hasDiscounts ? (
+                <View style={[styles.tdCell, styles.colDisc]}>
+                  <Text style={styles.tdText}>
+                    {r.lineDiscount > 0 ? formatExactAmount(r.lineDiscount) : "—"}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={[styles.tdCell, styles.colVat]}>
+                <Text style={styles.tdText}>{formatExactAmount(r.lineVat)}</Text>
+              </View>
+              <View style={[styles.tdCell, styles.colTotal]}>
+                <Text style={[styles.tdText, styles.bold]}>
+                  {formatExactAmount(r.lineTotal)}
+                </Text>
+              </View>
             </View>
           ))}
         </View>
@@ -522,7 +561,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 24,
     paddingBottom: 28,
-    fontFamily: "Amiri",
+    fontFamily: "Tajawal",
+    fontWeight: "bold",
     backgroundColor: "#ffffff",
     fontSize: 8,
     color: "#2C2C2C",
@@ -575,18 +615,19 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   darkContactCol: {
-    alignItems: "flex-end",
+    alignItems: "flex-start",
   },
   darkContactKey: {
     fontSize: 6.8,
     color: "#9CA3AF",
     fontWeight: "bold",
     marginBottom: 1,
+    textAlign: "left",
   },
   darkContactVal: {
     fontSize: 7,
     color: "#F3F4F6",
-    textAlign: "right",
+    textAlign: "left",
   },
   subHeaderSection: {
     flexDirection: "row-reverse",
@@ -597,13 +638,13 @@ const styles = StyleSheet.create({
   },
   titleBlock: {
     width: "45%",
-    alignItems: "flex-end",
+    alignItems: "flex-start",
   },
   mainTitleAr: {
     fontSize: 22,
     fontWeight: "bold",
     color: PRIMARY_BROWN,
-    textAlign: "right",
+    textAlign: "left",
   },
   invoiceNumberHash: {
     fontSize: 12,
@@ -611,6 +652,7 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     marginTop: 2,
     letterSpacing: 0.5,
+    textAlign: "left",
   },
   issueDateRow: {
     flexDirection: "row-reverse",
@@ -630,21 +672,19 @@ const styles = StyleSheet.create({
   },
   customerBlock: {
     width: "50%",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
     paddingTop: 2,
   },
   billToLabel: {
     fontSize: 8,
     fontWeight: "bold",
     color: "#374151",
-    marginBottom: 2,
     textAlign: "right",
   },
   customerNamePrimary: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "bold",
     color: PRIMARY_BROWN,
-    marginBottom: 3,
     textAlign: "right",
   },
   customerFieldRow: {
@@ -657,6 +697,7 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: "#6B7280",
     fontWeight: "bold",
+    textAlign: "right",
   },
   colon: {
     fontSize: 7,
@@ -665,6 +706,7 @@ const styles = StyleSheet.create({
   custVal: {
     fontSize: 7.2,
     color: "#1F2937",
+    textAlign: "right",
   },
   table: {
     width: "100%",
@@ -672,23 +714,25 @@ const styles = StyleSheet.create({
   },
   tableHeaderRow: {
     flexDirection: "row-reverse",
-    height: 22,
+    minHeight: 22,
+    alignItems: "stretch",
+  },
+  thCell: {
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    justifyContent: "center",
     alignItems: "center",
   },
   thDark: {
     backgroundColor: DARK_HEADER_BG,
-    color: "#ffffff",
   },
   thBrown: {
     backgroundColor: PRIMARY_BROWN,
-    color: "#ffffff",
   },
-  th: {
+  thText: {
     color: "#ffffff",
     fontSize: 7.5,
     fontWeight: "bold",
-    paddingVertical: 5,
-    paddingHorizontal: 2,
     textAlign: "center",
   },
   tableRow: {
@@ -701,12 +745,16 @@ const styles = StyleSheet.create({
   tableRowAlt: {
     backgroundColor: SOFT_STRIPE,
   },
-  td: {
-    fontSize: 7.2,
+  tdCell: {
     paddingVertical: 2.5,
     paddingHorizontal: 2,
+    justifyContent: "center",
+  },
+  tdText: {
+    fontSize: 7.2,
     textAlign: "center",
     color: "#1F2937",
+    fontWeight: "bold",
   },
   textRight: {
     textAlign: "right",
@@ -792,8 +840,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qrImage: {
-    width: 72,
-    height: 72,
+    width: 115,
+    height: 115,
   },
   qrCaption: {
     fontSize: 5.5,

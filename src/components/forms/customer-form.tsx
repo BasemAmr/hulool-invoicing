@@ -76,6 +76,27 @@ export function CustomerForm({
         />
 
         <Field
+          label="الحي (اختياري)"
+          name="addressDistrict"
+          defaultValue={initialCustomer?.addressDistrict ?? ""}
+          placeholder="الملز"
+        />
+
+        <Field
+          label="الشارع (اختياري)"
+          name="addressStreet"
+          defaultValue={initialCustomer?.addressStreet ?? ""}
+          placeholder="طريق الملك فهد"
+        />
+
+        <Field
+          label="رقم المبنى (اختياري)"
+          name="addressBuildingNumber"
+          defaultValue={initialCustomer?.addressBuildingNumber ?? ""}
+          placeholder="1234"
+        />
+
+        <Field
           label="الرمز البريدي *"
           name="addressPostalCode"
           defaultValue={initialCustomer?.addressPostalCode ?? ""}
@@ -84,10 +105,10 @@ export function CustomerForm({
         />
 
         <Field
-          label="الشارع (اختياري)"
-          name="addressStreet"
-          defaultValue={initialCustomer?.addressStreet ?? ""}
-          placeholder="طريق الملك فهد"
+          label="الرقم الإضافي (اختياري)"
+          name="addressAdditionalNumber"
+          defaultValue={initialCustomer?.addressAdditionalNumber ?? ""}
+          placeholder="6789"
         />
 
         <Field

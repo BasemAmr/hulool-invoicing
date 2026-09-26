@@ -191,15 +191,12 @@ export function AldailCeramicsTemplate({
   const customerCity = customer.addressCity || "";
 
   const customerAddressParts = [
-    customer.addressCity,
-    (customer as any).addressDistrict || (customer as any).district
-      ? `حي ${(customer as any).addressDistrict || (customer as any).district}`
-      : "",
-    customer.addressStreet,
-    (customer as any).addressBuildingNumber || (customer as any).buildingNo
-      ? `مبنى ${(customer as any).addressBuildingNumber || (customer as any).buildingNo}`
-      : "",
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
     customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
 
@@ -792,10 +789,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#111111",
     marginBottom: 6,
-    minHeight: 110,
+    minHeight: 145,
   },
   qrCol: {
-    width: "22%",
+    width: "28%",
     borderRightWidth: 1,
     borderRightColor: "#111111",
     alignItems: "center",
@@ -803,12 +800,12 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   qrImage: {
-    width: 90,
-    height: 90,
+    width: 140,
+    height: 140,
   },
   qrPlaceholder: {
-    width: 90,
-    height: 90,
+    width: 140,
+    height: 140,
     borderWidth: 0.5,
     borderColor: "#9CA3AF",
     alignItems: "center",
@@ -819,7 +816,7 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
   },
   metaCol: {
-    width: "78%",
+    width: "72%",
     paddingVertical: 4,
     paddingHorizontal: 6,
     justifyContent: "center",

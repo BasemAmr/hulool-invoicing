@@ -40,9 +40,6 @@ interface ExtendedCustomer {
   custCode?: string | number | null;
   clientNo?: string | number | null;
   crNumber?: string | null;
-  addressDistrict?: string | null;
-  addressBuildingNumber?: string | null;
-  addressAdditionalNumber?: string | null;
 }
 
 interface ExtendedItem {
@@ -130,13 +127,12 @@ function getCompanyAddress(company: CompanyRecord): string {
 }
 
 function getCustomerAddress(customer: CustomerRecord): string {
-  const ext = customer as CustomerRecord & ExtendedCustomer;
   const parts = [
-    ext.addressAdditionalNumber ? `الرقم الإضافي: ${ext.addressAdditionalNumber}` : null,
-    ext.addressPostalCode || customer.addressPostalCode ? `الرمز البريدي: ${ext.addressPostalCode || customer.addressPostalCode}` : null,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : null,
+    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : null,
     customer.addressStreet,
-    ext.addressBuildingNumber ? `مبنى ${ext.addressBuildingNumber}` : null,
-    ext.addressDistrict,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict,
     customer.addressCity,
   ].filter(Boolean);
   return parts.join(" - ");
@@ -807,8 +803,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerQrImage: {
-    width: 52,
-    height: 52,
+    width: 83,
+    height: 83,
   },
   // Header Right (Company names & metadata)
   headerRightInfoCol: {

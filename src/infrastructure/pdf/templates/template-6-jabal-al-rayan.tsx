@@ -39,9 +39,6 @@ interface CustomerExtensions {
   crNumber?: string | null;
   clientNo?: string | null;
   customerCode?: string | null;
-  addressDistrict?: string | null;
-  addressBuildingNumber?: string | null;
-  addressAdditionalNumber?: string | null;
 }
 
 interface ItemExtensions {
@@ -133,14 +130,13 @@ function getCompanyAddress(company: CompanyRecord): string {
 }
 
 function getCustomerAddress(customer: CustomerRecord): string {
-  const ext = customer as CustomerRecord & CustomerExtensions;
   const parts = [
-    ext.addressBuildingNumber ? `مبنى ${ext.addressBuildingNumber}` : null,
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
     customer.addressStreet,
-    ext.addressDistrict ? `حي ${ext.addressDistrict}` : null,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
     customer.addressCity,
-    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : null,
-    ext.addressAdditionalNumber ? `الرقم الإضافي: ${ext.addressAdditionalNumber}` : null,
   ].filter(Boolean);
   return parts.join(" - ");
 }
@@ -1143,7 +1139,7 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   footerQrBlock: {
-    width: "20%",
+    width: "24%",
     borderRightWidth: 1,
     borderRightColor: MAROON_LINE,
     alignItems: "center",
@@ -1151,12 +1147,12 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   qrImage: {
-    width: 68,
-    height: 68,
+    width: 109,
+    height: 109,
   },
   qrPlaceholder: {
-    width: 64,
-    height: 64,
+    width: 109,
+    height: 109,
     borderWidth: 0.5,
     borderColor: MAROON_LINE,
     alignItems: "center",
@@ -1177,7 +1173,7 @@ const styles = StyleSheet.create({
   },
 
   footerCenterBlock: {
-    width: "44%",
+    width: "40%",
     borderRightWidth: 1,
     borderRightColor: MAROON_LINE,
     flexDirection: "column",

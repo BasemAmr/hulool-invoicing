@@ -318,7 +318,7 @@ export function PosTemplate({
 
   // 6. Bottom section
   if (qrDataUrl) {
-    contentHeight += 88; // QR container 75 + margin
+    contentHeight += 133; // QR container 120 + margin
   }
   if (invoice.notes) {
     contentHeight += 18 + Math.min(invoice.notes.split("\n").length, 5) * 12;
@@ -689,15 +689,19 @@ function buildPosStyles(primary: string, isMonochrome: boolean) {
       marginTop: 3,
     },
     qrContainer: {
-      width: 75,
-      height: 75,
+      width: 120,
+      height: 120,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: 3,
     },
     qrImage: {
-      width: 75,
-      height: 75,
+      width: 120,
+      height: 120,
+    },
+    qrPlaceholder: {
+      width: 120,
+      height: 120,
     },
     termsText: {
       fontSize: 5.5,

@@ -179,6 +179,18 @@ function formatAddress(company: CompanyRecord): string {
   return parts.join("، ");
 }
 
+function formatCustomerAddress(customer: CustomerRecord): string {
+  const parts = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ].filter((p): p is string => typeof p === "string" && p.trim().length > 0);
+  return parts.join(" - ");
+}
+
 export interface SimpleTemplateProps {
   invoice: InvoiceDto;
   company: CompanyRecord;
@@ -315,32 +327,10 @@ export function SimpleTemplate({
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
 
-        {/* 1. Header: Document Title & Meta Box (Left) + Company Info & Logo (Right) */}
+        {/* 1. Header: Company Info (Right/Start) + Inv Number & Meta (Center) + Title (Left) */}
         <View style={styles.headerBox}>
-          {/* Left: Invoice Title & Meta Box */}
-          <View style={styles.headerLeft}>
-            <View style={styles.invoiceTitleWrap}>
-              <Text style={styles.invoiceTitle}>{titleAr}</Text>
-              <Text style={styles.invoiceNumber}>{numberLabel}</Text>
-            </View>
-
-            {/* Meta Table Box */}
-            <View style={styles.metaTable}>
-              <View style={styles.metaTableRow}>
-                <Text style={styles.metaTableKey}>تاريخ الفاتورة</Text>
-                <Text style={styles.metaTableVal}>{issueDateStr}</Text>
-              </View>
-              <View style={[styles.metaTableRow, styles.metaTableRowLast]}>
-                <Text style={styles.metaTableKey}>المبلغ المستحق</Text>
-                <Text style={[styles.metaTableVal, styles.boldText]}>
-                  0.00 SAR
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Right: Company Logo & Info */}
-          <View style={styles.headerRight}>
+          {/* Start / Right: Company Logo & Info */}
+          <View style={styles.headerCompanyCol}>
             {logoSource ? (
               <Image src={logoSource} style={styles.logoImage} />
             ) : null}
@@ -389,6 +379,28 @@ export function SimpleTemplate({
               </View>
             ) : null}
           </View>
+
+          {/* Center: Invoice Number & Meta Table Box */}
+          <View style={styles.headerCenterCol}>
+            <Text style={styles.invoiceNumber}>{numberLabel}</Text>
+            <View style={styles.metaTable}>
+              <View style={styles.metaTableRow}>
+                <Text style={styles.metaTableKey}>تاريخ الفاتورة</Text>
+                <Text style={styles.metaTableVal}>{issueDateStr}</Text>
+              </View>
+              <View style={[styles.metaTableRow, styles.metaTableRowLast]}>
+                <Text style={styles.metaTableKey}>المبلغ المستحق</Text>
+                <Text style={[styles.metaTableVal, styles.boldText]}>
+                  0.00 SAR
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Left: Invoice Title */}
+          <View style={styles.headerTitleCol}>
+            <Text style={styles.invoiceTitle}>{titleAr}</Text>
+          </View>
         </View>
 
         {/* 2. Customer Section */}
@@ -431,15 +443,11 @@ export function SimpleTemplate({
             </View>
           ) : null}
 
-          {customer.addressCity || customer.addressStreet || customer.addressPostalCode ? (
+          {formatCustomerAddress(customer) ? (
             <View style={styles.infoRow}>
               <Text style={styles.infoKey}>العنوان</Text>
               <Text style={styles.colon}>:</Text>
-              <Text style={styles.infoVal}>
-                {[customer.addressStreet, customer.addressCity, customer.addressPostalCode]
-                  .filter(Boolean)
-                  .join("، ")}
-              </Text>
+              <Text style={styles.infoVal}>{formatCustomerAddress(customer)}</Text>
             </View>
           ) : null}
         </View>
@@ -645,8 +653,8 @@ function buildSimpleStyles(primary: string, accent: string) {
       borderBottomColor: "#e2e8f0",
       marginBottom: 8,
     },
-    headerRight: {
-      width: "55%",
+    headerCompanyCol: {
+      width: "36%",
       alignItems: "flex-end",
     },
     logoImage: {
@@ -666,6 +674,33 @@ function buildSimpleStyles(primary: string, accent: string) {
       color: "#64748b",
       textAlign: "right",
       marginBottom: 1,
+    },
+    headerCenterCol: {
+      width: "36%",
+      alignItems: "center",
+    },
+    invoiceNumber: {
+      fontSize: 12,
+      fontWeight: "bold",
+      color: "#334155",
+      textAlign: "center",
+      marginBottom: 4,
+    },
+    metaTable: {
+      width: "100%",
+      borderWidth: 1,
+      borderColor: "#cbd5e1",
+      backgroundColor: "#f8fafc",
+    },
+    headerTitleCol: {
+      width: "26%",
+      alignItems: "flex-start",
+    },
+    invoiceTitle: {
+      fontSize: 15,
+      fontWeight: "bold",
+      color: primary,
+      textAlign: "left",
     },
     infoRow: {
       flexDirection: "row-reverse",
@@ -687,34 +722,6 @@ function buildSimpleStyles(primary: string, accent: string) {
       fontSize: 7,
       color: "#0f172a",
       textAlign: "right",
-    },
-    headerLeft: {
-      width: "42%",
-      alignItems: "flex-start",
-    },
-    invoiceTitleWrap: {
-      flexDirection: "row-reverse",
-      alignItems: "center",
-      gap: 4,
-      marginBottom: 5,
-    },
-    invoiceTitle: {
-      fontSize: 13,
-      fontWeight: "bold",
-      color: primary,
-      textAlign: "right",
-    },
-    invoiceNumber: {
-      fontSize: 12,
-      fontWeight: "bold",
-      color: "#334155",
-      textAlign: "left",
-    },
-    metaTable: {
-      width: "100%",
-      borderWidth: 1,
-      borderColor: "#cbd5e1",
-      backgroundColor: "#f8fafc",
     },
     metaTableRow: {
       flexDirection: "row-reverse",
@@ -872,14 +879,14 @@ function buildSimpleStyles(primary: string, accent: string) {
       gap: 8,
     },
     qrBox: {
-      width: 76,
+      width: 122,
       alignItems: "center",
       justifyContent: "center",
       shrink: 0,
     },
     qrImage: {
-      width: 76,
-      height: 76,
+      width: 122,
+      height: 122,
     },
     qrCaption: {
       fontSize: 5.5,

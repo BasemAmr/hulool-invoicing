@@ -71,8 +71,11 @@ export const customerCreateSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
   addressCity: z.string().min(1, "المدينة مطلوبة"),
+  addressDistrict: z.string().optional(),
   addressStreet: z.string().optional(),
+  addressBuildingNumber: z.string().optional(),
   addressPostalCode: z.string().min(1, "الرمز البريدي مطلوب"),
+  addressAdditionalNumber: z.string().optional(),
 });
 export type CustomerCreateInput = z.infer<typeof customerCreateSchema>;
 export const customerUpdateSchema = customerCreateSchema.extend({

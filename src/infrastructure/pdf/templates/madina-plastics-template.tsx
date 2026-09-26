@@ -174,10 +174,12 @@ export function MadinaPlasticsTemplate({
 
   // ─── Customer Address & Data ───
   const customerAddress = [
-    customer.addressCity,
-    customer.addressPostalCode,
-    customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
+    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ].filter(Boolean).join(" - ");
 
   const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
@@ -992,8 +994,8 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   qrImage: {
-    width: 115,
-    height: 115,
+    width: 160,
+    height: 160,
   },
 
   // ─── Notes & Terms ───

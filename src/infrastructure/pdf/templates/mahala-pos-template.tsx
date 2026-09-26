@@ -95,7 +95,11 @@ export function MahalaPosTemplate({
   ].filter(Boolean).join(" - ");
 
   const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
     customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
     customer.addressCity,
   ].filter(Boolean).join(" - ");
 
@@ -589,8 +593,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   qrImage: {
-    width: 105,
-    height: 105,
+    width: 160,
+    height: 160,
   },
 
   // ─── Notes & Terms Section ───

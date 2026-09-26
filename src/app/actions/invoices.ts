@@ -85,7 +85,9 @@ export async function createDraftInvoiceAction(
     // HH:MM from the wizard time picker; validated by the Zod contract,
     // normalized to "00:00" in the use case when absent (legacy callers).
     issueTime: nonEmpty(formData.get("issueTime")),
-    dueDate: nonEmpty(formData.get("dueDate")),
+    dueDate:
+      nonEmpty(formData.get("dueDate")) ??
+      (nonEmpty(formData.get("issueDate")) || undefined),
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
     terms: nonEmpty(formData.get("terms")),
@@ -265,7 +267,9 @@ export async function updateDraftInvoiceAction(
     issueDate: String(formData.get("issueDate") ?? ""),
     // Same HH:MM contract as the create path above.
     issueTime: nonEmpty(formData.get("issueTime")),
-    dueDate: nonEmpty(formData.get("dueDate")),
+    dueDate:
+      nonEmpty(formData.get("dueDate")) ??
+      (nonEmpty(formData.get("issueDate")) || undefined),
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
     terms: nonEmpty(formData.get("terms")),

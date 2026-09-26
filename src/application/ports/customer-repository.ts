@@ -9,8 +9,11 @@ export interface CustomerRecord {
   phone: string | null;
   email: string | null;
   addressCity: string | null;
+  addressDistrict: string | null;
   addressStreet: string | null;
+  addressBuildingNumber: string | null;
   addressPostalCode: string | null;
+  addressAdditionalNumber: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,8 +28,11 @@ export interface CustomerRepository {
       phone: string | null;
       email: string | null;
       addressCity: string | null;
+      addressDistrict?: string | null;
       addressStreet: string | null;
+      addressBuildingNumber?: string | null;
       addressPostalCode?: string | null;
+      addressAdditionalNumber?: string | null;
     },
     now: Date,
   ): Promise<CustomerRecord>;
@@ -40,8 +46,11 @@ export interface CustomerRepository {
       phone: string | null;
       email: string | null;
       addressCity: string | null;
+      addressDistrict?: string | null;
       addressStreet: string | null;
+      addressBuildingNumber?: string | null;
       addressPostalCode?: string | null;
+      addressAdditionalNumber?: string | null;
     },
     now: Date,
   ): Promise<CustomerRecord>;

@@ -176,17 +176,13 @@ export function BawazeerPlasticsTemplate({
   // ─── Customer / Buyer Details ───
   const customerNameAr = customer.nameAr || customer.nameEn || "";
   const customerNameEn = customer.nameEn && customer.nameEn !== customer.nameAr ? customer.nameEn : "";
-  const customerBuilding = (customer as any).addressBuildingNumber || (customer as any).buildingNumber || "";
+  const customerBuilding = customer.addressBuildingNumber || "";
   const customerStreet = customer.addressStreet || "";
-  const customerDistrict = (customer as any).addressDistrict || (customer as any).district || "";
+  const customerDistrict = customer.addressDistrict || "";
   const customerCity = customer.addressCity || "";
   const customerCountry = "المملكة العربية السعودية";
-  const customerPostalCode = customer.addressPostalCode || (customer as any).postalCode || "";
-  const customerAdditionalNo =
-    (customer as any).addressAdditionalNumber ||
-    (customer as any).addressAdditionalNo ||
-    (customer as any).additionalNumber ||
-    "";
+  const customerPostalCode = customer.addressPostalCode || "";
+  const customerAdditionalNo = customer.addressAdditionalNumber || "";
   const customerVatNo = customer.vatNumber || "";
   const customerCrn = customer.unifiedNumber || (customer as any).crNumber || "";
   const customerPhone = customer.phone || "";
@@ -833,17 +829,17 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   qrCol: {
-    width: 82,
+    width: 130,
     alignItems: "center",
     justifyContent: "center",
   },
   qrImage: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
   },
   qrPlaceholder: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
     borderWidth: 1,
     borderColor: "#9CA3AF",
   },

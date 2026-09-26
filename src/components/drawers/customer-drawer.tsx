@@ -22,8 +22,11 @@ export interface CustomerDrawerProps {
     phone?: string | null;
     email?: string | null;
     addressCity?: string | null;
+    addressDistrict?: string | null;
     addressStreet?: string | null;
+    addressBuildingNumber?: string | null;
     addressPostalCode?: string | null;
+    addressAdditionalNumber?: string | null;
   } | null;
   onSaved?: (customer: { id: string; nameAr: string; phone?: string | null; vatNumber?: string | null; addressCity?: string | null }) => void;
 }
@@ -46,10 +49,13 @@ export function CustomerDrawer({
   const [vatNumber, setVatNumber] = useState("");
   const [unifiedNumber, setUnifiedNumber] = useState("");
   const [addressCity, setAddressCity] = useState("");
+  const [addressDistrict, setAddressDistrict] = useState("");
+  const [addressStreet, setAddressStreet] = useState("");
+  const [addressBuildingNumber, setAddressBuildingNumber] = useState("");
   const [addressPostalCode, setAddressPostalCode] = useState("");
+  const [addressAdditionalNumber, setAddressAdditionalNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [addressStreet, setAddressStreet] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -60,20 +66,26 @@ export function CustomerDrawer({
         setVatNumber(customer.vatNumber ?? "");
         setUnifiedNumber(customer.unifiedNumber ?? "");
         setAddressCity(customer.addressCity ?? "");
+        setAddressDistrict(customer.addressDistrict ?? "");
+        setAddressStreet(customer.addressStreet ?? "");
+        setAddressBuildingNumber(customer.addressBuildingNumber ?? "");
         setAddressPostalCode(customer.addressPostalCode ?? "");
+        setAddressAdditionalNumber(customer.addressAdditionalNumber ?? "");
         setPhone(customer.phone ?? "");
         setEmail(customer.email ?? "");
-        setAddressStreet(customer.addressStreet ?? "");
       } else {
         setNameAr("");
         setNameEn("");
         setVatNumber("");
         setUnifiedNumber("");
         setAddressCity("");
+        setAddressDistrict("");
+        setAddressStreet("");
+        setAddressBuildingNumber("");
         setAddressPostalCode("");
+        setAddressAdditionalNumber("");
         setPhone("");
         setEmail("");
-        setAddressStreet("");
       }
     }
   }, [open, customer]);
@@ -118,10 +130,13 @@ export function CustomerDrawer({
           vatNumber: trimmedVat,
           unifiedNumber: trimmedUnified,
           addressCity: trimmedCity,
+          addressDistrict: addressDistrict.trim() || undefined,
+          addressStreet: addressStreet.trim() || undefined,
+          addressBuildingNumber: addressBuildingNumber.trim() || undefined,
           addressPostalCode: trimmedPostal,
+          addressAdditionalNumber: addressAdditionalNumber.trim() || undefined,
           phone: phone.trim() || undefined,
           email: email.trim() || undefined,
-          addressStreet: addressStreet.trim() || undefined,
         });
 
         if (res.status === "success") {
@@ -145,10 +160,13 @@ export function CustomerDrawer({
           vatNumber: trimmedVat,
           unifiedNumber: trimmedUnified,
           addressCity: trimmedCity,
+          addressDistrict: addressDistrict.trim() || undefined,
+          addressStreet: addressStreet.trim() || undefined,
+          addressBuildingNumber: addressBuildingNumber.trim() || undefined,
           addressPostalCode: trimmedPostal,
+          addressAdditionalNumber: addressAdditionalNumber.trim() || undefined,
           phone: phone.trim() || undefined,
           email: email.trim() || undefined,
-          addressStreet: addressStreet.trim() || undefined,
         });
 
         if (res.status === "success") {
@@ -312,14 +330,49 @@ export function CustomerDrawer({
             />
           </div>
 
+          {/* District (Optional) */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs font-medium text-muted-foreground">الحي (اختياري)</Label>
+            <Input
+              value={addressDistrict}
+              onChange={(e) => setAddressDistrict(e.target.value)}
+              placeholder="الملز، العليا..."
+              className="text-xs h-8"
+            />
+          </div>
+
           {/* Street (Optional) */}
-          <div className="flex flex-col gap-1 sm:col-span-2">
-            <Label className="text-xs font-medium text-muted-foreground">اسم الشارع والحي (اختياري)</Label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs font-medium text-muted-foreground">الشارع (اختياري)</Label>
             <Input
               value={addressStreet}
               onChange={(e) => setAddressStreet(e.target.value)}
-              placeholder="شارع الملك فهد، حي العليا..."
+              placeholder="طريق الملك فهد..."
               className="text-xs h-8"
+            />
+          </div>
+
+          {/* Building Number (Optional) */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs font-medium text-muted-foreground">رقم المبنى (اختياري)</Label>
+            <Input
+              value={addressBuildingNumber}
+              onChange={(e) => setAddressBuildingNumber(e.target.value)}
+              placeholder="1234"
+              className="text-xs font-mono h-8"
+              dir="ltr"
+            />
+          </div>
+
+          {/* Additional / Extra Number (Optional) */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs font-medium text-muted-foreground">الرقم الإضافي (اختياري)</Label>
+            <Input
+              value={addressAdditionalNumber}
+              onChange={(e) => setAddressAdditionalNumber(e.target.value)}
+              placeholder="5678"
+              className="text-xs font-mono h-8"
+              dir="ltr"
             />
           </div>
         </div>

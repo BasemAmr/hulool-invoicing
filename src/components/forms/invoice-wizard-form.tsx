@@ -881,47 +881,42 @@ export function InvoiceWizardForm({
               </select>
             </div>
 
-            {/* Issue Date + Time */}
+            {/* Issue Time - placed BEFORE Issue Date */}
+            <div className="flex flex-col gap-0.5">
+              <label className="text-[10px] font-medium text-muted-foreground">
+                وقت الإصدار *
+              </label>
+              <input
+                type="time"
+                name="issueTime"
+                dir="ltr"
+                value={issueTime}
+                onChange={(e) => setIssueTime(e.target.value)}
+                required
+                aria-label="وقت الإصدار (HH:MM)"
+                className="h-6.5 text-xs font-mono tabular-nums bg-background border border-input px-2 text-foreground w-full"
+              />
+            </div>
+
+            {/* Issue Date - full column width displaying complete DD / MM / YYYY */}
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] font-medium text-muted-foreground">
                 تاريخ الإصدار *
               </label>
-              <div className="flex items-center gap-1">
-                <DatePickerInput
-                  name="issueDate"
-                  value={issueDate}
-                  onChange={(val) => setIssueDate(val)}
-                  className="text-xs h-6.5 flex-1"
-                />
-                {/* Native time input: DatePickerInput is date-only, so a
-                    plain HH:MM picker rides beside it at the same density.
-                    Named `issueTime` so it submits with the form. */}
-                <input
-                  type="time"
-                  name="issueTime"
-                  dir="ltr"
-                  value={issueTime}
-                  onChange={(e) => setIssueTime(e.target.value)}
-                  required
-                  aria-label="وقت الإصدار (HH:MM)"
-                  className="h-8 text-xs font-mono tabular-nums bg-background border border-input px-1 text-foreground w-[86px]"
-                />
-              </div>
-            </div>
-
-            {/* Due Date */}
-            <div className="flex flex-col gap-0.5">
-              <label className="text-[10px] font-medium text-muted-foreground">
-                تاريخ الاستحقاق
-              </label>
               <DatePickerInput
-                name="dueDate"
-                value={dueDate}
-                onChange={(val) => setDueDate(val)}
-                placeholder="اختياري"
-                className="text-xs h-6.5"
+                name="issueDate"
+                value={issueDate}
+                onChange={(val) => setIssueDate(val)}
+                className="text-xs h-6.5 w-full"
               />
             </div>
+
+            {/* Hidden Due Date with default value */}
+            <input
+              type="hidden"
+              name="dueDate"
+              value={dueDate || issueDate || ""}
+            />
 
             {/* All invoices are published immediately — no draft option. */}
             <div className="col-span-2 flex items-center justify-between pt-1 border-t border-border/60">

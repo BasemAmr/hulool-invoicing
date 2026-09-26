@@ -206,6 +206,18 @@ export function ClassicTemplate({
 
   const logoSource = logoDataUrl || company.logoUrl;
 
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
+
   const items: InvoiceItemDto[] = invoice.items || [];
   let computedGross = 0;
   let computedDiscount = 0;
@@ -312,23 +324,10 @@ export function ClassicTemplate({
         {/* Outer Frame */}
         <View style={styles.outerFrame}>
           <View style={styles.innerFrame}>
-            {/* 1. Header: Document Title & Meta Box (Left) + Company Info (Right) */}
+            {/* 1. Header: Company Info (Right/Start) + Meta Box (Center) + Document Title (Left) */}
             <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.docTitle}>{titleAr}</Text>
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaKey}>الرقم</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaVal}>{numberLabel}</Text>
-                </View>
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaKey}>تاريخ الإصدار</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.metaVal}>{issueDateStr}</Text>
-                </View>
-              </View>
-
-              <View style={styles.headerRight}>
+              {/* Start / Right: Company Info */}
+              <View style={styles.headerCompanyCol}>
                 {logoSource ? (
                   <Image src={logoSource} style={styles.logo} />
                 ) : null}
@@ -355,6 +354,25 @@ export function ClassicTemplate({
                   </View>
                 ) : null}
               </View>
+
+              {/* Center: Invoice Number & Date */}
+              <View style={styles.headerCenterCol}>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaKey}>الرقم</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaVal}>{numberLabel}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaKey}>تاريخ الإصدار</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.metaVal}>{issueDateStr}</Text>
+                </View>
+              </View>
+
+              {/* Left: Document Title */}
+              <View style={styles.headerTitleCol}>
+                <Text style={styles.docTitle}>{titleAr}</Text>
+              </View>
             </View>
 
             {/* 2. Customer Section */}
@@ -373,6 +391,13 @@ export function ClassicTemplate({
                   <Text style={styles.detailKey}>الرقم الموحد / السجل</Text>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.detailVal}>{customer.unifiedNumber}</Text>
+                </View>
+              ) : null}
+              {customerAddress ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>العنوان</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.detailVal}>{customerAddress}</Text>
                 </View>
               ) : null}
               {customer.phone ? (
@@ -470,7 +495,9 @@ export function ClassicTemplate({
                   <View style={styles.qrBox}>
                     <Image src={qrDataUrl} style={styles.qrImage} />
                   </View>
-                ) : null}
+                ) : (
+                  <View style={styles.qrPlaceholder} />
+                )}
               </View>
 
               <View style={styles.totalsBox}>
@@ -558,13 +585,14 @@ function buildClassicStyles(primary: string) {
     header: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
+      alignItems: "flex-start",
       paddingBottom: 8,
       borderBottomWidth: 1.5,
       borderBottomColor: primary,
       marginBottom: 6,
     },
-    headerRight: {
-      width: "55%",
+    headerCompanyCol: {
+      width: "38%",
       alignItems: "flex-end",
     },
     logo: {
@@ -578,6 +606,36 @@ function buildClassicStyles(primary: string) {
       fontWeight: "bold",
       color: "#0f172a",
       textAlign: "right",
+    },
+    headerCenterCol: {
+      width: "35%",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    metaRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      gap: 3,
+      marginTop: 2,
+    },
+    metaKey: {
+      fontSize: 7,
+      color: "#64748b",
+    },
+    metaVal: {
+      fontSize: 7.5,
+      fontWeight: "bold",
+      color: "#0f172a",
+    },
+    headerTitleCol: {
+      width: "25%",
+      alignItems: "flex-start",
+    },
+    docTitle: {
+      fontSize: 14,
+      fontWeight: "bold",
+      color: primary,
+      textAlign: "left",
     },
     detailRow: {
       flexDirection: "row-reverse",
@@ -599,31 +657,6 @@ function buildClassicStyles(primary: string) {
       fontSize: 7,
       color: "#0f172a",
       textAlign: "right",
-    },
-    headerLeft: {
-      width: "40%",
-      alignItems: "flex-start",
-    },
-    docTitle: {
-      fontSize: 13,
-      fontWeight: "bold",
-      color: primary,
-      marginBottom: 4,
-    },
-    metaRow: {
-      flexDirection: "row-reverse",
-      alignItems: "center",
-      gap: 3,
-      marginTop: 2,
-    },
-    metaKey: {
-      fontSize: 7,
-      color: "#64748b",
-    },
-    metaVal: {
-      fontSize: 7.5,
-      fontWeight: "bold",
-      color: "#0f172a",
     },
     customerBox: {
       padding: 6,
@@ -748,15 +781,19 @@ function buildClassicStyles(primary: string) {
       width: "45%",
     },
     qrBox: {
-      width: 70,
-      height: 70,
+      width: 110,
+      height: 110,
       padding: 2,
       borderWidth: 0.5,
       borderColor: "#cbd5e1",
     },
     qrImage: {
-      width: 66,
-      height: 66,
+      width: 106,
+      height: 106,
+    },
+    qrPlaceholder: {
+      width: 106,
+      height: 106,
     },
     totalsBox: {
       width: 210,

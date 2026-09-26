@@ -219,22 +219,26 @@ export function JoyInvoiceTemplate({
   // ─── Customer / Buyer Details ───
   const customerNameAr = customer.nameAr || customer.nameEn || "";
   const customerNameEn = customer.nameEn && customer.nameEn !== customer.nameAr ? customer.nameEn : "";
-  const customerCity = customer.addressCity || "";
-  const customerPostalCode = customer.addressPostalCode || (customer as any).postalCode || "";
+  const customerBuilding = customer.addressBuildingNumber || "";
   const customerStreet = customer.addressStreet || "";
-  const customerDistrict = (customer as any).addressDistrict || (customer as any).district || "";
+  const customerDistrict = customer.addressDistrict || "";
+  const customerCity = customer.addressCity || "";
+  const customerPostalCode = customer.addressPostalCode || "";
+  const customerAdditionalNo = customer.addressAdditionalNumber || "";
   const customerVatNo = customer.vatNumber || "";
   const customerCrn = customer.unifiedNumber || (customer as any).crNumber || "";
   const customerPhone = customer.phone || "";
   const customerEmail = customer.email || "";
 
   // Address formatting per guidelines:
-  // (City - Postal Code - Street - District)
+  // (Additional No. - Postal Code - Street - Building No. - District - City)
   const customerAddressParts = [
-    customerCity,
+    customerAdditionalNo ? `الرقم الإضافي: ${customerAdditionalNo}` : null,
     customerPostalCode ? `الرمز البريدي: ${customerPostalCode}` : null,
     customerStreet,
+    customerBuilding ? `مبنى ${customerBuilding}` : null,
     customerDistrict,
+    customerCity,
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
 
@@ -731,8 +735,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   qrBox: {
-    width: 68,
-    height: 68,
+    width: 106,
+    height: 106,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
@@ -742,13 +746,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   qrImage: {
-    width: 62,
-    height: 62,
+    width: 100,
+    height: 100,
     objectFit: "contain",
   },
   qrPlaceholder: {
-    width: 62,
-    height: 62,
+    width: 100,
+    height: 100,
   },
   metaInfoBox: {
     alignItems: "flex-end",

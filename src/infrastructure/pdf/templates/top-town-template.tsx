@@ -168,11 +168,16 @@ export function TopTownTemplate({
   const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
   const customerNo = (customer as any).customerNumber || (customer as any).code || "";
   const customerAddress = [
-    customer.addressCity,
+    customer.addressAdditionalNumber,
     customer.addressPostalCode,
     customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
-  ].filter(Boolean).join(" - ");
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
 
   // ─── Bank Info ───
   const bankAccount = (company as any).bankAccount || (settings as any)?.bankAccount || "";
@@ -1096,12 +1101,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   qrImg: {
-    width: 65,
-    height: 65,
+    width: 104,
+    height: 104,
   },
   qrPlaceholder: {
-    width: 65,
-    height: 65,
+    width: 104,
+    height: 104,
     borderWidth: 1,
     borderColor: "#CCCCCC",
     alignItems: "center",

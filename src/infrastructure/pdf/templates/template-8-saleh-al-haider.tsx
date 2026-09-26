@@ -179,12 +179,13 @@ function getCompanyAddress(company: CompanyRecord): string {
 }
 
 function getCustomerAddress(customer: CustomerRecord): string {
-  const ext = customer as CustomerRecord & { addressDistrict?: string | null };
   const parts = [
-    customer.addressStreet,
-    ext.addressDistrict,
-    customer.addressCity,
+    customer.addressAdditionalNumber,
     customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
   ]
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
@@ -672,8 +673,12 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   qrImage: {
-    width: 68,
-    height: 68,
+    width: 109,
+    height: 109,
+  },
+  qrPlaceholder: {
+    width: 109,
+    height: 109,
   },
   headerCenterLogo: {
     width: "35%",

@@ -67,7 +67,14 @@ function formatCompanyAddress(company: CompanyRecord): string {
 }
 
 function formatCustomerAddress(customer: CustomerRecord): string {
-  return joinParts([customer.addressCity, customer.addressPostalCode, customer.addressStreet]);
+  return joinParts([
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]);
 }
 
 function CardGraphics({ width, height }: { width: number; height: number }) {
@@ -241,6 +248,7 @@ export function Template15RedaModern({
           <View style={styles.customerColumn}>
             <Text style={styles.sectionLabel}>فاتورة إلى</Text>
             <Text style={styles.customerName}>{customer.nameAr || customer.nameEn || ""}</Text>
+            {customerAddress ? <Text style={styles.detailText}>العنوان: {customerAddress}</Text> : null}
             {customer.phone ? <Text style={styles.detailText}>الهاتف: {customer.phone}</Text> : null}
             {customer.email ? <Text style={styles.detailText}>البريد الإلكتروني: {customer.email}</Text> : null}
           </View>
@@ -419,7 +427,7 @@ const styles = StyleSheet.create({
   grandRow: { backgroundColor: BLACK, borderBottomWidth: 0, minHeight: 25 },
   grandLabel: { width: "64%", backgroundColor: RED, color: "#FFFFFF", fontSize: 9, fontWeight: "bold", textAlign: "right", paddingRight: 5 },
   grandValue: { width: "36%", color: "#FFFFFF", fontSize: 10, fontWeight: "bold", textAlign: "center" },
-  qrCode: { width: 78, height: 78, marginRight: 20 },
+  qrCode: { width: 125, height: 125, marginRight: 20 },
   notesTerms: { flexDirection: "row-reverse", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: LIGHT_RULE, paddingTop: 6, marginBottom: 9 },
   noteBlock: { width: "48%", minHeight: 30, alignItems: "flex-end" },
   noteHeading: { fontSize: 8, fontWeight: "bold", color: BLACK, marginBottom: 2 },

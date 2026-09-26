@@ -221,10 +221,12 @@ export function ManahirPosTemplate({
     .join(" - ");
 
   const customerAddress = [
-    customer.addressStreet,
-    (customer as any).addressDistrict,
-    customer.addressCity,
+    customer.addressAdditionalNumber,
     customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
   ]
     .filter(Boolean)
     .join(" - ");
@@ -307,9 +309,9 @@ export function ManahirPosTemplate({
   // Thank you wrap
   contentHeight += 34;
 
-  // ZATCA QR Code
+  // ZATCA QR Code (144x144 QR + margins)
   if (qrDataUrl) {
-    contentHeight += 115;
+    contentHeight += 170;
   }
 
   // Footer text
@@ -1032,8 +1034,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   qrImage: {
-    width: 90,
-    height: 90,
+    width: 144,
+    height: 144,
+  },
+  qrPlaceholder: {
+    width: 144,
+    height: 144,
   },
 
   // ─── Footer Section ───

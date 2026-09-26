@@ -260,9 +260,12 @@ export function Template14RedaTrading({
     "Saudi Arabia",
   ].filter(Boolean).join(" - ");
   const customerAddress = [
-    customer.addressCity,
+    customer.addressAdditionalNumber,
     customer.addressPostalCode,
     customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
   ].filter(Boolean).join(" - ");
 
   const items: InvoiceItemDto[] = invoice.items || [];
@@ -1416,7 +1419,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   totalsTable: {
-    width: "82%",
+    width: "78%",
     borderRightWidth: 1,
     borderRightColor: "#000000",
   },
@@ -1486,14 +1489,14 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   qrBlock: {
-    width: "18%",
+    width: "22%",
     justifyContent: "center",
     alignItems: "center",
     padding: 2,
   },
   zatcaQrImage: {
-    width: 65,
-    height: 65,
+    width: 104,
+    height: 104,
   },
 
   // 8. Bank & Signatures Grid

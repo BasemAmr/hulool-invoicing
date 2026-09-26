@@ -13,6 +13,7 @@
     "db:down": "docker compose down",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:safe": "node --import=tsx scripts/migrate-entrypoint.ts",
     "db:studio": "drizzle-kit studio",
     "seed:admin": "node --import=tsx src/infrastructure/database/seed-admin.ts",
     "seed:products": "node --import=tsx src/infrastructure/database/seed-products.ts"
