@@ -139,14 +139,14 @@ export function StructuredBilingualTemplate({
   const buyerName = customer.nameEn
     ? `${customer.nameAr || ""} / ${customer.nameEn}`
     : customer.nameAr || "";
-  const buyerBuilding = "";
+  const buyerBuilding = customer.addressBuildingNumber || "";
   const buyerStreet = customer.addressStreet || "";
-  const buyerDistrict = "";
+  const buyerDistrict = customer.addressDistrict || "";
   const buyerCity = customer.addressCity || "";
   const buyerState = "";
   const buyerCountry = "المملكة العربية السعودية";
   const buyerPostalCode = customer.addressPostalCode || "";
-  const buyerAdditionalNo = "";
+  const buyerAdditionalNo = customer.addressAdditionalNumber || "";
   const buyerVat = customer.vatNumber || "";
   const buyerUnifiedOrCr = customer.unifiedNumber || "";
   const buyerPhone = customer.phone || "";
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
   },
 
   headerCenterTitle: {
-    flex: 1,
+    width: "35%",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
@@ -905,12 +905,16 @@ const styles = StyleSheet.create({
   },
 
   headerRightQr: {
-    width: "22%",
+    width: "25%",
     alignItems: "flex-end",
   },
   qrImage: {
-    width: 82,
-    height: 82,
+    width: 131,
+    height: 131,
+  },
+  qrPlaceholder: {
+    width: 131,
+    height: 131,
   },
 
   // ─── 2. Dual Party Table ───

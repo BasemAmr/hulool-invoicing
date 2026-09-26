@@ -211,14 +211,14 @@ export function GenericBranch23Template({
   const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
 
   const customerAddressParts = [
-    (customer as any).addressBuildingNumber ? `مبنى ${(customer as any).addressBuildingNumber}` : null,
-    customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district
-      ? `حي ${(customer as any).addressDistrict || (customer as any).district}`
+    customer.addressAdditionalNumber
+      ? `الرقم الإضافي ${customer.addressAdditionalNumber}`
       : null,
-    customer.addressCity,
     customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : null,
-    (customer as any).addressAdditionalNumber ? `الرقم الإضافي ${(customer as any).addressAdditionalNumber}` : null,
+    customer.addressStreet,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : null,
+    customer.addressCity,
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
 
@@ -1052,8 +1052,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   qrImage: {
-    width: 64,
-    height: 64,
+    width: 102,
+    height: 102,
   },
   qrLabel: {
     fontSize: 5.5,

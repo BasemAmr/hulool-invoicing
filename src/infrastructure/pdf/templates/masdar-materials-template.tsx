@@ -167,13 +167,16 @@ export function MasdarBuildingMaterialsTemplate({
 
   // Address lines for customer
   const customerAddressParts = [
-    customer.addressStreet,
-    customer.addressCity,
+    customer.addressAdditionalNumber ? `الرقم الإضافي ${customer.addressAdditionalNumber}` : "",
     customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : "",
+    customer.addressStreet,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict,
+    customer.addressCity,
   ].filter(Boolean);
   const customerAddressStr = customerAddressParts.join(" - ");
 
-  const customerUnified = (customer as any).unifiedNumber || (customer as any).crNumber || "";
+  const customerUnified = customer.unifiedNumber || "";
 
   // Items & Calculations
   const items = invoice.items || [];
@@ -733,7 +736,7 @@ const styles = StyleSheet.create({
     color: "#334155",
   },
   headerCenter: {
-    width: "36%",
+    width: "30%",
     alignItems: "center",
     paddingTop: 4,
   },
@@ -773,13 +776,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   headerRight: {
-    width: "20%",
+    width: "25%",
     alignItems: "flex-end",
     justifyContent: "center",
   },
   qrCodeImage: {
-    width: 85,
-    height: 85,
+    width: 130,
+    height: 130,
+    objectFit: "contain",
+  },
+  qrCodePlaceholder: {
+    width: 130,
+    height: 130,
     objectFit: "contain",
   },
 

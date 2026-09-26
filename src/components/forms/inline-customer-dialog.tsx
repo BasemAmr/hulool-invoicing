@@ -28,10 +28,13 @@ export function InlineCustomerDialog({
   const [vatNumber, setVatNumber] = useState("");
   const [unifiedNumber, setUnifiedNumber] = useState("");
   const [addressCity, setAddressCity] = useState("");
+  const [addressDistrict, setAddressDistrict] = useState("");
+  const [addressStreet, setAddressStreet] = useState("");
+  const [addressBuildingNumber, setAddressBuildingNumber] = useState("");
   const [addressPostalCode, setAddressPostalCode] = useState("");
+  const [addressAdditionalNumber, setAddressAdditionalNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [addressStreet, setAddressStreet] = useState("");
 
   if (!open) return null;
 
@@ -67,10 +70,13 @@ export function InlineCustomerDialog({
         vatNumber: vatNumber.trim(),
         unifiedNumber: unifiedNumber.trim(),
         addressCity: addressCity.trim(),
+        addressDistrict: addressDistrict.trim() || undefined,
+        addressStreet: addressStreet.trim() || undefined,
+        addressBuildingNumber: addressBuildingNumber.trim() || undefined,
         addressPostalCode: addressPostalCode.trim(),
+        addressAdditionalNumber: addressAdditionalNumber.trim() || undefined,
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
-        addressStreet: addressStreet.trim() || undefined,
       });
 
       if (res.status === "success") {
@@ -81,10 +87,13 @@ export function InlineCustomerDialog({
         setVatNumber("");
         setUnifiedNumber("");
         setAddressCity("");
+        setAddressDistrict("");
+        setAddressStreet("");
+        setAddressBuildingNumber("");
         setAddressPostalCode("");
+        setAddressAdditionalNumber("");
         setPhone("");
         setEmail("");
-        setAddressStreet("");
         onClose();
       } else {
         setErrorMessage(res.message);
@@ -104,7 +113,7 @@ export function InlineCustomerDialog({
         className="fixed inset-0 bg-black/60 backdrop-blur-xs"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg border border-border bg-card shadow-2xl p-5 z-10 animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-lg border border-border bg-card shadow-2xl p-5 z-10 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
           <div className="flex items-center gap-2 text-foreground font-semibold text-base">
             <UserPlus className="size-4 text-primary" />
@@ -184,6 +193,45 @@ export function InlineCustomerDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
+              <Label htmlFor="inline_district" className="text-xs">
+                الحي (اختياري)
+              </Label>
+              <Input
+                id="inline_district"
+                value={addressDistrict}
+                onChange={(e) => setAddressDistrict(e.target.value)}
+                placeholder="الملز"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="inline_street" className="text-xs">
+                الشارع (اختياري)
+              </Label>
+              <Input
+                id="inline_street"
+                value={addressStreet}
+                onChange={(e) => setAddressStreet(e.target.value)}
+                placeholder="طريق الملك فهد"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="inline_buildingNumber" className="text-xs">
+                رقم المبنى (اختياري)
+              </Label>
+              <Input
+                id="inline_buildingNumber"
+                value={addressBuildingNumber}
+                onChange={(e) => setAddressBuildingNumber(e.target.value)}
+                placeholder="1234"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="inline_postal" className="text-xs">
                 الرمز البريدي *
               </Label>
@@ -193,6 +241,17 @@ export function InlineCustomerDialog({
                 onChange={(e) => setAddressPostalCode(e.target.value)}
                 placeholder="12345"
                 required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="inline_additionalNumber" className="text-xs">
+                الرقم الإضافي (اختياري)
+              </Label>
+              <Input
+                id="inline_additionalNumber"
+                value={addressAdditionalNumber}
+                onChange={(e) => setAddressAdditionalNumber(e.target.value)}
+                placeholder="6789"
               />
             </div>
           </div>

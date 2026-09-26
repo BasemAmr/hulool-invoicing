@@ -191,11 +191,12 @@ export function BazreaPlasticsTemplate({
   const customerPhone = customer.phone || "";
   const customerEmail = customer.email || "";
   const customerAddress = [
-    customer.addressCity,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
     customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
-    customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
-    "المملكة العربية السعودية",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ].filter(Boolean).join(" - ");
 
   // Line items & calculations
@@ -411,7 +412,7 @@ export function BazreaPlasticsTemplate({
 
         {/* ─── Customer details strip + ZATCA QR Code ─── */}
         <View style={styles.customerBox}>
-          {/* Customer Details Column (72% width) */}
+          {/* Customer Details Column (70% width) */}
           <View style={styles.customerCol}>
             {/* Customer Name */}
             <View style={styles.custRow}>
@@ -482,7 +483,7 @@ export function BazreaPlasticsTemplate({
             ) : null}
           </View>
 
-          {/* QR Code Column (28% width) - ONLY ZATCA QR Code */}
+          {/* QR Code Column (30% width) - ONLY ZATCA QR Code */}
           <View style={styles.customerQrCol}>
             {qrDataUrl ? (
               <Image src={qrDataUrl} style={styles.qrImage} />
@@ -897,7 +898,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   customerCol: {
-    width: "72%",
+    width: "70%",
   },
   custRow: {
     flexDirection: "row-reverse",
@@ -941,7 +942,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customerQrCol: {
-    width: "28%",
+    width: "30%",
     borderLeftWidth: 1,
     borderLeftColor: "#111827",
     alignItems: "center",
@@ -949,12 +950,12 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   qrImage: {
-    width: 92,
-    height: 92,
+    width: 147,
+    height: 147,
   },
   qrPlaceholder: {
-    width: 92,
-    height: 92,
+    width: 147,
+    height: 147,
     borderWidth: 0.5,
     borderColor: "#9CA3AF",
     alignItems: "center",

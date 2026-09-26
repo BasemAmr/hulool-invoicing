@@ -50,6 +50,13 @@
       "when": 1787260000000,
       "tag": "0006_add_organization_type",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790420630741,
+      "tag": "0007_add_customer_address_fields",
+      "breakpoints": true
     }
   ]
 }

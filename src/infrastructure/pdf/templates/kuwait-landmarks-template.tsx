@@ -269,12 +269,14 @@ export function KuwaitLandmarksTemplate({
   const customerPhone = customer?.phone || extCust?.phone || "";
   const customerEmail = customer?.email || extCust?.email || "";
 
-  // Clean customer address line: City - Postal Code - [Street Name / District]
+  // Clean customer address line: (Additional No. - Postal Code - Street Name - Building No. - District - City)
   const customerAddressParts = [
-    customer?.addressCity,
+    customer?.addressAdditionalNumber ? `الرقم الإضافي ${customer.addressAdditionalNumber}` : "",
     customer?.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : "",
-    extCust?.addressDistrict || extCust?.district ? `حي ${extCust?.addressDistrict || extCust?.district}` : "",
     customer?.addressStreet,
+    customer?.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : "",
+    customer?.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer?.addressCity,
   ].filter(Boolean);
   const customerAddressLine = customerAddressParts.join(" - ");
 
@@ -394,7 +396,9 @@ export function KuwaitLandmarksTemplate({
           <View style={styles.metaRightQr}>
             {qrDataUrl ? (
               <Image src={qrDataUrl} style={styles.qrImage} />
-            ) : null}
+            ) : (
+              <View style={styles.qrPlaceholder} />
+            )}
           </View>
         </View>
 
@@ -844,8 +848,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   qrImage: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
+  },
+  qrPlaceholder: {
+    width: 128,
+    height: 128,
   },
 
   // ─── 3. Client & Metadata Card ───

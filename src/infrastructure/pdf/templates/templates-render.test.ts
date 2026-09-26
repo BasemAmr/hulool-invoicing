@@ -48,9 +48,12 @@ const mockCustomer: CustomerRecord = {
   unifiedNumber: null,
   phone: "0555555555",
   email: "cust@example.com",
+  addressDistrict: "Al-Rawdah",
+  addressBuildingNumber: "1234",
   addressCity: "Jeddah",
   addressStreet: "Tahlia Street",
   addressPostalCode: "54321",
+  addressAdditionalNumber: "5678",
   createdAt: NOW_ISO,
   updatedAt: NOW_ISO,
 };

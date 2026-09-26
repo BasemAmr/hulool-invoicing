@@ -290,6 +290,16 @@ export function ModernTemplate({
     "فاتورة ضريبية معتمدة صادرة إلكترونياً وفق متطلبات هيئة الزكاة والضريبة والجمارك";
 
   const issueDateStr = formatDateFormatted(invoice.issueDate);
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .filter(Boolean)
+    .join("، ");
 
   return (
     <Document
@@ -304,11 +314,21 @@ export function ModernTemplate({
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
 
-        {/* 1. Header: Logo & Company Name (Right) + Invoice Title & Ribbons (Left) */}
+        {/* 1. Header: Company Info (Right/Start) + Inv Number (Center) + Title (Left) */}
         <View style={styles.headerRow}>
-          {/* Left: Invoice Title & Status Badge */}
-          <View style={styles.headerLeft}>
-            <Text style={styles.invoiceTitle}>{titleAr}</Text>
+          {/* Start / Right: Company Logo & Info */}
+          <View style={styles.headerCompanyCol}>
+            {logoSource ? (
+              <Image src={logoSource} style={styles.logoImage} />
+            ) : null}
+            <Text style={styles.companyName}>{company.nameAr}</Text>
+            {company.nameEn ? (
+              <Text style={styles.companyNameEn}>{company.nameEn}</Text>
+            ) : null}
+          </View>
+
+          {/* Center: Invoice Number & Status Badge */}
+          <View style={styles.headerCenterCol}>
             <Text style={styles.invoiceNumber}>{numberLabel}</Text>
             <View style={styles.statusBadge}>
               <Text style={styles.statusBadgeText}>
@@ -317,15 +337,9 @@ export function ModernTemplate({
             </View>
           </View>
 
-          {/* Right: Company Logo & Info */}
-          <View style={styles.headerRight}>
-            {logoSource ? (
-              <Image src={logoSource} style={styles.logoImage} />
-            ) : null}
-            <Text style={styles.companyName}>{company.nameAr}</Text>
-            {company.nameEn ? (
-              <Text style={styles.companyNameEn}>{company.nameEn}</Text>
-            ) : null}
+          {/* Left: Invoice Title */}
+          <View style={styles.headerTitleCol}>
+            <Text style={styles.invoiceTitle}>{titleAr}</Text>
           </View>
         </View>
 
@@ -400,15 +414,11 @@ export function ModernTemplate({
               </View>
             ) : null}
 
-            {customer.addressCity || customer.addressStreet || customer.addressPostalCode ? (
+            {customerAddress ? (
               <View style={styles.bannerClientRow}>
                 <Text style={styles.bannerClientKey}>العنوان</Text>
                 <Text style={styles.colon}>:</Text>
-                <Text style={styles.bannerClientVal}>
-                  {[customer.addressStreet, customer.addressCity, customer.addressPostalCode]
-                    .filter(Boolean)
-                    .join("، ")}
-                </Text>
+                <Text style={styles.bannerClientVal}>{customerAddress}</Text>
               </View>
             ) : null}
           </View>
@@ -601,7 +611,8 @@ function buildModernStyles(primary: string, accent: string) {
       alignItems: "center",
       marginBottom: 8,
     },
-    headerRight: {
+    headerCompanyCol: {
+      width: "35%",
       alignItems: "flex-end",
     },
     logoImage: {
@@ -611,7 +622,7 @@ function buildModernStyles(primary: string, accent: string) {
       marginBottom: 3,
     },
     companyName: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: "bold",
       color: "#0f172a",
       textAlign: "right",
@@ -621,20 +632,16 @@ function buildModernStyles(primary: string, accent: string) {
       color: "#64748b",
       textAlign: "right",
     },
-    headerLeft: {
-      alignItems: "flex-start",
-    },
-    invoiceTitle: {
-      fontSize: 14,
-      fontWeight: "bold",
-      color: primary,
-      textAlign: "left",
+    headerCenterCol: {
+      width: "35%",
+      alignItems: "center",
+      justifyContent: "center",
     },
     invoiceNumber: {
       fontSize: 11,
       fontWeight: "bold",
       color: "#334155",
-      marginTop: 1,
+      textAlign: "center",
     },
     statusBadge: {
       marginTop: 3,
@@ -644,11 +651,23 @@ function buildModernStyles(primary: string, accent: string) {
       borderWidth: 0.5,
       borderColor: "#cbd5e1",
       borderRadius: 2,
+      alignSelf: "center",
     },
     statusBadgeText: {
       fontSize: 6.5,
       color: "#475569",
       fontWeight: "bold",
+      textAlign: "center",
+    },
+    headerTitleCol: {
+      width: "30%",
+      alignItems: "flex-start",
+    },
+    invoiceTitle: {
+      fontSize: 15,
+      fontWeight: "bold",
+      color: primary,
+      textAlign: "left",
     },
     bannerGrid: {
       flexDirection: "row-reverse",
@@ -839,8 +858,8 @@ function buildModernStyles(primary: string, accent: string) {
       gap: 8,
     },
     qrBox: {
-      width: 72,
-      height: 72,
+      width: 113,
+      height: 113,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "#ffffff",
@@ -849,8 +868,12 @@ function buildModernStyles(primary: string, accent: string) {
       padding: 2,
     },
     qrImage: {
-      width: 68,
-      height: 68,
+      width: 109,
+      height: 109,
+    },
+    qrPlaceholder: {
+      width: 109,
+      height: 109,
     },
     notesContainer: {
       flex: 1,

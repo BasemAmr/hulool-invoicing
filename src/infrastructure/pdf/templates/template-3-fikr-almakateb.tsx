@@ -87,9 +87,9 @@ function getCustomerExt(customer: CustomerRecord): FikrCustomerExtensions {
   return {
     clientNo: rec.clientNo ?? rec.customerCode ?? rec.code ?? null,
     crNumber: customer.unifiedNumber ?? rec.crNumber ?? rec.commercialReg ?? null,
-    addressDistrict: rec.addressDistrict ?? rec.district ?? null,
-    addressBuildingNumber: rec.addressBuildingNumber ?? rec.buildingNo ?? rec.buildingNumber ?? null,
-    addressAdditionalNumber: rec.addressAdditionalNumber ?? rec.additionalNo ?? rec.secondaryNumber ?? null,
+    addressDistrict: customer.addressDistrict ?? rec.district ?? null,
+    addressBuildingNumber: customer.addressBuildingNumber ?? rec.buildingNo ?? rec.buildingNumber ?? null,
+    addressAdditionalNumber: customer.addressAdditionalNumber ?? rec.additionalNo ?? rec.secondaryNumber ?? null,
     country: rec.country ?? null,
     mobile: rec.mobile ?? customer.phone ?? null,
   };
@@ -287,10 +287,10 @@ export function Template3FikrAlmakateb({
   const customerEmail = toText(customer.email);
   const customerCountry = toText(custExt.country || "المملكة العربية السعودية");
   const customerCity = toText(customer.addressCity);
-  const customerDistrict = toText(custExt.addressDistrict);
+  const customerDistrict = toText(customer.addressDistrict || custExt.addressDistrict);
   const customerStreet = toText(customer.addressStreet);
-  const customerBuildingNo = toText(custExt.addressBuildingNumber);
-  const customerSecondaryNo = toText(custExt.addressAdditionalNumber);
+  const customerBuildingNo = toText(customer.addressBuildingNumber || custExt.addressBuildingNumber);
+  const customerSecondaryNo = toText(customer.addressAdditionalNumber || custExt.addressAdditionalNumber);
   const customerPostalCode = toText(customer.addressPostalCode);
 
   // Line items processing
@@ -599,7 +599,7 @@ export function Template3FikrAlmakateb({
             </View>
           </View>
 
-          {/* Grid Row 2 Headers (National Address & Contact Details) */}
+          {/* Grid Row 2 Headers (National Address & Contact Details: Additional No - Postal Code - Street - Building No - District - City) */}
           <View style={styles.custGridRow}>
             <View style={[styles.custCellHeader, { width: "18%" }]}>
               <Text style={styles.gridHeaderLabel}>البريد الإلكتروني</Text>
@@ -608,22 +608,22 @@ export function Template3FikrAlmakateb({
               <Text style={styles.gridHeaderLabel}>رقم الجوال</Text>
             </View>
             <View style={[styles.custCellHeader, { width: "10%" }]}>
-              <Text style={styles.gridHeaderLabel}>الرمز البريدي</Text>
-            </View>
-            <View style={[styles.custCellHeader, { width: "10%" }]}>
-              <Text style={styles.gridHeaderLabel}>الرقم الإضافي</Text>
-            </View>
-            <View style={[styles.custCellHeader, { width: "10%" }]}>
-              <Text style={styles.gridHeaderLabel}>رقم المبنى</Text>
+              <Text style={styles.gridHeaderLabel}>المدينة</Text>
             </View>
             <View style={[styles.custCellHeader, { width: "13%" }]}>
               <Text style={styles.gridHeaderLabel}>الحي</Text>
             </View>
+            <View style={[styles.custCellHeader, { width: "10%" }]}>
+              <Text style={styles.gridHeaderLabel}>رقم المبنى</Text>
+            </View>
             <View style={[styles.custCellHeader, { width: "15%" }]}>
               <Text style={styles.gridHeaderLabel}>الشارع</Text>
             </View>
+            <View style={[styles.custCellHeader, { width: "10%" }]}>
+              <Text style={styles.gridHeaderLabel}>الرمز البريدي</Text>
+            </View>
             <View style={[styles.custCellHeader, { width: "10%", borderRightWidth: 0 }]}>
-              <Text style={styles.gridHeaderLabel}>المدينة</Text>
+              <Text style={styles.gridHeaderLabel}>الرقم الإضافي</Text>
             </View>
           </View>
 
@@ -636,22 +636,22 @@ export function Template3FikrAlmakateb({
               <Text style={styles.gridValText}>{customerPhone || "-"}</Text>
             </View>
             <View style={[styles.custCellVal, { width: "10%" }]}>
-              <Text style={styles.gridValText}>{customerPostalCode || "-"}</Text>
-            </View>
-            <View style={[styles.custCellVal, { width: "10%" }]}>
-              <Text style={styles.gridValText}>{customerSecondaryNo || "-"}</Text>
-            </View>
-            <View style={[styles.custCellVal, { width: "10%" }]}>
-              <Text style={styles.gridValText}>{customerBuildingNo || "-"}</Text>
+              <Text style={styles.gridValText}>{customerCity || "-"}</Text>
             </View>
             <View style={[styles.custCellVal, { width: "13%" }]}>
               <Text style={styles.gridValText}>{customerDistrict || "-"}</Text>
             </View>
+            <View style={[styles.custCellVal, { width: "10%" }]}>
+              <Text style={styles.gridValText}>{customerBuildingNo || "-"}</Text>
+            </View>
             <View style={[styles.custCellVal, { width: "15%" }]}>
               <Text style={styles.gridValText}>{customerStreet || "-"}</Text>
             </View>
+            <View style={[styles.custCellVal, { width: "10%" }]}>
+              <Text style={styles.gridValText}>{customerPostalCode || "-"}</Text>
+            </View>
             <View style={[styles.custCellVal, { width: "10%", borderRightWidth: 0 }]}>
-              <Text style={styles.gridValText}>{customerCity || "-"}</Text>
+              <Text style={styles.gridValText}>{customerSecondaryNo || "-"}</Text>
             </View>
           </View>
         </View>
@@ -963,8 +963,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   qrImage: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
   },
 
   headerCenterCol: {

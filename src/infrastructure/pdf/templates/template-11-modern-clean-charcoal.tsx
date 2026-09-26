@@ -203,6 +203,18 @@ export function Template11ModernCleanCharcoal({
   const issueDateStr = formatDateFormatted(invoice.issueDate);
   const logoSource = logoDataUrl || company.logoUrl;
 
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
+
   const items: InvoiceItemDto[] = invoice.items || [];
   let computedGross = 0;
   let computedDiscount = 0;
@@ -299,33 +311,9 @@ export function Template11ModernCleanCharcoal({
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
 
-        {/* ─── 1. Top Header Row: Dark Badge Contact Block (Left) + Invoice Identification (Right) ─── */}
+        {/* ─── 1. Top Header Row: Invoice Identification (Right) + Dark Badge Contact Block (Left) ─── */}
         <View style={styles.topHeaderRow} wrap={false}>
-          {/* Left: Dark Charcoal Badge Block with Contacts */}
-          <View style={styles.contactBadgeCol}>
-            {company.phone ? (
-              <View style={styles.badgeLine}>
-                <Text style={styles.badgeIcon}>☎</Text>
-                <Text style={styles.badgeText}>{company.phone}</Text>
-              </View>
-            ) : null}
-
-            {formatAddress(company) ? (
-              <View style={styles.badgeLine}>
-                <Text style={styles.badgeIcon}>📍</Text>
-                <Text style={styles.badgeText}>{formatAddress(company)}</Text>
-              </View>
-            ) : null}
-
-            {company.email ? (
-              <View style={styles.badgeLine}>
-                <Text style={styles.badgeIcon}>✉</Text>
-                <Text style={styles.badgeText}>{company.email}</Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Right: Invoice Metadata & Company Name */}
+          {/* Right: Invoice Metadata & Company Name (First in row-reverse -> Right) */}
           <View style={styles.invoiceMetaCol}>
             <Text style={styles.companyNameHeader}>{company.nameAr}</Text>
             {company.vatNumber ? (
@@ -353,20 +341,35 @@ export function Template11ModernCleanCharcoal({
               <Text style={styles.metaVal}>{issueDateStr}</Text>
             </View>
           </View>
-        </View>
 
-        {/* ─── 2. Middle Section: Document Title (Left) + Customer Block (Right) ─── */}
-        <View style={styles.middleSection} wrap={false}>
-          {/* Document Title with horizontal accent line */}
-          <View style={styles.titleWrap}>
-            <Text style={styles.docTitleAr}>فاتورة ضريبية</Text>
-            <View style={styles.titleUnderline} />
-            {logoSource ? (
-              <Image src={logoSource} style={styles.logoImage} />
+          {/* Left: Dark Charcoal Badge Block with Contacts (Second in row-reverse -> Left) */}
+          <View style={styles.contactBadgeCol}>
+            {company.phone ? (
+              <View style={styles.badgeLine}>
+                <Text style={styles.badgeIcon}>☎</Text>
+                <Text style={styles.badgeText}>{company.phone}</Text>
+              </View>
+            ) : null}
+
+            {formatAddress(company) ? (
+              <View style={styles.badgeLine}>
+                <Text style={styles.badgeIcon}>📍</Text>
+                <Text style={styles.badgeText}>{formatAddress(company)}</Text>
+              </View>
+            ) : null}
+
+            {company.email ? (
+              <View style={styles.badgeLine}>
+                <Text style={styles.badgeIcon}>✉</Text>
+                <Text style={styles.badgeText}>{company.email}</Text>
+              </View>
             ) : null}
           </View>
+        </View>
 
-          {/* Customer Details Box */}
+        {/* ─── 2. Middle Section: Customer Block (Right) + Document Title (Left) ─── */}
+        <View style={styles.middleSection} wrap={false}>
+          {/* Customer Details Box (First in row-reverse -> Right) */}
           <View style={styles.customerBox}>
             <Text style={styles.billToHeading}>فاتورة إلى:</Text>
             <View style={styles.customerRow}>
@@ -395,30 +398,51 @@ export function Template11ModernCleanCharcoal({
                 <Text style={styles.customerVal}>{customer.unifiedNumber}</Text>
               </View>
             ) : null}
-            {customer.addressCity || customer.addressStreet ? (
+            {customerAddress ? (
               <View style={styles.customerRow}>
                 <Text style={styles.customerKey}>العنـــــوان</Text>
                 <Text style={styles.colon}>:</Text>
-                <Text style={styles.customerVal}>
-                  {[customer.addressStreet, customer.addressCity].filter(Boolean).join("، ")}
-                </Text>
+                <Text style={styles.customerVal}>{customerAddress}</Text>
               </View>
+            ) : null}
+          </View>
+
+          {/* Document Title with horizontal accent line (Second in row-reverse -> Left) */}
+          <View style={styles.titleWrap}>
+            <Text style={styles.docTitleAr}>فاتورة ضريبية</Text>
+            <View style={styles.titleUnderline} />
+            {logoSource ? (
+              <Image src={logoSource} style={styles.logoImage} />
             ) : null}
           </View>
         </View>
 
-        {/* ─── 3. Items Table ─── */}
+        {/* ─── 3. Items Table: Description then fields ─── */}
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
-            <Text style={[styles.th, styles.colTotal]}>المجموع</Text>
-            <Text style={[styles.th, styles.colVat]}>الضريبة</Text>
+            <View style={[styles.thCell, styles.colNo]}>
+              <Text style={styles.thText}>NO</Text>
+            </View>
+            <View style={[styles.thCell, styles.colDesc]}>
+              <Text style={[styles.thText, styles.textRight]}>اسم الصنف / البيان</Text>
+            </View>
+            <View style={[styles.thCell, styles.colQty]}>
+              <Text style={styles.thText}>العدد</Text>
+            </View>
+            <View style={[styles.thCell, styles.colPrice]}>
+              <Text style={styles.thText}>سعر القطعة</Text>
+            </View>
             {hasDiscounts ? (
-              <Text style={[styles.th, styles.colDisc]}>الخصم</Text>
+              <View style={[styles.thCell, styles.colDisc]}>
+                <Text style={styles.thText}>الخصم</Text>
+              </View>
             ) : null}
-            <Text style={[styles.th, styles.colPrice]}>سعر القطعة</Text>
-            <Text style={[styles.th, styles.colQty]}>العدد</Text>
-            <Text style={[styles.th, styles.colDesc]}>اسم الصنف / البيان</Text>
-            <Text style={[styles.th, styles.colNo]}>NO</Text>
+            <View style={[styles.thCell, styles.colVat]}>
+              <Text style={styles.thText}>الضريبة</Text>
+            </View>
+            <View style={[styles.thCell, styles.colTotal]}>
+              <Text style={styles.thText}>المجموع</Text>
+            </View>
           </View>
 
           {rows.map((r, idx) => (
@@ -427,19 +451,11 @@ export function Template11ModernCleanCharcoal({
               style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : undefined]}
               wrap={false}
             >
-              <Text style={[styles.td, styles.colTotal, styles.bold]}>
-                {formatExactAmount(r.lineTotal)}
-              </Text>
-              <Text style={[styles.td, styles.colVat]}>{formatExactAmount(r.lineVat)}</Text>
-              {hasDiscounts ? (
-                <Text style={[styles.td, styles.colDisc]}>
-                  {r.lineDiscount > 0 ? formatExactAmount(r.lineDiscount) : "—"}
-                </Text>
-              ) : null}
-              <Text style={[styles.td, styles.colPrice]}>{formatExactAmount(r.unitPrice)}</Text>
-              <Text style={[styles.td, styles.colQty]}>{formatQty(r.qty)}</Text>
-              <View style={[styles.td, styles.colDesc, styles.textRight]}>
-                <Text>{r.desc}</Text>
+              <View style={[styles.tdCell, styles.colNo]}>
+                <Text style={styles.tdText}>{r.index}</Text>
+              </View>
+              <View style={[styles.tdCell, styles.colDesc, styles.textRight]}>
+                <Text style={[styles.tdText, styles.textRight]}>{r.desc}</Text>
                 {r.lineDiscount > 0 ? (
                   <View style={styles.discountBadge}>
                     <Text style={styles.discountBadgeText}>
@@ -448,46 +464,34 @@ export function Template11ModernCleanCharcoal({
                   </View>
                 ) : null}
               </View>
-              <Text style={[styles.td, styles.colNo]}>{r.index}</Text>
+              <View style={[styles.tdCell, styles.colQty]}>
+                <Text style={styles.tdText}>{formatQty(r.qty)}</Text>
+              </View>
+              <View style={[styles.tdCell, styles.colPrice]}>
+                <Text style={styles.tdText}>{formatExactAmount(r.unitPrice)}</Text>
+              </View>
+              {hasDiscounts ? (
+                <View style={[styles.tdCell, styles.colDisc]}>
+                  <Text style={styles.tdText}>
+                    {r.lineDiscount > 0 ? formatExactAmount(r.lineDiscount) : "—"}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={[styles.tdCell, styles.colVat]}>
+                <Text style={styles.tdText}>{formatExactAmount(r.lineVat)}</Text>
+              </View>
+              <View style={[styles.tdCell, styles.colTotal]}>
+                <Text style={[styles.tdText, styles.bold]}>
+                  {formatExactAmount(r.lineTotal)}
+                </Text>
+              </View>
             </View>
           ))}
         </View>
 
         {/* ─── 4. Totals & QR Code Section ─── */}
         <View style={styles.totalsAndQrRow} wrap={false}>
-          {/* Distinctive Dark Block Totals Table (Matching image style) */}
-          <View style={styles.darkTotalsBox}>
-            <View style={styles.darkTotalRow}>
-              <Text style={styles.darkTotalVal}>{formatExactAmount(computedGross)}</Text>
-              <Text style={styles.darkTotalKey}>قبل الضريبة</Text>
-            </View>
-            <View style={styles.darkTotalRow}>
-              <Text style={styles.darkTotalVal}>{formatExactAmount(computedDiscount)}</Text>
-              <Text style={styles.darkTotalKey}>مجموع الخصومات</Text>
-            </View>
-            <View style={styles.darkTotalRow}>
-              <Text style={styles.darkTotalVal}>{formatExactAmount(taxableAmount)}</Text>
-              <Text style={styles.darkTotalKey}>المبلغ الخاضع</Text>
-            </View>
-            <View style={styles.darkTotalRow}>
-              <Text style={styles.darkTotalVal}>{formatExactAmount(totalVat)}</Text>
-              <Text style={styles.darkTotalKey}>الضـــــريبة (15%)</Text>
-            </View>
-            <View style={[styles.darkTotalRow, styles.darkGrandTotalRow]}>
-              <Text style={[styles.darkTotalVal, styles.bold]}>{formatExactAmount(grandTotal)}</Text>
-              <Text style={[styles.darkTotalKey, styles.bold]}>الإجمــــالي</Text>
-            </View>
-            <View style={styles.darkTotalRow}>
-              <Text style={styles.darkTotalVal}>{formatExactAmount(grandTotal)}</Text>
-              <Text style={styles.darkTotalKey}>المبلغ المدفوع</Text>
-            </View>
-            <View style={styles.darkTotalRow}>
-              <Text style={styles.darkTotalVal}>0.00</Text>
-              <Text style={styles.darkTotalKey}>المبلغ المتبقي</Text>
-            </View>
-          </View>
-
-          {/* Official ZATCA 2D QR Code */}
+          {/* Official ZATCA 2D QR Code (Right side) */}
           <View style={styles.qrSection}>
             {qrDataUrl ? (
               <View style={styles.qrWrapper}>
@@ -495,6 +499,38 @@ export function Template11ModernCleanCharcoal({
                 <Text style={styles.qrCaption}>فاتورة ضريبية إلكترونية</Text>
               </View>
             ) : null}
+          </View>
+
+          {/* Distinctive Dark Block Totals Table (Left side, directly below table totals) */}
+          <View style={styles.darkTotalsBox}>
+            <View style={styles.darkTotalRow}>
+              <Text style={styles.darkTotalKey}>قبل الضريبة</Text>
+              <Text style={styles.darkTotalVal}>{formatExactAmount(computedGross)}</Text>
+            </View>
+            <View style={styles.darkTotalRow}>
+              <Text style={styles.darkTotalKey}>مجموع الخصومات</Text>
+              <Text style={styles.darkTotalVal}>{formatExactAmount(computedDiscount)}</Text>
+            </View>
+            <View style={styles.darkTotalRow}>
+              <Text style={styles.darkTotalKey}>المبلغ الخاضع</Text>
+              <Text style={styles.darkTotalVal}>{formatExactAmount(taxableAmount)}</Text>
+            </View>
+            <View style={styles.darkTotalRow}>
+              <Text style={styles.darkTotalKey}>الضـــــريبة (15%)</Text>
+              <Text style={styles.darkTotalVal}>{formatExactAmount(totalVat)}</Text>
+            </View>
+            <View style={[styles.darkTotalRow, styles.darkGrandTotalRow]}>
+              <Text style={[styles.darkTotalKey, styles.bold]}>الإجمــــالي</Text>
+              <Text style={[styles.darkTotalVal, styles.bold]}>{formatExactAmount(grandTotal)}</Text>
+            </View>
+            <View style={styles.darkTotalRow}>
+              <Text style={styles.darkTotalKey}>المبلغ المدفوع</Text>
+              <Text style={styles.darkTotalVal}>{formatExactAmount(grandTotal)}</Text>
+            </View>
+            <View style={styles.darkTotalRow}>
+              <Text style={styles.darkTotalKey}>المبلغ المتبقي</Text>
+              <Text style={styles.darkTotalVal}>0.00</Text>
+            </View>
           </View>
         </View>
 
@@ -525,7 +561,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 24,
     paddingBottom: 24,
-    fontFamily: "Amiri",
+    fontFamily: "Tajawal",
+    fontWeight: "bold",
     backgroundColor: "#ffffff",
     fontSize: 8,
     color: "#2C2C2C",
@@ -662,8 +699,20 @@ const styles = StyleSheet.create({
   tableHeaderRow: {
     flexDirection: "row-reverse",
     backgroundColor: CHARCOAL_COLOR,
-    alignItems: "center",
+    alignItems: "stretch",
     minHeight: 22,
+  },
+  thCell: {
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  thText: {
+    color: "#ffffff",
+    fontSize: 7.2,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   tableRow: {
     flexDirection: "row-reverse",
@@ -675,20 +724,16 @@ const styles = StyleSheet.create({
   tableRowAlt: {
     backgroundColor: "#F9FAFB",
   },
-  th: {
-    color: "#ffffff",
-    fontSize: 7.2,
-    fontWeight: "bold",
-    paddingVertical: 3,
-    paddingHorizontal: 2,
-    textAlign: "center",
-  },
-  td: {
-    fontSize: 7,
+  tdCell: {
     paddingVertical: 2.5,
     paddingHorizontal: 2,
+    justifyContent: "center",
+  },
+  tdText: {
+    fontSize: 7,
     textAlign: "center",
     color: "#1F2937",
+    fontWeight: "bold",
   },
   textRight: {
     textAlign: "right",
@@ -726,7 +771,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   darkTotalRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 2,
@@ -759,8 +804,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qrImage: {
-    width: 72,
-    height: 72,
+    width: 115,
+    height: 115,
   },
   qrCaption: {
     fontSize: 5.5,

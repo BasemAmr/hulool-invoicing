@@ -200,12 +200,12 @@ export function GenericSimplified25Template({
   const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
 
   const customerAddressParts = [
-    (customer as any).addressBuildingNumber ? `مبنى ${(customer as any).addressBuildingNumber}` : null,
-    customer.addressStreet,
-    (customer as any).addressDistrict ? `حي ${(customer as any).addressDistrict}` : null,
-    customer.addressCity,
+    customer.addressAdditionalNumber ? `الرقم الإضافي ${customer.addressAdditionalNumber}` : null,
     customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : null,
-    (customer as any).addressAdditionalNumber ? `الرقم الإضافي ${(customer as any).addressAdditionalNumber}` : null,
+    customer.addressStreet,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : null,
+    customer.addressCity,
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
 
@@ -314,9 +314,26 @@ export function GenericSimplified25Template({
 
         {/* ─── Outer thin black rounded frame ─── */}
         <View style={styles.frame}>
-          {/* ─── Header: Company Info (Left) / Center Logo / QR Code (Right) ─── */}
+          {/* ─── Header: QR Code (Left) / Center Logo / Company Info (Right) ─── */}
           <View style={styles.headerRow}>
+            {/* Left: ZATCA 2D QR Code */}
             <View style={styles.headerLeft}>
+              {qrDataUrl ? (
+                <View style={styles.qrBox}>
+                  <Image src={qrDataUrl} style={styles.qrImage} />
+                </View>
+              ) : null}
+            </View>
+
+            {/* Center: Conditional Logo (NO dummy box/placeholder) */}
+            <View style={styles.headerCenter}>
+              {companyLogo ? (
+                <Image src={companyLogo} style={styles.logoImg} />
+              ) : null}
+            </View>
+
+            {/* Right: Company Info */}
+            <View style={styles.headerRight}>
               {companyNameAr ? (
                 <Text style={styles.companyTitle}>{companyNameAr}</Text>
               ) : null}
@@ -352,22 +369,6 @@ export function GenericSimplified25Template({
                   <Text style={styles.bidiHeaderLbl}>البريد Email</Text>
                   <Text style={styles.bidiHeaderColon}>:</Text>
                   <Text style={styles.bidiHeaderVal}>{companyEmail}</Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* Center: Conditional Logo (NO dummy box/placeholder) */}
-            <View style={styles.headerCenter}>
-              {companyLogo ? (
-                <Image src={companyLogo} style={styles.logoImg} />
-              ) : null}
-            </View>
-
-            {/* Right: ZATCA 2D QR Code */}
-            <View style={styles.headerRight}>
-              {qrDataUrl ? (
-                <View style={styles.qrBox}>
-                  <Image src={qrDataUrl} style={styles.qrImage} />
                 </View>
               ) : null}
             </View>
@@ -642,7 +643,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerLeft: {
-    width: "55%",
+    width: "25%",
     alignItems: "flex-start",
   },
   headerCenter: {
@@ -656,31 +657,34 @@ const styles = StyleSheet.create({
     objectFit: "contain",
   },
   headerRight: {
-    width: "25%",
+    width: "55%",
     alignItems: "flex-end",
   },
   companyTitle: {
     fontSize: 11,
     fontWeight: "bold",
     color: "#000000",
-    textAlign: "left",
+    textAlign: "right",
+    width: "100%",
   },
   companyTitleEn: {
     fontSize: 9,
     fontWeight: "bold",
     color: "#333333",
-    textAlign: "left",
+    textAlign: "right",
+    width: "100%",
     marginBottom: 1,
   },
   headerSub: {
     fontSize: 7,
     color: "#333333",
-    textAlign: "left",
+    textAlign: "right",
+    width: "100%",
     lineHeight: 1.2,
     marginBottom: 1,
   },
   bidiHeaderRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     marginBottom: 1,
   },
@@ -704,8 +708,8 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   qrImage: {
-    width: 64,
-    height: 64,
+    width: 102,
+    height: 102,
   },
   divider: {
     borderBottomWidth: 1,

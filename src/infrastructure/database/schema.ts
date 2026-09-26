@@ -104,8 +104,11 @@ export const customers = pgTable("customers", {
   phone: text("phone"),
   email: text("email"),
   addressCity: text("address_city"),
+  addressDistrict: text("address_district"),
   addressStreet: text("address_street"),
+  addressBuildingNumber: text("address_building_number"),
   addressPostalCode: text("address_postal_code"),
+  addressAdditionalNumber: text("address_additional_number"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

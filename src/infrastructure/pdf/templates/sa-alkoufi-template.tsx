@@ -214,15 +214,17 @@ export function SaAlkoufiTemplate({
   const customerName = customer.nameAr || customer.nameEn || "";
   const customerVat = customer.vatNumber || "";
   const customerPhone = customer.phone || "";
-  const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
+  const customerCrOrUnified = customer.unifiedNumber || "";
   const customerEmail = customer.email || "";
 
-  // Address per guidelines: City - Postal Code - [Street / District]
+  // Address per guidelines: (Additional No. - Postal Code - Street - Building No. - District - City)
   const customerAddressParts = [
-    customer.addressCity,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : null,
     customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : null,
     customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : null,
+    customer.addressCity,
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
 
@@ -989,12 +991,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   qrImage: {
-    width: 120,
-    height: 120,
+    width: 175,
+    height: 175,
   },
   qrPlaceholder: {
-    width: 120,
-    height: 120,
+    width: 175,
+    height: 175,
     borderWidth: 0.5,
     borderColor: "#9CA3AF",
     alignItems: "center",

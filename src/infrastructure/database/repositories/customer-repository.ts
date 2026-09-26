@@ -20,8 +20,11 @@ function mapCustomerRow(row: CustomerRow): CustomerRecord {
     phone: row.phone,
     email: row.email,
     addressCity: row.addressCity,
+    addressDistrict: row.addressDistrict,
     addressStreet: row.addressStreet,
+    addressBuildingNumber: row.addressBuildingNumber,
     addressPostalCode: row.addressPostalCode,
+    addressAdditionalNumber: row.addressAdditionalNumber,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -39,8 +42,11 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       phone: string | null;
       email: string | null;
       addressCity: string | null;
+      addressDistrict?: string | null;
       addressStreet: string | null;
+      addressBuildingNumber?: string | null;
       addressPostalCode?: string | null;
+      addressAdditionalNumber?: string | null;
     },
     now: Date,
   ): Promise<CustomerRecord> {
@@ -54,8 +60,11 @@ export class CustomerRepositoryImpl implements CustomerRepository {
         phone: input.phone,
         email: input.email,
         addressCity: input.addressCity,
+        addressDistrict: input.addressDistrict ?? null,
         addressStreet: input.addressStreet,
+        addressBuildingNumber: input.addressBuildingNumber ?? null,
         addressPostalCode: input.addressPostalCode ?? null,
+        addressAdditionalNumber: input.addressAdditionalNumber ?? null,
         createdAt: now,
         updatedAt: now,
       })
@@ -76,8 +85,11 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       phone: string | null;
       email: string | null;
       addressCity: string | null;
+      addressDistrict?: string | null;
       addressStreet: string | null;
+      addressBuildingNumber?: string | null;
       addressPostalCode?: string | null;
+      addressAdditionalNumber?: string | null;
     },
     now: Date,
   ): Promise<CustomerRecord> {
@@ -91,8 +103,11 @@ export class CustomerRepositoryImpl implements CustomerRepository {
         phone: input.phone,
         email: input.email,
         addressCity: input.addressCity,
+        addressDistrict: input.addressDistrict !== undefined ? input.addressDistrict : undefined,
         addressStreet: input.addressStreet,
+        addressBuildingNumber: input.addressBuildingNumber !== undefined ? input.addressBuildingNumber : undefined,
         addressPostalCode: input.addressPostalCode !== undefined ? input.addressPostalCode : undefined,
+        addressAdditionalNumber: input.addressAdditionalNumber !== undefined ? input.addressAdditionalNumber : undefined,
         updatedAt: now,
       })
       .where(eq(customers.id, id))
@@ -137,6 +152,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
           ilike(customers.vatNumber, `%${search}%`),
           ilike(customers.unifiedNumber, `%${search}%`),
           ilike(customers.addressCity, `%${search}%`),
+          ilike(customers.addressDistrict, `%${search}%`),
           ilike(customers.addressPostalCode, `%${search}%`),
         )
       : undefined;

@@ -40,12 +40,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # pnpm standalone symlink fix: copy full node_modules so deep resolution works reliably
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
-# Copy migrations folder, schema, config and entrypoint script
-COPY --from=builder /app/drizzle ./drizzle
-COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+# Copy migrations folder, schema, config, tsconfig, package.json and entrypoint script
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs

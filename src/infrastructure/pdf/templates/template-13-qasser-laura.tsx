@@ -93,6 +93,18 @@ export function Template13QasserLaura({
   const issueDateStr = formatDateOnly(invoice.issueDate);
   const logoSource = logoDataUrl || company.logoUrl;
 
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
+
   const items: InvoiceItemDto[] = invoice.items || [];
   let computedGross = 0;
   let computedDiscount = 0;
@@ -193,38 +205,20 @@ export function Template13QasserLaura({
           <Image src={backgroundDataUrl} style={styles.backgroundImage} />
         ) : null}
 
-        {/* Continuous Dot Matrix Tractor Feed Holes on the Left Edge */}
-        <View style={styles.tractorMargin} fixed>
-          {Array.from({ length: 28 }).map((_, i) => (
-            <View key={i} style={styles.tractorHole} />
-          ))}
-        </View>
-
         {/* Inner Printable Document Area */}
         <View style={styles.documentBody}>
           {/* ─── 1. TOP HEADER ─── */}
           <View style={styles.headerRow} wrap={false}>
-            {/* Left Header Title / English Name in Red */}
+            {/* Start / Right: Arabic Company Name in Red */}
+            <View style={styles.headerRightCol}>
+              <Text style={styles.companyNameArRed}>{company.nameAr}</Text>
+            </View>
+
+            {/* Second / Left: English Company Name in Red */}
             <View style={styles.headerLeftCol}>
               {company.nameEn ? (
                 <Text style={styles.companyNameEnRed}>{company.nameEn}</Text>
               ) : null}
-            </View>
-
-            {/* Center: Logo & Capsule Badge */}
-            <View style={styles.headerCenterCol}>
-              {logoSource ? (
-                <Image src={logoSource} style={styles.companyLogo} />
-              ) : null}
-              {/* Rounded Blue Capsule Badge */}
-              <View style={styles.taxCapsuleBadge}>
-                <Text style={styles.taxCapsuleText}>فاتورة ضريبية</Text>
-              </View>
-            </View>
-
-            {/* Right: Arabic Company Name in Red */}
-            <View style={styles.headerRightCol}>
-              <Text style={styles.companyNameArRed}>{company.nameAr}</Text>
             </View>
           </View>
 
@@ -237,13 +231,13 @@ export function Template13QasserLaura({
               ) : null}
             </View>
 
-            {/* Middle: Invoice Notes Box */}
-            <View style={styles.notesOuterBox}>
-              <View style={styles.notesLabelContainer}>
-                <Text style={styles.notesLabelAr}>ملاحظات الفاتورة</Text>
-              </View>
-              <View style={styles.notesContentBox}>
-                <Text style={styles.notesText}>{invoice.notes || ""}</Text>
+            {/* Middle: Logo & Title فاتورة ضريبية (compacted lower in place of notes) */}
+            <View style={styles.centerTitleBox}>
+              {logoSource ? (
+                <Image src={logoSource} style={styles.companyLogo} />
+              ) : null}
+              <View style={styles.taxCapsuleBadge}>
+                <Text style={styles.taxCapsuleText}>فاتورة ضريبية</Text>
               </View>
             </View>
 
@@ -320,9 +314,7 @@ export function Template13QasserLaura({
               <View style={[styles.partyRow, { borderBottomWidth: 0, minHeight: 38 }]}>
                 <View style={styles.partyValCell}>
                   <Text style={styles.partyAddressText}>
-                    {[customer.addressStreet, customer.addressCity, customer.addressPostalCode]
-                      .filter(Boolean)
-                      .join(" - ") || "-"}
+                    {customerAddress || "-"}
                   </Text>
                   {customer.phone ? (
                     <Text style={styles.partyAddressSub}>{customer.phone}</Text>
@@ -368,6 +360,14 @@ export function Template13QasserLaura({
               </View>
             </View>
           </View>
+
+          {/* ─── 3.5 CONDITIONAL COMPACT NOTES ─── */}
+          {invoice.notes && invoice.notes.trim() ? (
+            <View style={styles.compactNotesBox} wrap={false}>
+              <Text style={styles.compactNotesLabel}>ملاحظات:</Text>
+              <Text style={styles.compactNotesText}>{invoice.notes.trim()}</Text>
+            </View>
+          ) : null}
 
           {/* ─── 4. ITEMS TABLE (RTL 9-COLUMN GRID) ─── */}
           <View style={styles.tableContainer} wrap={false}>
@@ -549,14 +549,11 @@ const SOLID_BLUE = "#36648B";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Amiri",
-    paddingTop: 14,
-    paddingBottom: 14,
-    paddingRight: 14,
-    paddingLeft: 6,
+    padding: 14,
     backgroundColor: "#FFFFFF",
     color: "#000000",
     fontSize: 8,
-    flexDirection: "row",
+    flexDirection: "column",
     position: "relative",
   },
   backgroundImage: {
@@ -566,22 +563,6 @@ const styles = StyleSheet.create({
     width: "50%",
     opacity: 0.04,
     objectFit: "contain",
-  },
-
-  // Tractor feed holes
-  tractorMargin: {
-    width: 14,
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    marginRight: 4,
-  },
-  tractorHole: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#000000",
-    marginVertical: 4,
   },
 
   // Document body
@@ -595,10 +576,10 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   headerRightCol: {
-    width: "35%",
+    width: "48%",
     alignItems: "flex-end",
   },
   companyNameArRed: {
@@ -607,31 +588,8 @@ const styles = StyleSheet.create({
     color: "#C53030",
     textAlign: "right",
   },
-  headerCenterCol: {
-    width: "30%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  companyLogo: {
-    width: 60,
-    height: 38,
-    objectFit: "contain",
-    marginBottom: 2,
-  },
-  taxCapsuleBadge: {
-    backgroundColor: SOLID_BLUE,
-    borderRadius: 12,
-    paddingVertical: 3,
-    paddingHorizontal: 16,
-  },
-  taxCapsuleText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
   headerLeftCol: {
-    width: "35%",
+    width: "48%",
     alignItems: "flex-start",
   },
   companyNameEnRed: {
@@ -639,6 +597,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#C53030",
     fontFamily: "Helvetica",
+    textAlign: "left",
   },
 
   // 2. Subheader Grid (QR, Notes, Meta)
@@ -647,7 +606,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "stretch",
     marginBottom: 6,
-    minHeight: 75,
+    minHeight: 115,
   },
   metaTableBox: {
     width: "28%",
@@ -693,37 +652,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  notesOuterBox: {
-    width: "45%",
-    borderWidth: 1,
-    borderColor: BLUE_BORDER,
-    flexDirection: "column",
-  },
-  notesLabelContainer: {
+  centerTitleBox: {
+    width: "43%",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: BLUE_BORDER,
-    backgroundColor: "#FAFAFA",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
-  notesLabelAr: {
-    fontSize: 8.5,
+  companyLogo: {
+    maxWidth: 120,
+    maxHeight: 52,
+    objectFit: "contain",
+    marginBottom: 6,
+  },
+  taxCapsuleBadge: {
+    backgroundColor: SOLID_BLUE,
+    borderRadius: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 16,
+  },
+  taxCapsuleText: {
+    color: "#FFFFFF",
+    fontSize: 11,
     fontWeight: "bold",
-    color: "#000000",
-  },
-  notesContentBox: {
-    padding: 4,
-    flex: 1,
-  },
-  notesText: {
-    fontSize: 7,
-    color: "#333333",
-    textAlign: "right",
+    textAlign: "center",
   },
 
   qrCodeBox: {
-    width: "23%",
+    width: "25%",
     borderWidth: 1,
     borderColor: BLUE_BORDER,
     justifyContent: "center",
@@ -731,8 +687,12 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   qrImage: {
-    width: 68,
-    height: 68,
+    width: 109,
+    height: 109,
+  },
+  qrPlaceholder: {
+    width: 109,
+    height: 109,
   },
 
   // 3. Parties Container (Supplier & Customer)
@@ -809,6 +769,30 @@ const styles = StyleSheet.create({
     color: "#333333",
     textAlign: "right",
     marginTop: 1,
+  },
+
+  // 3.5 Compact Notes
+  compactNotesBox: {
+    flexDirection: "row-reverse",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderColor: BLUE_BORDER,
+    backgroundColor: "#F8FAFC",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginBottom: 6,
+  },
+  compactNotesLabel: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: "#000000",
+    marginLeft: 4,
+  },
+  compactNotesText: {
+    fontSize: 7.5,
+    color: "#333333",
+    flex: 1,
+    textAlign: "right",
   },
 
   // 4. Items Table

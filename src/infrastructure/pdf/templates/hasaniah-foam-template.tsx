@@ -204,10 +204,12 @@ export function HasaniahFoamTemplate({
   const customerNo = (customer as any).customerNumber || (customer as any).code || "";
   const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
   const customerAddress = [
-    customer.addressCity,
-    customer.addressPostalCode,
-    customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
+    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ].filter(Boolean).join(" - ");
 
   const referenceNo =
@@ -1185,8 +1187,8 @@ const styles = StyleSheet.create({
     borderRightColor: "#154273",
   },
   qrImg: {
-    width: 65,
-    height: 65,
+    width: 104,
+    height: 104,
   },
 
   totalsTable: {

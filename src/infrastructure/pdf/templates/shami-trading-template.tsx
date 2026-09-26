@@ -105,9 +105,12 @@ export function ShamiTradingTemplate({
 
   const customerName = customer.nameAr || "";
   const customerAddress = [
-    customer.addressStreet,
-    customer.addressCity,
+    customer.addressAdditionalNumber ? `الرقم الإضافي ${customer.addressAdditionalNumber}` : null,
     customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : null,
+    customer.addressStreet,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : null,
+    customer.addressCity,
     "المملكة العربية السعودية",
   ]
     .filter(Boolean)
@@ -509,12 +512,12 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   qrContainer: {
-    width: 84,
-    height: 84,
+    width: 134,
+    height: 134,
   },
   qrImage: {
-    width: 84,
-    height: 84,
+    width: 134,
+    height: 134,
   },
 
   // ─── Middle Section ───

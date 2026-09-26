@@ -179,18 +179,13 @@ function companyAddressLineEn(company: CompanyRecord): string {
 }
 
 function customerAddressLine(customer: CustomerRecord): string {
-  const custAny = customer as unknown as {
-    addressBuildingNumber?: string | null;
-    addressDistrict?: string | null;
-    addressAdditionalNumber?: string | null;
-  };
   const parts = [
-    customer.addressCity ?? "",
-    custAny.addressDistrict ? `حي ${custAny.addressDistrict}` : "",
-    customer.addressStreet ?? "",
-    custAny.addressBuildingNumber ? `مبنى ${custAny.addressBuildingNumber}` : "",
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
     customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
-    custAny.addressAdditionalNumber ? `إضافي: ${custAny.addressAdditionalNumber}` : "",
+    customer.addressStreet ?? "",
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity ?? "",
   ].filter((p) => p.length > 0);
   return parts.join(" - ");
 }
@@ -1024,12 +1019,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   qrImage: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
   },
   qrPlaceholder: {
-    width: 80,
-    height: 80,
+    width: 128,
+    height: 128,
     borderWidth: 1,
     borderColor: "#9DBEA9",
     borderStyle: "dashed",

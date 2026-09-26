@@ -184,13 +184,15 @@ export function MatajerAlSaifTemplate({
   // ─── Customer Details ───
   const customerName = customer.nameAr || customer.nameEn || "";
   const customerAddressParts = [
-    customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
-    customer.addressCity,
-    customer.addressPostalCode,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
+    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ].filter(Boolean);
   const customerAddress = customerAddressParts.join(" - ");
-  const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
+  const customerCrOrUnified = customer.unifiedNumber || "";
 
   // ─── Items & Totals Calculations ───
   const items = invoice.items || [];
@@ -297,9 +299,9 @@ export function MatajerAlSaifTemplate({
     contentHeight += 24 + Math.min(invoice.terms.split("\n").length, 4) * 12;
   }
 
-  // ZATCA QR Code
+  // ZATCA QR Code (160x160 + padding/margins)
   if (qrDataUrl) {
-    contentHeight += 125;
+    contentHeight += 185;
   }
 
   // Footer & safety margin
@@ -863,8 +865,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   qrImage: {
-    width: 100,
-    height: 100,
+    width: 160,
+    height: 160,
+  },
+  qrPlaceholder: {
+    width: 160,
+    height: 160,
   },
 
   // ─── Footer ───

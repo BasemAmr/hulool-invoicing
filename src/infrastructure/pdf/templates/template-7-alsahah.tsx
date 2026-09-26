@@ -200,11 +200,15 @@ export function Template7Alsahah({
   const customerVat = customer.vatNumber || "";
   const customerCr = customer.unifiedNumber || (customer as any).crNumber || (customer as any).customerCode || (customer as any).code || "";
   const customerAddressParts = [
-    (customer as any).addressDistrict ? `حي ${(customer as any).addressDistrict}` : "",
-    customer.addressStreet || "",
-    customer.addressCity || "",
-    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
-  ].filter(Boolean);
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean);
   const customerAddress = customerAddressParts.length > 0 ? customerAddressParts.join(" - ") : "المملكة العربية السعودية";
   const customerContact = [customer.phone, customer.email].filter(Boolean).join(" | ");
 
@@ -762,7 +766,7 @@ const styles = StyleSheet.create({
     borderRightColor: "#000000",
   },
   qrWrapper: {
-    width: 68,
+    width: 105,
     borderRightWidth: 1,
     borderRightColor: "#000000",
     justifyContent: "center",
@@ -771,11 +775,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   qrImage: {
-    width: 62,
-    height: 62,
+    width: 99,
+    height: 99,
   },
   qrPlaceholder: {
-    width: 68,
+    width: 99,
+    height: 99,
     borderRightWidth: 1,
     borderRightColor: "#000000",
     backgroundColor: "#F9FAFB",

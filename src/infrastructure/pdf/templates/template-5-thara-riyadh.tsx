@@ -212,11 +212,12 @@ export function Template5TharaRiyadh({
   const customerUnifiedOrCr = customer.unifiedNumber || (customer as any).crNumber || "";
 
   const customerAddressParts = [
-    (customer as any).addressBuildingNumber ? `مبنى ${(customer as any).addressBuildingNumber}` : "",
-    customer.addressStreet,
-    (customer as any).addressDistrict ? `حي ${(customer as any).addressDistrict}` : "",
-    customer.addressCity,
+    customer.addressAdditionalNumber,
     customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
   ]
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
@@ -679,7 +680,11 @@ export function Template5TharaRiyadh({
               <View style={styles.qrWrapper}>
                 <Image src={qrDataUrl} style={styles.qrImage} />
               </View>
-            ) : null}
+            ) : (
+              <View style={styles.qrWrapper}>
+                <View style={styles.qrPlaceholder} />
+              </View>
+            )}
 
             {/* Custom Company Footer Text (if present) */}
             {company.footerText ? (
@@ -1135,8 +1140,14 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   qrImage: {
-    width: 62,
-    height: 62,
+    width: 99,
+    height: 99,
+  },
+  qrPlaceholder: {
+    width: 99,
+    height: 99,
+    borderWidth: 0.75,
+    borderColor: "#D1D5DB",
   },
   footerTextBox: {
     paddingHorizontal: 10,

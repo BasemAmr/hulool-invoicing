@@ -84,12 +84,17 @@ export function SahmInvoiceTemplate({
     "المملكة العربية السعودية",
   ].filter(Boolean).join(" - ");
 
-  const customerAddress = [
-    customer.addressStreet,
-    customer.addressCity,
+  const customerAddressParts = [
+    customer.addressAdditionalNumber ? `الرقم الإضافي ${customer.addressAdditionalNumber}` : null,
     customer.addressPostalCode ? `الرمز البريدي ${customer.addressPostalCode}` : null,
-    "المملكة العربية السعودية",
-  ].filter(Boolean).join(" - ");
+    customer.addressStreet,
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : null,
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : null,
+    customer.addressCity,
+  ].filter(Boolean);
+  const customerAddress = customerAddressParts.length > 0
+    ? [...customerAddressParts, "المملكة العربية السعودية"].join(" - ")
+    : "";
 
   const invoiceNum = invoice.invoiceNumber ?? "";
   const issueDateStr = formatDate(invoice.issueDate);
@@ -398,12 +403,12 @@ const styles = StyleSheet.create({
     color: "#1F2937",
   },
   qrContainer: {
-    width: 82,
-    height: 82,
+    width: 131,
+    height: 131,
   },
   qrImage: {
-    width: 82,
-    height: 82,
+    width: 131,
+    height: 131,
   },
   centerLogoWrap: {
     maxWidth: 120,

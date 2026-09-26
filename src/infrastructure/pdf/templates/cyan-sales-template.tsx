@@ -188,12 +188,15 @@ export function CyanSalesTemplate({
   const customerNameAr = customer.nameAr || customer.nameEn || "عميل عام";
   const customerPhone = customer.phone || "";
   const customerAddress = [
-    customer.addressCity,
-    customer.addressStreet,
-    customer.addressPostalCode ? `ص.ب ${customer.addressPostalCode}` : "",
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
+    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ]
     .filter(Boolean)
-    .join(" ، ");
+    .join(" - ");
   const customerVatNo = customer.vatNumber || "";
   const customerCrn = customer.unifiedNumber || "";
 
@@ -855,18 +858,18 @@ const styles = StyleSheet.create({
 
   // Center QR
   centerQrCol: {
-    width: "22%",
+    width: "25%",
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 4,
   },
   qrCodeImage: {
-    width: 78,
-    height: 78,
+    width: 125,
+    height: 125,
   },
   qrCodePlaceholder: {
-    width: 78,
-    height: 78,
+    width: 125,
+    height: 125,
     borderWidth: 1,
     borderColor: "#CBD5E1",
   },
@@ -880,7 +883,7 @@ const styles = StyleSheet.create({
 
   // Right Settlement
   rightSettlementCol: {
-    width: "38%",
+    width: "35%",
     alignItems: "flex-end",
   },
   settlementHeaderTitle: {

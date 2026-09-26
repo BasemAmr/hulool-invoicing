@@ -200,10 +200,12 @@ export function Template1AlAsma({
   const customerName = customer.nameAr || customer.nameEn || "";
   const customerNameEn = customer.nameEn && customer.nameAr ? customer.nameEn : "";
   const customerAddressParts = [
-    customer.addressStreet,
-    (customer as any).addressDistrict,
-    customer.addressCity,
+    customer.addressAdditionalNumber,
     customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
   ]
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
@@ -756,8 +758,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qrImage: {
-    width: 65,
-    height: 65,
+    width: 104,
+    height: 104,
+  },
+  qrPlaceholder: {
+    width: 104,
+    height: 104,
   },
   qrLabel: {
     fontSize: 6,

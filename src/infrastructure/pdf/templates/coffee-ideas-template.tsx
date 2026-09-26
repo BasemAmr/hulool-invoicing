@@ -169,10 +169,12 @@ export function CoffeeIdeasTemplate({
   // ─── Customer Details ───
   const customerNameAr = customer.nameAr || customer.nameEn || "";
   const customerAddress = [
-    customer.addressCity,
-    customer.addressPostalCode,
-    customer.addressStreet,
-    (customer as any).addressDistrict || (customer as any).district,
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
+    customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
+    customer.addressStreet || "",
+    customer.addressBuildingNumber ? `مبنى: ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity || "",
   ].filter(Boolean).join(" - ");
   const customerCrOrUnified = customer.unifiedNumber || (customer as any).crNumber || "";
 
@@ -576,7 +578,11 @@ export function CoffeeIdeasTemplate({
 
             {/* Right Column: QR Code */}
             <View style={styles.qrColumn}>
-              {qrDataUrl && <Image src={qrDataUrl} style={styles.qrImg} />}
+              {qrDataUrl ? (
+                <Image src={qrDataUrl} style={styles.qrImg} />
+              ) : (
+                <View style={styles.qrPlaceholder} />
+              )}
             </View>
           </View>
 
@@ -956,10 +962,13 @@ const styles = StyleSheet.create({
 
   // Middle Column
   bankAndTafqeet: {
-    width: "43%",
+    width: "39%",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 4,
+  },
+  ibanColumn: {
+    width: "39%",
   },
   bankCard: {
     width: "100%",
@@ -1009,13 +1018,17 @@ const styles = StyleSheet.create({
 
   // Right QR
   qrColumn: {
-    width: "21%",
+    width: "26%",
     alignItems: "center",
     justifyContent: "center",
   },
   qrImg: {
-    width: 85,
-    height: 85,
+    width: 136,
+    height: 136,
+  },
+  qrPlaceholder: {
+    width: 136,
+    height: 136,
   },
 
   // Notes & Terms

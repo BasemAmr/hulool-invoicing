@@ -207,6 +207,18 @@ export function Template12MassSteel({
   const issueDateStr = formatDateOnly(invoice.issueDate);
   const logoSource = logoDataUrl || company.logoUrl;
 
+  const customerAddress = [
+    customer.addressAdditionalNumber,
+    customer.addressPostalCode,
+    customer.addressStreet,
+    customer.addressBuildingNumber,
+    customer.addressDistrict,
+    customer.addressCity,
+  ]
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean)
+    .join(" - ");
+
   const items: InvoiceItemDto[] = invoice.items || [];
   let computedGross = 0;
   let computedDiscount = 0;
@@ -408,11 +420,7 @@ export function Template12MassSteel({
             </View>
             <View style={[styles.gridCell, styles.cellWidth50, styles.cellBorderLeft]}>
               <Text style={styles.cellLabelEn}>Address</Text>
-              <Text style={styles.cellValueCenter}>
-                {[customer.addressStreet, customer.addressCity, customer.addressPostalCode]
-                  .filter(Boolean)
-                  .join(" - ")}
-              </Text>
+              <Text style={styles.cellValueCenter}>{customerAddress}</Text>
               <Text style={styles.cellLabelAr}>العنوان</Text>
             </View>
           </View>
@@ -1161,8 +1169,12 @@ const styles = StyleSheet.create({
     borderRightColor: "#000000",
   },
   zatcaQrImage: {
-    width: 40,
-    height: 40,
+    width: 64,
+    height: 64,
+  },
+  qrPlaceholder: {
+    width: 64,
+    height: 64,
   },
   certTextBlock: {
     marginLeft: 3,

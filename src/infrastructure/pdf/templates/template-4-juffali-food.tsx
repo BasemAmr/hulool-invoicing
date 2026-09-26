@@ -204,14 +204,15 @@ export function Template4JuffaliFood({
   const logoSource = logoDataUrl || company.logoUrl;
 
   // Buyer Details
-  const customerNameEn = (customer as any).nameEn || customer.nameAr || "";
-  const customerNameAr = customer.nameAr || (customer as any).nameEn || "";
-  const customerStreet = customer.addressStreet || "";
-  const customerDistrict = (customer as any).addressDistrict || "";
-  const customerBuilding = (customer as any).addressBuildingNumber || "";
-  const customerCity = customer.addressCity || "";
+  const customerNameEn = customer.nameEn || customer.nameAr || "";
+  const customerNameAr = customer.nameAr || customer.nameEn || "";
+  const customerAdditionalNo = customer.addressAdditionalNumber || "";
   const customerPostalCode = customer.addressPostalCode || "";
-  const customerCountry = (customer as any).country || "المملكة العربية السعودية";
+  const customerStreet = customer.addressStreet || "";
+  const customerBuilding = customer.addressBuildingNumber || "";
+  const customerDistrict = customer.addressDistrict || "";
+  const customerCity = customer.addressCity || "";
+  const customerCountry = "المملكة العربية السعودية";
   const customerPhone = customer.phone || "";
   const customerEmail = customer.email || "";
   const customerPo = (invoice as any).customerPo || (invoice as any).poNumber || "";
@@ -445,12 +446,30 @@ export function Template4JuffaliFood({
             <View style={styles.cellLabelLeft}><Text style={styles.labelEn}>Address</Text></View>
             <View style={styles.cellValueEn}>
               <Text style={styles.valueText}>
-                {[customerBuilding ? `Bldg ${customerBuilding}` : "", customerStreet, customerDistrict, customerPostalCode].filter(Boolean).join(" - ")}
+                {[
+                  customerAdditionalNo ? `Add. No ${customerAdditionalNo}` : "",
+                  customerPostalCode,
+                  customerStreet,
+                  customerBuilding ? `Bldg ${customerBuilding}` : "",
+                  customerDistrict,
+                  customerCity,
+                ]
+                  .filter(Boolean)
+                  .join(" - ")}
               </Text>
             </View>
             <View style={styles.cellValueAr}>
               <Text style={styles.valueTextAr}>
-                {[customerBuilding ? `مبنى ${customerBuilding}` : "", customerStreet, customerDistrict ? `حي ${customerDistrict}` : "", customerPostalCode].filter(Boolean).join(" - ")}
+                {[
+                  customerAdditionalNo ? `الرقم الإضافي ${customerAdditionalNo}` : "",
+                  customerPostalCode ? `الرمز البريدي ${customerPostalCode}` : "",
+                  customerStreet,
+                  customerBuilding ? `مبنى ${customerBuilding}` : "",
+                  customerDistrict ? `حي ${customerDistrict}` : "",
+                  customerCity,
+                ]
+                  .filter(Boolean)
+                  .join(" - ")}
               </Text>
             </View>
             <View style={styles.cellLabelRight}><Text style={styles.labelAr}>العنوان الوطني</Text></View>
@@ -1431,12 +1450,12 @@ const styles = StyleSheet.create({
     marginVertical: 3,
   },
   qrImage: {
-    width: 70,
-    height: 70,
+    width: 112,
+    height: 112,
   },
   qrPlaceholder: {
-    width: 70,
-    height: 70,
+    width: 112,
+    height: 112,
     borderWidth: 0.75,
     borderColor: "#D1D5DB",
   },

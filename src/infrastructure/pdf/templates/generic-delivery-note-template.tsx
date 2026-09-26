@@ -162,16 +162,12 @@ function companyAddressLine(company: CompanyRecord): string {
 
 function customerAddressLine(customer: CustomerRecord): string {
   const parts = [
-    customer.addressStreet ?? "",
-    (customer as any).addressDistrict || (customer as any).district
-      ? `حي ${(customer as any).addressDistrict || (customer as any).district}`
-      : "",
-    (customer as any).addressBuildingNumber || (customer as any).buildingNo
-      ? `مبنى ${(customer as any).addressBuildingNumber || (customer as any).buildingNo}`
-      : "",
-    customer.addressCity ?? "",
+    customer.addressAdditionalNumber ? `الرقم الإضافي: ${customer.addressAdditionalNumber}` : "",
     customer.addressPostalCode ? `الرمز البريدي: ${customer.addressPostalCode}` : "",
-    "المملكة العربية السعودية",
+    customer.addressStreet ?? "",
+    customer.addressBuildingNumber ? `مبنى ${customer.addressBuildingNumber}` : "",
+    customer.addressDistrict ? `حي ${customer.addressDistrict}` : "",
+    customer.addressCity ?? "",
   ].filter((p) => p.length > 0);
   return parts.join(" - ");
 }
@@ -917,8 +913,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
   },
   qrImage: {
-    width: 64,
-    height: 64,
+    width: 102,
+    height: 102,
   },
   qrLabel: {
     fontSize: 5.5,

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { useActionState } from "react";
@@ -126,13 +126,14 @@ export function InvoiceForm({
           </select>
         </div>
         <div className="flex flex-col gap-1.5">
+          <Label htmlFor="issueTime">وقت الإصدار *</Label>
+          <Input id="issueTime" name="issueTime" type="time" defaultValue="09:00" required />
+        </div>
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="issueDate">تاريخ الإصدار *</Label>
           <Input id="issueDate" name="issueDate" type="date" defaultValue={today} required />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="dueDate">تاريخ الاستحقاق</Label>
-          <Input id="dueDate" name="dueDate" type="date" />
-        </div>
+        <input type="hidden" name="dueDate" value={today} />
       </div>
 
       <div className="flex flex-col gap-3">
