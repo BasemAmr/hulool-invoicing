@@ -131,6 +131,7 @@ export function CustomersTableClient({
                 <TableHead className="w-28 text-start">الرقم الموحد</TableHead>
                 <TableHead className="w-28 text-start">المدينة</TableHead>
                 <TableHead className="w-28 text-start">الجوال</TableHead>
+                <TableHead className="w-28 text-start">تابع للعميل</TableHead>
                 <TableHead className="w-32 text-end">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
@@ -142,11 +143,6 @@ export function CustomersTableClient({
                     {customer.nameEn && (
                       <span className="block text-[11px] text-muted-foreground font-mono" dir="ltr">
                         {customer.nameEn}
-                      </span>
-                    )}
-                    {customer.clientEmployee && (
-                      <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[10px] font-medium bg-muted text-foreground/80 border border-border">
-                        تابع للعميل: {customer.clientEmployee}
                       </span>
                     )}
                   </TableCell>
@@ -161,6 +157,9 @@ export function CustomersTableClient({
                   </TableCell>
                   <TableCell className="font-mono text-muted-foreground py-2.5">
                     {customer.phone ?? "—"}
+                  </TableCell>
+                  <TableCell className="py-2.5 text-foreground text-xs">
+                    {customer.clientEmployee || "—"}
                   </TableCell>
                   <TableCell className="text-end py-2.5">
                     <div className="flex items-center justify-end gap-1">

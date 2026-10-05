@@ -89,6 +89,9 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      xlsx:
+        specifier: ^0.18.5
+        version: 0.18.5
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -135,9 +138,6 @@ importers:
       vitest:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@20.19.43)(lightningcss@1.32.0)(supports-color@7.2.0)
-      xlsx:
-        specifier: ^0.18.5
-        version: 0.18.5
 
 packages:
 

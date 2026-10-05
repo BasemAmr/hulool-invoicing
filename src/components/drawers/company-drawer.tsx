@@ -260,7 +260,6 @@ export function CompanyDrawer({
               <Input
                 value={clientEmployee}
                 onChange={(e) => setClientEmployee(e.target.value)}
-                placeholder="تابع للعميل"
                 className="text-xs h-8"
               />
             </div>

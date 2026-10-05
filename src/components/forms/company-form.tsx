@@ -75,7 +75,6 @@ export function CompanyForm({
             label="تابع للعميل"
             name="clientEmployee"
             defaultValue={initialCompany?.clientEmployee ?? ""}
-            placeholder="تابع للعميل"
           />
           <Field
             label="نوع المنشأة"

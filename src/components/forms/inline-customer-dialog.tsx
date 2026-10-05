@@ -288,13 +288,12 @@ export function InlineCustomerDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="inline_clientEmployee" className="text-xs">
-              تابع للعميل (الموظف أو المندوب - اختياري)
+              تابع للعميل
             </Label>
             <Input
               id="inline_clientEmployee"
               value={clientEmployee}
               onChange={(e) => setClientEmployee(e.target.value)}
-              placeholder="اسم الموظف أو المندوب التابع للعميل"
             />
           </div>
 

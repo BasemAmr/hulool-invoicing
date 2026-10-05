@@ -7,6 +7,7 @@ import {
   savedProductCreateSchema,
   savedProductUpdateSchema,
 } from "@/domain/contracts";
+import type { SavedProductRecord } from "@/application/ports/saved-product-repository";
 import type { ActionState } from "./types";
 
 const container = createContainer(db);
@@ -207,4 +208,23 @@ export async function searchSavedProductsAction(query?: string | null) {
     return [];
   }
 }
+
+/**
+ * Server action to list/search saved products with pagination support.
+ * Used by products table for server-side search and infinite scroll.
+ */
+export async function listSavedProductsAction(
+  query?: string | null,
+  limit = 40,
+  offset = 0
+): Promise<SavedProductRecord[]> {
+  try {
+    const q = query?.trim() || null;
+    return await container.savedProductRepository.list(q, limit, offset);
+  } catch (error) {
+    console.error("Failed to list saved products:", error);
+    return [];
+  }
+}
+
 
