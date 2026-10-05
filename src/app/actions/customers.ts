@@ -22,6 +22,7 @@ export async function createCustomerAction(
     unifiedNumber: String(formData.get("unifiedNumber") ?? ""),
     phone: nonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
+    clientEmployee: nonEmpty(formData.get("clientEmployee")),
     addressCity: String(formData.get("addressCity") ?? ""),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
@@ -59,6 +60,7 @@ export async function createCustomerDirectAction(input: {
   unifiedNumber: string;
   phone?: string;
   email?: string;
+  clientEmployee?: string;
   addressCity: string;
   addressDistrict?: string;
   addressStreet?: string;
@@ -107,6 +109,7 @@ export async function updateCustomerAction(
     unifiedNumber: String(formData.get("unifiedNumber") ?? ""),
     phone: nonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
+    clientEmployee: nonEmpty(formData.get("clientEmployee")),
     addressCity: String(formData.get("addressCity") ?? ""),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
@@ -140,6 +143,7 @@ export async function updateCustomerDirectAction(input: {
   unifiedNumber: string;
   phone?: string;
   email?: string;
+  clientEmployee?: string;
   addressCity: string;
   addressDistrict?: string;
   addressStreet?: string;

@@ -1,4 +1,4 @@
-﻿# Architecture — hulool-invoicing
+# Architecture — hulool-invoicing
 
 Binding contract for all slices. Deviations require updating this file first.
 
@@ -22,6 +22,10 @@ Binding contract for all slices. Deviations require updating this file first.
 
 Integer halalas everywhere in domain/application. `numeric(15,2)` strings at the DB edge.
 `toDecimalString()` at the DTO boundary. Formatting ("1,150.00 SAR") only in components.
+
+## Database & schema law
+
+All schema modifications, field additions, and migrations must follow the 9-layer Clean Architecture protocol documented in [`docs/DRIZZLE_SCHEMA_EXPANSION_GUIDE.md`](./docs/DRIZZLE_SCHEMA_EXPANSION_GUIDE.md). In CI/CD and automated sessions, migrations must be non-interactive (`generate` + `migrate`, or `push --force`). Bare `drizzle-kit push` is strictly forbidden.
 
 ## Folder map
 

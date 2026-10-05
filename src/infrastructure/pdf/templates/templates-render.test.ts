@@ -48,6 +48,7 @@ const mockCustomer: CustomerRecord = {
   unifiedNumber: null,
   phone: "0555555555",
   email: "cust@example.com",
+  clientEmployee: null,
   addressDistrict: "Al-Rawdah",
   addressBuildingNumber: "1234",
   addressCity: "Jeddah",

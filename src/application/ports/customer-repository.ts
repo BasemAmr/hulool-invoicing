@@ -8,6 +8,7 @@ export interface CustomerRecord {
   unifiedNumber: string | null;
   phone: string | null;
   email: string | null;
+  clientEmployee: string | null;
   addressCity: string | null;
   addressDistrict: string | null;
   addressStreet: string | null;
@@ -27,6 +28,7 @@ export interface CustomerRepository {
       unifiedNumber?: string | null;
       phone: string | null;
       email: string | null;
+      clientEmployee?: string | null;
       addressCity: string | null;
       addressDistrict?: string | null;
       addressStreet: string | null;
@@ -45,6 +47,7 @@ export interface CustomerRepository {
       unifiedNumber?: string | null;
       phone: string | null;
       email: string | null;
+      clientEmployee?: string | null;
       addressCity: string | null;
       addressDistrict?: string | null;
       addressStreet: string | null;

@@ -27,6 +27,7 @@ export interface CustomerDrawerProps {
     addressBuildingNumber?: string | null;
     addressPostalCode?: string | null;
     addressAdditionalNumber?: string | null;
+    clientEmployee?: string | null;
   } | null;
   onSaved?: (customer: { id: string; nameAr: string; phone?: string | null; vatNumber?: string | null; addressCity?: string | null }) => void;
 }
@@ -48,6 +49,7 @@ export function CustomerDrawer({
   const [nameEn, setNameEn] = useState("");
   const [vatNumber, setVatNumber] = useState("");
   const [unifiedNumber, setUnifiedNumber] = useState("");
+  const [clientEmployee, setClientEmployee] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressDistrict, setAddressDistrict] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
@@ -73,6 +75,7 @@ export function CustomerDrawer({
         setAddressAdditionalNumber(customer.addressAdditionalNumber ?? "");
         setPhone(customer.phone ?? "");
         setEmail(customer.email ?? "");
+        setClientEmployee(customer.clientEmployee ?? "");
       } else {
         setNameAr("");
         setNameEn("");
@@ -86,6 +89,7 @@ export function CustomerDrawer({
         setAddressAdditionalNumber("");
         setPhone("");
         setEmail("");
+        setClientEmployee("");
       }
     }
   }, [open, customer]);
@@ -137,6 +141,7 @@ export function CustomerDrawer({
           addressAdditionalNumber: addressAdditionalNumber.trim() || undefined,
           phone: phone.trim() || undefined,
           email: email.trim() || undefined,
+          clientEmployee: clientEmployee.trim() || undefined,
         });
 
         if (res.status === "success") {
@@ -167,6 +172,7 @@ export function CustomerDrawer({
           addressAdditionalNumber: addressAdditionalNumber.trim() || undefined,
           phone: phone.trim() || undefined,
           email: email.trim() || undefined,
+          clientEmployee: clientEmployee.trim() || undefined,
         });
 
         if (res.status === "success") {
@@ -327,6 +333,17 @@ export function CustomerDrawer({
               type="email"
               className="text-xs h-8"
               dir="ltr"
+            />
+          </div>
+
+          {/* Client Employee (Optional) */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs font-medium text-muted-foreground">تابع للعميل (الموظف أو المندوب - اختياري)</Label>
+            <Input
+              value={clientEmployee}
+              onChange={(e) => setClientEmployee(e.target.value)}
+              placeholder="اسم الموظف أو المندوب التابع للعميل"
+              className="text-xs h-8"
             />
           </div>
 

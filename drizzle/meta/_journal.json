@@ -57,6 +57,13 @@
       "when": 1790420630741,
       "tag": "0007_add_customer_address_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791218256116,
+      "tag": "0008_add_client_employee_to_customers",
+      "breakpoints": true
     }
   ]
 }
