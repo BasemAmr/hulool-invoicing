@@ -35,6 +35,7 @@ export function InlineCustomerDialog({
   const [addressAdditionalNumber, setAddressAdditionalNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [clientEmployee, setClientEmployee] = useState("");
 
   if (!open) return null;
 
@@ -77,6 +78,7 @@ export function InlineCustomerDialog({
         addressAdditionalNumber: addressAdditionalNumber.trim() || undefined,
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
+        clientEmployee: clientEmployee.trim() || undefined,
       });
 
       if (res.status === "success") {
@@ -94,6 +96,7 @@ export function InlineCustomerDialog({
         setAddressAdditionalNumber("");
         setPhone("");
         setEmail("");
+        setClientEmployee("");
         onClose();
       } else {
         setErrorMessage(res.message);
@@ -281,6 +284,18 @@ export function InlineCustomerDialog({
                 placeholder="client@example.com"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="inline_clientEmployee" className="text-xs">
+              تابع للعميل (الموظف أو المندوب - اختياري)
+            </Label>
+            <Input
+              id="inline_clientEmployee"
+              value={clientEmployee}
+              onChange={(e) => setClientEmployee(e.target.value)}
+              placeholder="اسم الموظف أو المندوب التابع للعميل"
+            />
           </div>
 
           {errorMessage && (

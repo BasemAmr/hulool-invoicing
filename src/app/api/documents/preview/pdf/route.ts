@@ -79,6 +79,7 @@ function buildSampleCustomer(): CustomerRecord {
     addressAdditionalNumber: "7890",
     phone: "0559876543",
     email: "info@alofuq.com",
+    clientEmployee: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

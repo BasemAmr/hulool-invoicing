@@ -30,6 +30,7 @@ export class UpdateCustomer {
         unifiedNumber: data.unifiedNumber ?? null,
         phone: data.phone ?? null,
         email: data.email ?? null,
+        clientEmployee: data.clientEmployee ?? null,
         addressCity: data.addressCity ?? null,
         addressDistrict: data.addressDistrict ?? null,
         addressStreet: data.addressStreet ?? null,

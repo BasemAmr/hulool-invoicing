@@ -1,0 +1,1 @@
+ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "client_employee" text;

@@ -70,6 +70,7 @@ export const customerCreateSchema = z.object({
   unifiedNumber: z.string().min(1, "الرقم الموحد مطلوب"),
   phone: z.string().optional(),
   email: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
+  clientEmployee: z.string().optional(),
   addressCity: z.string().min(1, "المدينة مطلوبة"),
   addressDistrict: z.string().optional(),
   addressStreet: z.string().optional(),

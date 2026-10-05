@@ -103,6 +103,8 @@ export const customers = pgTable("customers", {
   unifiedNumber: text("unified_number"),
   phone: text("phone"),
   email: text("email"),
+  /** The assigned employee/representative for this customer ("تابع للعميل"). */
+  clientEmployee: text("client_employee"),
   addressCity: text("address_city"),
   addressDistrict: text("address_district"),
   addressStreet: text("address_street"),

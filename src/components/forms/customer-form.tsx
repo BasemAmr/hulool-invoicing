@@ -128,6 +128,15 @@ export function CustomerForm({
             type="email"
           />
         </div>
+
+        <div className="sm:col-span-2">
+          <Field
+            label="تابع للعميل (الموظف أو المندوب المسؤول - اختياري)"
+            name="clientEmployee"
+            defaultValue={initialCustomer?.clientEmployee ?? ""}
+            placeholder="اسم الموظف أو المندوب التابع للعميل"
+          />
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">

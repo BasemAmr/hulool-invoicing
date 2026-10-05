@@ -46,6 +46,7 @@ export function CustomersTableClient({
         (c.vatNumber ?? "").toLowerCase().includes(query) ||
         (c.unifiedNumber ?? "").toLowerCase().includes(query) ||
         (c.addressCity ?? "").toLowerCase().includes(query) ||
+        (c.clientEmployee ?? "").toLowerCase().includes(query) ||
         (c.phone ?? "").toLowerCase().includes(query)
       );
     });
@@ -141,6 +142,11 @@ export function CustomersTableClient({
                     {customer.nameEn && (
                       <span className="block text-[11px] text-muted-foreground font-mono" dir="ltr">
                         {customer.nameEn}
+                      </span>
+                    )}
+                    {customer.clientEmployee && (
+                      <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[10px] font-medium bg-muted text-foreground/80 border border-border">
+                        تابع للعميل: {customer.clientEmployee}
                       </span>
                     )}
                   </TableCell>

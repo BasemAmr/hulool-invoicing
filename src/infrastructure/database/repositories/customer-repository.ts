@@ -19,6 +19,7 @@ function mapCustomerRow(row: CustomerRow): CustomerRecord {
     unifiedNumber: row.unifiedNumber,
     phone: row.phone,
     email: row.email,
+    clientEmployee: row.clientEmployee ?? null,
     addressCity: row.addressCity,
     addressDistrict: row.addressDistrict,
     addressStreet: row.addressStreet,
@@ -41,6 +42,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       unifiedNumber?: string | null;
       phone: string | null;
       email: string | null;
+      clientEmployee?: string | null;
       addressCity: string | null;
       addressDistrict?: string | null;
       addressStreet: string | null;
@@ -59,6 +61,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
         unifiedNumber: input.unifiedNumber ?? null,
         phone: input.phone,
         email: input.email,
+        clientEmployee: input.clientEmployee ?? null,
         addressCity: input.addressCity,
         addressDistrict: input.addressDistrict ?? null,
         addressStreet: input.addressStreet,
@@ -84,6 +87,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       unifiedNumber?: string | null;
       phone: string | null;
       email: string | null;
+      clientEmployee?: string | null;
       addressCity: string | null;
       addressDistrict?: string | null;
       addressStreet: string | null;
@@ -102,6 +106,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
         unifiedNumber: input.unifiedNumber !== undefined ? input.unifiedNumber : undefined,
         phone: input.phone,
         email: input.email,
+        clientEmployee: input.clientEmployee !== undefined ? input.clientEmployee : undefined,
         addressCity: input.addressCity,
         addressDistrict: input.addressDistrict !== undefined ? input.addressDistrict : undefined,
         addressStreet: input.addressStreet,
@@ -154,6 +159,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
           ilike(customers.addressCity, `%${search}%`),
           ilike(customers.addressDistrict, `%${search}%`),
           ilike(customers.addressPostalCode, `%${search}%`),
+          ilike(customers.clientEmployee, `%${search}%`),
         )
       : undefined;
 
