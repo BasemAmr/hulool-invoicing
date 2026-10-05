@@ -338,11 +338,10 @@ export function CustomerDrawer({
 
           {/* Client Employee (Optional) */}
           <div className="flex flex-col gap-1">
-            <Label className="text-xs font-medium text-muted-foreground">تابع للعميل (الموظف أو المندوب - اختياري)</Label>
+            <Label className="text-xs font-medium text-muted-foreground">تابع للعميل</Label>
             <Input
               value={clientEmployee}
               onChange={(e) => setClientEmployee(e.target.value)}
-              placeholder="اسم الموظف أو المندوب التابع للعميل"
               className="text-xs h-8"
             />
           </div>

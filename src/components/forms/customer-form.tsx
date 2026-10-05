@@ -131,10 +131,9 @@ export function CustomerForm({
 
         <div className="sm:col-span-2">
           <Field
-            label="تابع للعميل (الموظف أو المندوب المسؤول - اختياري)"
+            label="تابع للعميل"
             name="clientEmployee"
             defaultValue={initialCustomer?.clientEmployee ?? ""}
-            placeholder="اسم الموظف أو المندوب التابع للعميل"
           />
         </div>
       </div>

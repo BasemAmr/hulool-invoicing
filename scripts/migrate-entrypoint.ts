@@ -45,6 +45,7 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { sql } from "drizzle-orm";
+import { runExcelProductSeed } from "./seed-excel-products";
 
 // ─── Configuration ─────────────────────────────────────────────────────────
 const MIGRATIONS_FOLDER = path.resolve(process.cwd(), "drizzle");
@@ -284,6 +285,14 @@ async function main() {
     }
   } catch (err) {
     logError("⚠️", "Post-migration verification failed (non-fatal)", err);
+  }
+
+  // ─── Step 5: Application Data Seeds ────────────────────────────────────
+  log("🌱", "Checking application data seeds...");
+  try {
+    await runExcelProductSeed(pool);
+  } catch (err) {
+    logError("⚠️", "Application data seed failed (non-fatal)", err);
   }
 
   await pool.end();
