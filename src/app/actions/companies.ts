@@ -9,6 +9,7 @@ import { CreateCompany } from "@/application/use-cases/create-company";
 import { DomainError, ValidationError } from "@/domain/errors";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 import { toWesternDigits } from "@/lib/format";
+import { formatDatabaseError } from "@/lib/format-db-error";
 import type { ActionState } from "./types";
 
 
@@ -51,13 +52,7 @@ export async function createCompanyAction(
       () => getNextAvailableTemplateId(db),
     ).execute(input);
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return { status: "error", message: error.message };
-    }
-    if (error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر حفظ بيانات المنشأة") };
   }
 
   revalidatePath("/companies");
@@ -104,10 +99,7 @@ export async function updateCompanyAction(
       container.clock,
     ).execute(input);
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات المنشأة") };
   }
 
   revalidatePath("/companies");
@@ -188,10 +180,7 @@ export async function createCompanyDirectAction(data: {
     revalidatePath("/companies");
     return { status: "success", data: company };
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر حفظ بيانات المنشأة" };
+    return { status: "error", message: formatDatabaseError(error, "تعذر حفظ بيانات المنشأة") };
   }
 }
 
@@ -258,10 +247,7 @@ export async function updateCompanyDirectAction(
     revalidatePath(`/c/${id}/settings`);
     return { status: "success", data: updated };
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر تحديث بيانات المنشأة" };
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات المنشأة") };
   }
 }
 

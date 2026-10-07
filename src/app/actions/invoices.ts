@@ -18,6 +18,7 @@ import {
 } from "@/domain/value-objects/invoice-number";
 import { asCompanyId } from "@/domain/branding";
 import { halalas, priceStringToHalalas } from "@/domain/value-objects/money";
+import { formatDatabaseError } from "@/lib/format-db-error";
 import type { ActionState } from "./types";
 
 const container = createContainer(db);
@@ -168,7 +169,19 @@ export async function createDraftInvoiceAction(
       }
       return { status: "error", message: error.message };
     }
-    throw error;
+    if (invoiceId) {
+      try {
+        const { DeleteDraftInvoice } = await import(
+          "@/application/use-cases/delete-draft-invoice"
+        );
+        await new DeleteDraftInvoice(container.invoiceRepository).execute({
+          id: invoiceId,
+        });
+      } catch {
+        // Deliberate swallow — see WHY above.
+      }
+    }
+    return { status: "error", message: formatDatabaseError(error, "تعذر إنشاء الفاتورة") };
   }
 
   const companyId = String(formData.get("companyId") ?? "");
@@ -202,10 +215,7 @@ export async function issueInvoiceAction(
       container.receiptVoucherRepository,
     ).execute({ invoiceId });
   } catch (error) {
-    if (error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر إصدار الفاتورة") };
   }
 
   revalidatePath("/invoices");
@@ -384,10 +394,7 @@ export async function updateDraftInvoiceAction(
       }
     }
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر تعديل الفاتورة") };
   }
 
   const companyId = String(formData.get("companyId") ?? "");

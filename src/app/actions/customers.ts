@@ -7,6 +7,7 @@ import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
 import { CreateCustomer } from "@/application/use-cases/create-customer";
 import { DomainError, ValidationError } from "@/domain/errors";
+import { formatDatabaseError } from "@/lib/format-db-error";
 import type { ActionState } from "./types";
 
 const container = createContainer(db);
@@ -37,13 +38,7 @@ export async function createCustomerAction(
       container.clock,
     ).execute(input);
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return { status: "error", message: error.message };
-    }
-    if (error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر إنشاء العميل") };
   }
 
   revalidatePath("/customers");
@@ -85,10 +80,7 @@ export async function createCustomerDirectAction(input: {
       },
     };
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر إنشاء العميل" };
+    return { status: "error", message: formatDatabaseError(error, "تعذر إنشاء العميل") };
   }
 }
 
@@ -125,10 +117,7 @@ export async function updateCustomerAction(
       container.clock,
     ).execute(input);
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات العميل") };
   }
 
   revalidatePath("/customers");
@@ -167,10 +156,7 @@ export async function updateCustomerDirectAction(input: {
       },
     };
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر تحديث بيانات العميل" };
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات العميل") };
   }
 }
 
