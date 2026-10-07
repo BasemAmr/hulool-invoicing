@@ -64,6 +64,13 @@
       "when": 1791218256116,
       "tag": "0008_add_client_employee_to_customers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791300000000,
+      "tag": "0009_add_unique_constraints_customers_companies",
+      "breakpoints": true
     }
   ]
 }

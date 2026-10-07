@@ -141,6 +141,12 @@ export function InlineCustomerDialog({
             }
           }}
         >
+          {errorMessage && (
+            <div className="p-2.5 border border-destructive/30 bg-destructive/10 text-destructive text-xs font-medium">
+              {errorMessage}
+            </div>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="inline_nameAr" className="text-xs">
               اسم العميل (عربي) *

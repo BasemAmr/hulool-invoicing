@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   customType,
@@ -13,6 +14,7 @@ import {
   timestamp,
   uuid,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -55,69 +57,95 @@ export const invoiceTypeEnum = pgEnum("invoice_type", [
 
 // ─── companies ─────────────────────────────────────────────────────────
 
-export const companies = pgTable("companies", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  nameAr: text("name_ar").notNull(),
-  nameEn: text("name_en"),
-  vatNumber: text("vat_number").notNull().unique(),
-  crNumber: text("cr_number"),
-  prefix: text("prefix").notNull().unique(),
-  /** The assigned employee/representative for this organization ("تابع للعميل"). */
-  clientEmployee: text("client_employee"),
-  /** Type of organization / entity ("نوع المنشأة"). */
-  organizationType: text("organization_type"),
-  /** @deprecated — use logoFileId instead. Kept for backward compat. */
-  logoUrl: text("logo_url"),
-  phone: text("phone"),
-  email: text("email"),
-  website: text("website"),
-  /** References uploaded_files.id — company logo image. */
-  logoFileId: text("logo_file_id"),
-  /** References uploaded_files.id — company background/watermark image. */
-  backgroundFileId: text("background_file_id"),
-  /** References uploaded_files.id — authorized signature image. */
-  signatureFileId: text("signature_file_id"),
-  footerText: text("footer_text"),
-  templateConfig: jsonb("template_config"),
-  addressBuildingNumber: text("address_building_number"),
-  addressStreet: text("address_street"),
-  addressDistrict: text("address_district"),
-  addressCity: text("address_city"),
-  addressPostalCode: text("address_postal_code"),
-  addressAdditionalNumber: text("address_additional_number"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const companies = pgTable(
+  "companies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    nameAr: text("name_ar").notNull(),
+    nameEn: text("name_en"),
+    vatNumber: text("vat_number").notNull().unique(),
+    crNumber: text("cr_number"),
+    prefix: text("prefix").notNull().unique(),
+    /** The assigned employee/representative for this organization ("تابع للعميل"). */
+    clientEmployee: text("client_employee"),
+    /** Type of organization / entity ("نوع المنشأة"). */
+    organizationType: text("organization_type"),
+    /** @deprecated — use logoFileId instead. Kept for backward compat. */
+    logoUrl: text("logo_url"),
+    phone: text("phone"),
+    email: text("email"),
+    website: text("website"),
+    /** References uploaded_files.id — company logo image. */
+    logoFileId: text("logo_file_id"),
+    /** References uploaded_files.id — company background/watermark image. */
+    backgroundFileId: text("background_file_id"),
+    /** References uploaded_files.id — authorized signature image. */
+    signatureFileId: text("signature_file_id"),
+    footerText: text("footer_text"),
+    templateConfig: jsonb("template_config"),
+    addressBuildingNumber: text("address_building_number"),
+    addressStreet: text("address_street"),
+    addressDistrict: text("address_district"),
+    addressCity: text("address_city"),
+    addressPostalCode: text("address_postal_code"),
+    addressAdditionalNumber: text("address_additional_number"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    // Unique Arabic company name (English name nameEn is intentionally non-unique)
+    uniqueIndex("companies_name_ar_unique").on(t.nameAr),
+    // CR number unique when provided (null/empty allowed for informal orgs)
+    uniqueIndex("companies_cr_number_unique")
+      .on(t.crNumber)
+      .where(sql`${t.crNumber} IS NOT NULL AND ${t.crNumber} <> ''`),
+  ],
+);
 
 // ─── customers (bureau-wide — no company_id) ───────────────────────────
 
-export const customers = pgTable("customers", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  nameAr: text("name_ar").notNull(),
-  nameEn: text("name_en"),
-  vatNumber: text("vat_number"),
-  unifiedNumber: text("unified_number"),
-  phone: text("phone"),
-  email: text("email"),
-  /** The assigned employee/representative for this customer ("تابع للعميل"). */
-  clientEmployee: text("client_employee"),
-  addressCity: text("address_city"),
-  addressDistrict: text("address_district"),
-  addressStreet: text("address_street"),
-  addressBuildingNumber: text("address_building_number"),
-  addressPostalCode: text("address_postal_code"),
-  addressAdditionalNumber: text("address_additional_number"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const customers = pgTable(
+  "customers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    nameAr: text("name_ar").notNull(),
+    nameEn: text("name_en"),
+    vatNumber: text("vat_number"),
+    unifiedNumber: text("unified_number"),
+    phone: text("phone"),
+    email: text("email"),
+    /** The assigned employee/representative for this customer ("تابع للعميل"). */
+    clientEmployee: text("client_employee"),
+    addressCity: text("address_city"),
+    addressDistrict: text("address_district"),
+    addressStreet: text("address_street"),
+    addressBuildingNumber: text("address_building_number"),
+    addressPostalCode: text("address_postal_code"),
+    addressAdditionalNumber: text("address_additional_number"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    // Unique Arabic customer name (English name nameEn is intentionally non-unique)
+    uniqueIndex("customers_name_ar_unique").on(t.nameAr),
+    // VAT number unique when provided
+    uniqueIndex("customers_vat_number_unique")
+      .on(t.vatNumber)
+      .where(sql`${t.vatNumber} IS NOT NULL AND ${t.vatNumber} <> ''`),
+    // Unified 700 / CR number unique when provided
+    uniqueIndex("customers_unified_number_unique")
+      .on(t.unifiedNumber)
+      .where(sql`${t.unifiedNumber} IS NOT NULL AND ${t.unifiedNumber} <> ''`),
+  ],
+);
 
 // ─── company_sequences (atomic invoice numbering) ──────────────────────
 

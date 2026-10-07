@@ -73,27 +73,27 @@ export class CompanyRepositoryImpl implements CompanyRepository {
       const [row] = await this.db
         .insert(companies)
         .values({
-          nameAr: input.nameAr,
-          nameEn: input.nameEn,
-          vatNumber: input.vatNumber,
-          crNumber: input.crNumber,
-          prefix: input.prefix,
-          clientEmployee: input.clientEmployee ?? null,
-          organizationType: input.organizationType ?? null,
-          phone: input.phone,
-          email: input.email,
-          website: input.website,
-          logoUrl: input.logoUrl,
-          logoFileId: input.logoFileId,
-          backgroundFileId: input.backgroundFileId,
-          signatureFileId: input.signatureFileId,
-          footerText: input.footerText ?? null,
-          addressBuildingNumber: input.addressBuildingNumber,
-          addressStreet: input.addressStreet,
-          addressDistrict: input.addressDistrict,
-          addressCity: input.addressCity,
-          addressPostalCode: input.addressPostalCode,
-          addressAdditionalNumber: input.addressAdditionalNumber,
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber.trim(),
+          crNumber: input.crNumber?.trim() || null,
+          prefix: input.prefix.trim().toUpperCase(),
+          clientEmployee: input.clientEmployee?.trim() || null,
+          organizationType: input.organizationType?.trim() || null,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          website: input.website?.trim() || null,
+          logoUrl: input.logoUrl?.trim() || null,
+          logoFileId: input.logoFileId || null,
+          backgroundFileId: input.backgroundFileId || null,
+          signatureFileId: input.signatureFileId || null,
+          footerText: input.footerText?.trim() || null,
+          addressBuildingNumber: input.addressBuildingNumber?.trim() || null,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressDistrict: input.addressDistrict?.trim() || null,
+          addressCity: input.addressCity?.trim() || null,
+          addressPostalCode: input.addressPostalCode?.trim() || null,
+          addressAdditionalNumber: input.addressAdditionalNumber?.trim() || null,
           createdAt: now,
           updatedAt: now,
         })
@@ -105,7 +105,7 @@ export class CompanyRepositoryImpl implements CompanyRepository {
     } catch (err) {
       const pgErr = (err as { cause?: unknown })?.cause ?? err;
       if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
-        throw new ValidationError(formatDatabaseError(err));
+        throw new ValidationError(formatDatabaseError(err, "تعذر حفظ بيانات المنشأة", "company"));
       }
       throw err;
     }
@@ -142,27 +142,27 @@ export class CompanyRepositoryImpl implements CompanyRepository {
       const [row] = await this.db
         .update(companies)
         .set({
-          nameAr: input.nameAr,
-          nameEn: input.nameEn,
-          vatNumber: input.vatNumber,
-          crNumber: input.crNumber,
-          prefix: input.prefix,
-          clientEmployee: input.clientEmployee ?? null,
-          organizationType: input.organizationType ?? null,
-          phone: input.phone,
-          email: input.email,
-          website: input.website,
-          logoUrl: input.logoUrl,
-          logoFileId: input.logoFileId,
-          backgroundFileId: input.backgroundFileId,
-          signatureFileId: input.signatureFileId,
-          footerText: input.footerText ?? null,
-          addressBuildingNumber: input.addressBuildingNumber,
-          addressStreet: input.addressStreet,
-          addressDistrict: input.addressDistrict,
-          addressCity: input.addressCity,
-          addressPostalCode: input.addressPostalCode,
-          addressAdditionalNumber: input.addressAdditionalNumber,
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber.trim(),
+          crNumber: input.crNumber?.trim() || null,
+          prefix: input.prefix.trim().toUpperCase(),
+          clientEmployee: input.clientEmployee !== undefined ? (input.clientEmployee?.trim() || null) : undefined,
+          organizationType: input.organizationType !== undefined ? (input.organizationType?.trim() || null) : undefined,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          website: input.website?.trim() || null,
+          logoUrl: input.logoUrl?.trim() || null,
+          logoFileId: input.logoFileId || null,
+          backgroundFileId: input.backgroundFileId || null,
+          signatureFileId: input.signatureFileId || null,
+          footerText: input.footerText !== undefined ? (input.footerText?.trim() || null) : undefined,
+          addressBuildingNumber: input.addressBuildingNumber?.trim() || null,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressDistrict: input.addressDistrict?.trim() || null,
+          addressCity: input.addressCity?.trim() || null,
+          addressPostalCode: input.addressPostalCode?.trim() || null,
+          addressAdditionalNumber: input.addressAdditionalNumber?.trim() || null,
           updatedAt: now,
         })
         .where(eq(companies.id, id))
@@ -174,7 +174,7 @@ export class CompanyRepositoryImpl implements CompanyRepository {
     } catch (err) {
       const pgErr = (err as { cause?: unknown })?.cause ?? err;
       if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
-        throw new ValidationError(formatDatabaseError(err));
+        throw new ValidationError(formatDatabaseError(err, "تعذر تحديث بيانات المنشأة", "company"));
       }
       throw err;
     }

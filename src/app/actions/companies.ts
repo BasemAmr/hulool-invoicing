@@ -52,7 +52,7 @@ export async function createCompanyAction(
       () => getNextAvailableTemplateId(db),
     ).execute(input);
   } catch (error) {
-    return { status: "error", message: formatDatabaseError(error, "تعذر حفظ بيانات المنشأة") };
+    return { status: "error", message: formatDatabaseError(error, "تعذر حفظ بيانات المنشأة", "company") };
   }
 
   revalidatePath("/companies");
@@ -99,7 +99,7 @@ export async function updateCompanyAction(
       container.clock,
     ).execute(input);
   } catch (error) {
-    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات المنشأة") };
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات المنشأة", "company") };
   }
 
   revalidatePath("/companies");
@@ -180,7 +180,7 @@ export async function createCompanyDirectAction(data: {
     revalidatePath("/companies");
     return { status: "success", data: company };
   } catch (error) {
-    return { status: "error", message: formatDatabaseError(error, "تعذر حفظ بيانات المنشأة") };
+    return { status: "error", message: formatDatabaseError(error, "تعذر حفظ بيانات المنشأة", "company") };
   }
 }
 
@@ -247,7 +247,7 @@ export async function updateCompanyDirectAction(
     revalidatePath(`/c/${id}/settings`);
     return { status: "success", data: updated };
   } catch (error) {
-    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات المنشأة") };
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات المنشأة", "company") };
   }
 }
 

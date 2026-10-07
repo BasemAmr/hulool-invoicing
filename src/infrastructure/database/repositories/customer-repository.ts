@@ -58,19 +58,19 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       const [row] = await this.db
         .insert(customers)
         .values({
-          nameAr: input.nameAr,
-          nameEn: input.nameEn,
-          vatNumber: input.vatNumber,
-          unifiedNumber: input.unifiedNumber ?? null,
-          phone: input.phone,
-          email: input.email,
-          clientEmployee: input.clientEmployee ?? null,
-          addressCity: input.addressCity,
-          addressDistrict: input.addressDistrict ?? null,
-          addressStreet: input.addressStreet,
-          addressBuildingNumber: input.addressBuildingNumber ?? null,
-          addressPostalCode: input.addressPostalCode ?? null,
-          addressAdditionalNumber: input.addressAdditionalNumber ?? null,
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber?.trim() || null,
+          unifiedNumber: input.unifiedNumber?.trim() || null,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          clientEmployee: input.clientEmployee?.trim() || null,
+          addressCity: input.addressCity?.trim() || null,
+          addressDistrict: input.addressDistrict?.trim() || null,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressBuildingNumber: input.addressBuildingNumber?.trim() || null,
+          addressPostalCode: input.addressPostalCode?.trim() || null,
+          addressAdditionalNumber: input.addressAdditionalNumber?.trim() || null,
           createdAt: now,
           updatedAt: now,
         })
@@ -82,7 +82,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     } catch (err) {
       const pgErr = (err as { cause?: unknown })?.cause ?? err;
       if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
-        throw new ValidationError(formatDatabaseError(err));
+        throw new ValidationError(formatDatabaseError(err, "تعذر حفظ بيانات العميل", "customer"));
       }
       throw err;
     }
@@ -111,19 +111,19 @@ export class CustomerRepositoryImpl implements CustomerRepository {
       const [row] = await this.db
         .update(customers)
         .set({
-          nameAr: input.nameAr,
-          nameEn: input.nameEn,
-          vatNumber: input.vatNumber,
-          unifiedNumber: input.unifiedNumber !== undefined ? input.unifiedNumber : undefined,
-          phone: input.phone,
-          email: input.email,
-          clientEmployee: input.clientEmployee !== undefined ? input.clientEmployee : undefined,
-          addressCity: input.addressCity,
-          addressDistrict: input.addressDistrict !== undefined ? input.addressDistrict : undefined,
-          addressStreet: input.addressStreet,
-          addressBuildingNumber: input.addressBuildingNumber !== undefined ? input.addressBuildingNumber : undefined,
-          addressPostalCode: input.addressPostalCode !== undefined ? input.addressPostalCode : undefined,
-          addressAdditionalNumber: input.addressAdditionalNumber !== undefined ? input.addressAdditionalNumber : undefined,
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber?.trim() || null,
+          unifiedNumber: input.unifiedNumber !== undefined ? (input.unifiedNumber?.trim() || null) : undefined,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          clientEmployee: input.clientEmployee !== undefined ? (input.clientEmployee?.trim() || null) : undefined,
+          addressCity: input.addressCity?.trim() || null,
+          addressDistrict: input.addressDistrict !== undefined ? (input.addressDistrict?.trim() || null) : undefined,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressBuildingNumber: input.addressBuildingNumber !== undefined ? (input.addressBuildingNumber?.trim() || null) : undefined,
+          addressPostalCode: input.addressPostalCode !== undefined ? (input.addressPostalCode?.trim() || null) : undefined,
+          addressAdditionalNumber: input.addressAdditionalNumber !== undefined ? (input.addressAdditionalNumber?.trim() || null) : undefined,
           updatedAt: now,
         })
         .where(eq(customers.id, id))
@@ -135,7 +135,7 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     } catch (err) {
       const pgErr = (err as { cause?: unknown })?.cause ?? err;
       if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
-        throw new ValidationError(formatDatabaseError(err));
+        throw new ValidationError(formatDatabaseError(err, "تعذر تحديث بيانات العميل", "customer"));
       }
       throw err;
     }
