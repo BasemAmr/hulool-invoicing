@@ -6,6 +6,8 @@ import type {
   CustomerRepository,
 } from "@/application/ports/customer-repository";
 import type { Database } from "@/application/tx";
+import { ValidationError } from "@/domain/errors";
+import { formatDatabaseError } from "@/lib/format-db-error";
 import { customers, invoices } from "../schema";
 
 type CustomerRow = typeof customers.$inferSelect;
@@ -52,30 +54,38 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     },
     now: Date,
   ): Promise<CustomerRecord> {
-    const [row] = await this.db
-      .insert(customers)
-      .values({
-        nameAr: input.nameAr,
-        nameEn: input.nameEn,
-        vatNumber: input.vatNumber,
-        unifiedNumber: input.unifiedNumber ?? null,
-        phone: input.phone,
-        email: input.email,
-        clientEmployee: input.clientEmployee ?? null,
-        addressCity: input.addressCity,
-        addressDistrict: input.addressDistrict ?? null,
-        addressStreet: input.addressStreet,
-        addressBuildingNumber: input.addressBuildingNumber ?? null,
-        addressPostalCode: input.addressPostalCode ?? null,
-        addressAdditionalNumber: input.addressAdditionalNumber ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    if (!row) {
-      throw new Error("Failed to insert customer — no row returned");
+    try {
+      const [row] = await this.db
+        .insert(customers)
+        .values({
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber?.trim() || null,
+          unifiedNumber: input.unifiedNumber?.trim() || null,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          clientEmployee: input.clientEmployee?.trim() || null,
+          addressCity: input.addressCity?.trim() || null,
+          addressDistrict: input.addressDistrict?.trim() || null,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressBuildingNumber: input.addressBuildingNumber?.trim() || null,
+          addressPostalCode: input.addressPostalCode?.trim() || null,
+          addressAdditionalNumber: input.addressAdditionalNumber?.trim() || null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      if (!row) {
+        throw new Error("Failed to insert customer — no row returned");
+      }
+      return mapCustomerRow(row);
+    } catch (err) {
+      const pgErr = (err as { cause?: unknown })?.cause ?? err;
+      if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
+        throw new ValidationError(formatDatabaseError(err, "تعذر حفظ بيانات العميل", "customer"));
+      }
+      throw err;
     }
-    return mapCustomerRow(row);
   }
 
   async update(
@@ -97,30 +107,38 @@ export class CustomerRepositoryImpl implements CustomerRepository {
     },
     now: Date,
   ): Promise<CustomerRecord> {
-    const [row] = await this.db
-      .update(customers)
-      .set({
-        nameAr: input.nameAr,
-        nameEn: input.nameEn,
-        vatNumber: input.vatNumber,
-        unifiedNumber: input.unifiedNumber !== undefined ? input.unifiedNumber : undefined,
-        phone: input.phone,
-        email: input.email,
-        clientEmployee: input.clientEmployee !== undefined ? input.clientEmployee : undefined,
-        addressCity: input.addressCity,
-        addressDistrict: input.addressDistrict !== undefined ? input.addressDistrict : undefined,
-        addressStreet: input.addressStreet,
-        addressBuildingNumber: input.addressBuildingNumber !== undefined ? input.addressBuildingNumber : undefined,
-        addressPostalCode: input.addressPostalCode !== undefined ? input.addressPostalCode : undefined,
-        addressAdditionalNumber: input.addressAdditionalNumber !== undefined ? input.addressAdditionalNumber : undefined,
-        updatedAt: now,
-      })
-      .where(eq(customers.id, id))
-      .returning();
-    if (!row) {
-      throw new Error("Failed to update customer — customer not found");
+    try {
+      const [row] = await this.db
+        .update(customers)
+        .set({
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber?.trim() || null,
+          unifiedNumber: input.unifiedNumber !== undefined ? (input.unifiedNumber?.trim() || null) : undefined,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          clientEmployee: input.clientEmployee !== undefined ? (input.clientEmployee?.trim() || null) : undefined,
+          addressCity: input.addressCity?.trim() || null,
+          addressDistrict: input.addressDistrict !== undefined ? (input.addressDistrict?.trim() || null) : undefined,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressBuildingNumber: input.addressBuildingNumber !== undefined ? (input.addressBuildingNumber?.trim() || null) : undefined,
+          addressPostalCode: input.addressPostalCode !== undefined ? (input.addressPostalCode?.trim() || null) : undefined,
+          addressAdditionalNumber: input.addressAdditionalNumber !== undefined ? (input.addressAdditionalNumber?.trim() || null) : undefined,
+          updatedAt: now,
+        })
+        .where(eq(customers.id, id))
+        .returning();
+      if (!row) {
+        throw new Error("Failed to update customer — customer not found");
+      }
+      return mapCustomerRow(row);
+    } catch (err) {
+      const pgErr = (err as { cause?: unknown })?.cause ?? err;
+      if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
+        throw new ValidationError(formatDatabaseError(err, "تعذر تحديث بيانات العميل", "customer"));
+      }
+      throw err;
     }
-    return mapCustomerRow(row);
   }
 
   async delete(id: CustomerId): Promise<void> {

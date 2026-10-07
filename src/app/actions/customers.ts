@@ -7,6 +7,8 @@ import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
 import { CreateCustomer } from "@/application/use-cases/create-customer";
 import { DomainError, ValidationError } from "@/domain/errors";
+import { formatDatabaseError } from "@/lib/format-db-error";
+import { toWesternDigits } from "@/lib/format";
 import type { ActionState } from "./types";
 
 const container = createContainer(db);
@@ -16,19 +18,19 @@ export async function createCustomerAction(
   formData: FormData,
 ): Promise<ActionState> {
   const input = {
-    nameAr: String(formData.get("nameAr") ?? ""),
+    nameAr: String(formData.get("nameAr") ?? "").trim(),
     nameEn: nonEmpty(formData.get("nameEn")),
-    vatNumber: String(formData.get("vatNumber") ?? ""),
-    unifiedNumber: String(formData.get("unifiedNumber") ?? ""),
-    phone: nonEmpty(formData.get("phone")),
+    vatNumber: westernNonEmpty(formData.get("vatNumber")) ?? "",
+    unifiedNumber: westernNonEmpty(formData.get("unifiedNumber")) ?? "",
+    phone: westernNonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
     clientEmployee: nonEmpty(formData.get("clientEmployee")),
-    addressCity: String(formData.get("addressCity") ?? ""),
+    addressCity: String(formData.get("addressCity") ?? "").trim(),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
-    addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
-    addressPostalCode: String(formData.get("addressPostalCode") ?? ""),
-    addressAdditionalNumber: nonEmpty(formData.get("addressAdditionalNumber")),
+    addressBuildingNumber: westernNonEmpty(formData.get("addressBuildingNumber")),
+    addressPostalCode: westernNonEmpty(formData.get("addressPostalCode")) ?? "",
+    addressAdditionalNumber: westernNonEmpty(formData.get("addressAdditionalNumber")),
   };
 
   try {
@@ -37,13 +39,7 @@ export async function createCustomerAction(
       container.clock,
     ).execute(input);
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return { status: "error", message: error.message };
-    }
-    if (error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر إنشاء العميل", "customer") };
   }
 
   revalidatePath("/customers");
@@ -81,14 +77,11 @@ export async function createCustomerDirectAction(input: {
       status: "success",
       customer: {
         id: result.id,
-        nameAr: input.nameAr,
+        nameAr: input.nameAr.trim(),
       },
     };
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر إنشاء العميل" };
+    return { status: "error", message: formatDatabaseError(error, "تعذر إنشاء العميل", "customer") };
   }
 }
 
@@ -103,19 +96,19 @@ export async function updateCustomerAction(
 
   const input = {
     id,
-    nameAr: String(formData.get("nameAr") ?? ""),
+    nameAr: String(formData.get("nameAr") ?? "").trim(),
     nameEn: nonEmpty(formData.get("nameEn")),
-    vatNumber: String(formData.get("vatNumber") ?? ""),
-    unifiedNumber: String(formData.get("unifiedNumber") ?? ""),
-    phone: nonEmpty(formData.get("phone")),
+    vatNumber: westernNonEmpty(formData.get("vatNumber")) ?? "",
+    unifiedNumber: westernNonEmpty(formData.get("unifiedNumber")) ?? "",
+    phone: westernNonEmpty(formData.get("phone")),
     email: nonEmpty(formData.get("email")),
     clientEmployee: nonEmpty(formData.get("clientEmployee")),
-    addressCity: String(formData.get("addressCity") ?? ""),
+    addressCity: String(formData.get("addressCity") ?? "").trim(),
     addressDistrict: nonEmpty(formData.get("addressDistrict")),
     addressStreet: nonEmpty(formData.get("addressStreet")),
-    addressBuildingNumber: nonEmpty(formData.get("addressBuildingNumber")),
-    addressPostalCode: String(formData.get("addressPostalCode") ?? ""),
-    addressAdditionalNumber: nonEmpty(formData.get("addressAdditionalNumber")),
+    addressBuildingNumber: westernNonEmpty(formData.get("addressBuildingNumber")),
+    addressPostalCode: westernNonEmpty(formData.get("addressPostalCode")) ?? "",
+    addressAdditionalNumber: westernNonEmpty(formData.get("addressAdditionalNumber")),
   };
 
   try {
@@ -125,10 +118,7 @@ export async function updateCustomerAction(
       container.clock,
     ).execute(input);
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    throw error;
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات العميل", "customer") };
   }
 
   revalidatePath("/customers");
@@ -156,21 +146,31 @@ export async function updateCustomerDirectAction(input: {
     await new UpdateCustomer(
       container.customerRepository,
       container.clock,
-    ).execute(input);
+    ).execute({
+      ...input,
+      nameAr: input.nameAr.trim(),
+      vatNumber: toWesternDigits(input.vatNumber.trim()),
+      unifiedNumber: toWesternDigits(input.unifiedNumber.trim()),
+      phone: input.phone?.trim() ? toWesternDigits(input.phone.trim()) : undefined,
+      addressPostalCode: toWesternDigits(input.addressPostalCode.trim()),
+      addressAdditionalNumber: input.addressAdditionalNumber?.trim()
+        ? toWesternDigits(input.addressAdditionalNumber.trim())
+        : undefined,
+      addressBuildingNumber: input.addressBuildingNumber?.trim()
+        ? toWesternDigits(input.addressBuildingNumber.trim())
+        : undefined,
+    });
 
     revalidatePath("/customers");
     return {
       status: "success",
       customer: {
         id: input.id,
-        nameAr: input.nameAr,
+        nameAr: input.nameAr.trim(),
       },
     };
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر تحديث بيانات العميل" };
+    return { status: "error", message: formatDatabaseError(error, "تعذر تحديث بيانات العميل", "customer") };
   }
 }
 
@@ -194,6 +194,11 @@ export async function deleteCustomerAction(id: string): Promise<{ status: "succe
 
 function nonEmpty(value: FormDataEntryValue | null): string | undefined {
   const str = typeof value === "string" ? value.trim() : "";
+  return str.length > 0 ? str : undefined;
+}
+
+function westernNonEmpty(value: FormDataEntryValue | null): string | undefined {
+  const str = typeof value === "string" ? toWesternDigits(value).trim() : "";
   return str.length > 0 ? str : undefined;
 }
 

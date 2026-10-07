@@ -4,6 +4,8 @@ import { asCompanyId, type CompanyId } from "@/domain/branding";
 import type { CompanyRepository } from "@/application/ports/company-repository";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { Database, Tx } from "@/application/tx";
+import { ValidationError } from "@/domain/errors";
+import { formatDatabaseError } from "@/lib/format-db-error";
 import { companies, invoices } from "../schema";
 
 type CompanyRow = typeof companies.$inferSelect;
@@ -67,38 +69,46 @@ export class CompanyRepositoryImpl implements CompanyRepository {
     },
     now: Date,
   ): Promise<CompanyRecord> {
-    const [row] = await this.db
-      .insert(companies)
-      .values({
-        nameAr: input.nameAr,
-        nameEn: input.nameEn,
-        vatNumber: input.vatNumber,
-        crNumber: input.crNumber,
-        prefix: input.prefix,
-        clientEmployee: input.clientEmployee ?? null,
-        organizationType: input.organizationType ?? null,
-        phone: input.phone,
-        email: input.email,
-        website: input.website,
-        logoUrl: input.logoUrl,
-        logoFileId: input.logoFileId,
-        backgroundFileId: input.backgroundFileId,
-        signatureFileId: input.signatureFileId,
-        footerText: input.footerText ?? null,
-        addressBuildingNumber: input.addressBuildingNumber,
-        addressStreet: input.addressStreet,
-        addressDistrict: input.addressDistrict,
-        addressCity: input.addressCity,
-        addressPostalCode: input.addressPostalCode,
-        addressAdditionalNumber: input.addressAdditionalNumber,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    if (!row) {
-      throw new Error("Failed to insert company — no row returned");
+    try {
+      const [row] = await this.db
+        .insert(companies)
+        .values({
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber.trim(),
+          crNumber: input.crNumber?.trim() || null,
+          prefix: input.prefix.trim().toUpperCase(),
+          clientEmployee: input.clientEmployee?.trim() || null,
+          organizationType: input.organizationType?.trim() || null,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          website: input.website?.trim() || null,
+          logoUrl: input.logoUrl?.trim() || null,
+          logoFileId: input.logoFileId || null,
+          backgroundFileId: input.backgroundFileId || null,
+          signatureFileId: input.signatureFileId || null,
+          footerText: input.footerText?.trim() || null,
+          addressBuildingNumber: input.addressBuildingNumber?.trim() || null,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressDistrict: input.addressDistrict?.trim() || null,
+          addressCity: input.addressCity?.trim() || null,
+          addressPostalCode: input.addressPostalCode?.trim() || null,
+          addressAdditionalNumber: input.addressAdditionalNumber?.trim() || null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      if (!row) {
+        throw new Error("Failed to insert company — no row returned");
+      }
+      return mapCompanyRow(row);
+    } catch (err) {
+      const pgErr = (err as { cause?: unknown })?.cause ?? err;
+      if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
+        throw new ValidationError(formatDatabaseError(err, "تعذر حفظ بيانات المنشأة", "company"));
+      }
+      throw err;
     }
-    return mapCompanyRow(row);
   }
 
   async update(
@@ -128,38 +138,46 @@ export class CompanyRepositoryImpl implements CompanyRepository {
     },
     now: Date,
   ): Promise<CompanyRecord> {
-    const [row] = await this.db
-      .update(companies)
-      .set({
-        nameAr: input.nameAr,
-        nameEn: input.nameEn,
-        vatNumber: input.vatNumber,
-        crNumber: input.crNumber,
-        prefix: input.prefix,
-        clientEmployee: input.clientEmployee ?? null,
-        organizationType: input.organizationType ?? null,
-        phone: input.phone,
-        email: input.email,
-        website: input.website,
-        logoUrl: input.logoUrl,
-        logoFileId: input.logoFileId,
-        backgroundFileId: input.backgroundFileId,
-        signatureFileId: input.signatureFileId,
-        footerText: input.footerText ?? null,
-        addressBuildingNumber: input.addressBuildingNumber,
-        addressStreet: input.addressStreet,
-        addressDistrict: input.addressDistrict,
-        addressCity: input.addressCity,
-        addressPostalCode: input.addressPostalCode,
-        addressAdditionalNumber: input.addressAdditionalNumber,
-        updatedAt: now,
-      })
-      .where(eq(companies.id, id))
-      .returning();
-    if (!row) {
-      throw new Error("Failed to update company — company not found");
+    try {
+      const [row] = await this.db
+        .update(companies)
+        .set({
+          nameAr: input.nameAr.trim(),
+          nameEn: input.nameEn?.trim() || null,
+          vatNumber: input.vatNumber.trim(),
+          crNumber: input.crNumber?.trim() || null,
+          prefix: input.prefix.trim().toUpperCase(),
+          clientEmployee: input.clientEmployee !== undefined ? (input.clientEmployee?.trim() || null) : undefined,
+          organizationType: input.organizationType !== undefined ? (input.organizationType?.trim() || null) : undefined,
+          phone: input.phone?.trim() || null,
+          email: input.email?.trim() || null,
+          website: input.website?.trim() || null,
+          logoUrl: input.logoUrl?.trim() || null,
+          logoFileId: input.logoFileId || null,
+          backgroundFileId: input.backgroundFileId || null,
+          signatureFileId: input.signatureFileId || null,
+          footerText: input.footerText !== undefined ? (input.footerText?.trim() || null) : undefined,
+          addressBuildingNumber: input.addressBuildingNumber?.trim() || null,
+          addressStreet: input.addressStreet?.trim() || null,
+          addressDistrict: input.addressDistrict?.trim() || null,
+          addressCity: input.addressCity?.trim() || null,
+          addressPostalCode: input.addressPostalCode?.trim() || null,
+          addressAdditionalNumber: input.addressAdditionalNumber?.trim() || null,
+          updatedAt: now,
+        })
+        .where(eq(companies.id, id))
+        .returning();
+      if (!row) {
+        throw new Error("Failed to update company — company not found");
+      }
+      return mapCompanyRow(row);
+    } catch (err) {
+      const pgErr = (err as { cause?: unknown })?.cause ?? err;
+      if (pgErr && typeof pgErr === "object" && ("code" in pgErr || "constraint" in pgErr)) {
+        throw new ValidationError(formatDatabaseError(err, "تعذر تحديث بيانات المنشأة", "company"));
+      }
+      throw err;
     }
-    return mapCompanyRow(row);
   }
 
 
