@@ -46,6 +46,26 @@ export function fromDecimalString(s: string): Halalas {
   return (neg ? -value : value) as Halalas;
 }
 
+/**
+ * Lenient sibling of fromDecimalString: unparseable input becomes 0 instead
+ * of throwing.
+ *
+ * WHY: the invoice wizard converts user-typed text into money on every
+ * render. `toFixed(2)` switches to exponential notation at 1e21, so a value
+ * like "1e21" (or anything that parses to Infinity) is NOT a valid decimal
+ * string — the strict parser throws a RangeError, and an uncaught error during
+ * render tears down the whole page (there was no error boundary) instead of
+ * showing a wrong number. Display math must never throw; the server
+ * re-validates every field with Zod before anything is persisted.
+ */
+export function fromDecimalStringOrZero(s: string): Halalas {
+  try {
+    return fromDecimalString(s);
+  } catch {
+    return 0 as Halalas;
+  }
+}
+
 /** Format halalas as a 2-decimal string ("100.00"). Always 2 places. */
 export function toDecimalString(h: Halalas): string {
   const neg = h < 0;

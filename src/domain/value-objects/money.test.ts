@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   add,
   fromDecimalString,
+  fromDecimalStringOrZero,
   halalas,
   multiplyQuantity,
   sum,
@@ -41,6 +42,22 @@ describe("money — decimal string round-trip", () => {
   it("throws on invalid input", () => {
     expect(() => fromDecimalString("abc")).toThrow(RangeError);
     expect(() => fromDecimalString("")).toThrow(RangeError);
+  });
+});
+
+describe("money — fromDecimalStringOrZero", () => {
+  it("parses valid decimals like the strict version", () => {
+    expect(fromDecimalStringOrZero("12.34")).toBe(halalas(1234));
+    expect(fromDecimalStringOrZero("0")).toBe(halalas(0));
+  });
+
+  it("degrades to 0 instead of throwing", () => {
+    // The wizard renders these on every keystroke; a throw here tears down
+    // the whole page. "1e+21" is what (1e21).toFixed(2) produces.
+    expect(fromDecimalStringOrZero("1e+21")).toBe(halalas(0));
+    expect(fromDecimalStringOrZero("Infinity")).toBe(halalas(0));
+    expect(fromDecimalStringOrZero("abc")).toBe(halalas(0));
+    expect(fromDecimalStringOrZero("")).toBe(halalas(0));
   });
 });
 

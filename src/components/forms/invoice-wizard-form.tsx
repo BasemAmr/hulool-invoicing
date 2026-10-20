@@ -28,6 +28,7 @@ import type { InvoiceDto } from "@/application/dto";
 import { VAT_RATE } from "@/domain/constants";
 import {
   fromDecimalString,
+  fromDecimalStringOrZero,
   toDecimalString,
   halalas,
   lineSubtotalHalalasExact,
@@ -415,7 +416,11 @@ export function InvoiceWizardForm({
           // Keep raw strings: exact helper parses full precision (e.g. "17.95319").
           qtyStr: l.quantity || "0",
           priceStr: l.unitPrice || "0",
-          discountAmount: fromDecimalString(discSar.toFixed(2)),
+          // Lenient parse: this map runs OUTSIDE the try/catch below, and a
+          // discount that toFixed(2)s into exponential notation ("1e21") is
+          // not a valid decimal string — the strict parser would throw a
+          // RangeError during render and take the page down with it.
+          discountAmount: fromDecimalStringOrZero(discSar.toFixed(2)),
           vatRate: l.vatRate,
         };
       });
@@ -1135,7 +1140,7 @@ export function InvoiceWizardForm({
                       <input
                         type="hidden"
                         name={`items[${idx}].discountAmount`}
-                        value={fromDecimalString(
+                        value={fromDecimalStringOrZero(
                           (parseFloat(line.discountAmount) || 0).toFixed(2)
                         ).toString()}
                       />
