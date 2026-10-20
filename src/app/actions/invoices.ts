@@ -102,22 +102,25 @@ export async function createDraftInvoiceAction(
     formData.get("invoiceNumberCustom"),
   );
 
-  // Early friendly reject BEFORE any write: the common duplicate case returns
-  // without inserting even the numberless draft. The IssueInvoice pre-check +
-  // unique-constraint mapping below remain the backstop for the race where a
-  // duplicate lands between this lookup and issuance.
-  if (customInvoiceNumber) {
-    const clash = await container.invoiceRepository.findByNumber(
-      asCompanyId(String(formData.get("companyId") ?? "")),
-      customInvoiceNumber,
-    );
-    if (clash) {
-      return { status: "error", message: DUPLICATE_INVOICE_NUMBER_MESSAGE };
-    }
-  }
-
   let invoiceId = "";
   try {
+    // Early friendly reject BEFORE any write: the common duplicate case returns
+    // without inserting even the numberless draft. The IssueInvoice pre-check +
+    // unique-constraint mapping below remain the backstop for the race where a
+    // duplicate lands between this lookup and issuance.
+    // Inside the try on purpose: a transient DB failure on this lookup must
+    // surface through the catch below (friendly Arabic message) instead of
+    // escaping the action and turning the whole save into a 500.
+    if (customInvoiceNumber) {
+      const clash = await container.invoiceRepository.findByNumber(
+        asCompanyId(String(formData.get("companyId") ?? "")),
+        customInvoiceNumber,
+      );
+      if (clash) {
+        return { status: "error", message: DUPLICATE_INVOICE_NUMBER_MESSAGE };
+      }
+    }
+
     const draft = await new CreateDraftInvoice(
       container.invoiceRepository,
     ).execute(input);
