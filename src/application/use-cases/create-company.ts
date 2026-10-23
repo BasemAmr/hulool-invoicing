@@ -77,6 +77,7 @@ export class CreateCompany {
           paperOrientation: "portrait",
           defaultTemplateId,
           defaultReceiptTemplateId: "receipt_design_work",
+          templateNameOverrides: {},
         });
       } catch (err) {
         console.error("Failed to provision initial company settings with sequential template:", err);

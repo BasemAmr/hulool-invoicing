@@ -272,7 +272,7 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة ضريبية ببطاقتي المورد والعميل وجدول 7 أعمدة ديناميكي وملاحظات الفاتورة وملاحظة سياسة المنشأة",
   },
-  generic_delivery_21: {
+generic_delivery_21: {
     id: "generic_delivery_21",
     nameAr: "نموذج 21",
     nameEn: "Template 21",
@@ -691,6 +691,17 @@ export const TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     accentColor: "#374151",
     isBilingual: false,
     descriptionAr: "تصميم رمادي حديث متوازن يجمع بين الطابع الرسمي والجمالي",
+  },
+  kenan_company: {
+    id: "kenan_company",
+    nameAr: "نموذج شركة كنان",
+    nameEn: "Kenan Company Template",
+    parentCategory: "company_chosen",
+    category: "modern",
+    primaryColor: "#064343",
+    accentColor: "#0B3C3C",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة ضريبية معتمد لشركة كنان بترويسة كبسولية ثنائية وشريط مبيعات كحلي داكن وجدول أصناف تفصيلي",
   },
 };
 

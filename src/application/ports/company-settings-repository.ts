@@ -15,6 +15,7 @@ export interface CompanySettingsRecord {
   paperOrientation: "portrait" | "landscape";
   defaultTemplateId: string;
   defaultReceiptTemplateId: string;
+  templateNameOverrides?: Record<string, { ar?: string; en?: string }> | null;
   createdAt: string;
   updatedAt: string;
 }

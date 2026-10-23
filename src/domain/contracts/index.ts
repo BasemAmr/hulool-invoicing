@@ -195,6 +195,16 @@ export const companySettingsSchema = z.object({
   paperOrientation: z.enum(["portrait", "landscape"]).default("portrait"),
   defaultTemplateId: z.string().default("simple_red"),
   defaultReceiptTemplateId: z.string().default("receipt_standard"),
+  templateNameOverrides: z
+    .record(
+      z.string(),
+      z.object({
+        ar: z.string().optional(),
+        en: z.string().optional(),
+      })
+    )
+    .optional()
+    .default({}),
 });
 export type CompanySettingsInput = z.infer<typeof companySettingsSchema>;
 

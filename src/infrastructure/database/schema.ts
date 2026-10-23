@@ -250,6 +250,9 @@ export const companySettings = pgTable("company_settings", {
   paperOrientation: text("paper_orientation").notNull().default("portrait"),
   defaultTemplateId: text("default_template_id").notNull().default("simple_red"),
   defaultReceiptTemplateId: text("default_receipt_template_id").notNull().default("receipt_standard"),
+  templateNameOverrides: jsonb("template_name_overrides")
+    .$type<Record<string, { ar?: string; en?: string }>>()
+    .default({}),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

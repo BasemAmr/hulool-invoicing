@@ -23,10 +23,11 @@ export default async function CompanyInvoiceDetailPage({
     notFound();
   }
 
-  const [company, customer, receiptVoucher] = await Promise.all([
+  const [company, customer, receiptVoucher, settings] = await Promise.all([
     container.companyRepository.findById(invoice.companyId),
     container.customerRepository.findById(invoice.customerId),
     container.receiptVoucherRepository.findByInvoiceId(invoice.id),
+    container.companySettingsRepository.getByCompanyId(invoice.companyId),
   ]);
 
   if (!company || !customer) {
@@ -46,6 +47,7 @@ export default async function CompanyInvoiceDetailPage({
       initialCustomer={customer}
       receiptVoucher={receiptVoucher}
       qrDataUrl={qrDataUrl}
+      initialSettings={settings}
     />
   );
 }

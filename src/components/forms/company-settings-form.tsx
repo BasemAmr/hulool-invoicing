@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useMemo } from "react";
 import {
   Globe,
   FileText,
@@ -23,7 +23,12 @@ import {
   getReceiptTemplateById,
   PARENT_CATEGORY_LABELS,
   groupTemplatesByParentCategory,
+  type TemplateParentCategory,
 } from "@/infrastructure/pdf/templates/registry";
+import {
+  resolveTemplateName,
+  type TemplateOverridesMap,
+} from "@/infrastructure/pdf/templates/template-names";
 import { TemplateBrowserDrawer } from "@/components/drawers/template-browser-drawer";
 
 export interface CompanySettingsFormProps {
@@ -48,9 +53,21 @@ export function CompanySettingsForm({
 
   const [invoicePickerOpen, setInvoicePickerOpen] = useState(false);
   const [receiptPickerOpen, setReceiptPickerOpen] = useState(false);
+  const [templateOverrides, setTemplateOverrides] = useState<TemplateOverridesMap>(
+    (settings?.templateNameOverrides as TemplateOverridesMap) || {}
+  );
 
-  const activeInvoiceTemplate = getTemplateById(defaultTemplateId);
-  const activeReceiptTemplate = getReceiptTemplateById(defaultReceiptTemplateId);
+  const rawInvoiceTemplate = getTemplateById(defaultTemplateId);
+  const activeInvoiceTemplate = useMemo(() => {
+    const resolved = resolveTemplateName(rawInvoiceTemplate, templateOverrides);
+    return { ...rawInvoiceTemplate, nameAr: resolved.nameAr, nameEn: resolved.nameEn };
+  }, [rawInvoiceTemplate, templateOverrides]);
+
+  const rawReceiptTemplate = getReceiptTemplateById(defaultReceiptTemplateId);
+  const activeReceiptTemplate = useMemo(() => {
+    const resolved = resolveTemplateName(rawReceiptTemplate, templateOverrides);
+    return { ...rawReceiptTemplate, nameAr: resolved.nameAr, nameEn: resolved.nameEn };
+  }, [rawReceiptTemplate, templateOverrides]);
 
   const numberFormat = settings?.numberFormat ?? "en";
   const dateFormat = settings?.dateFormat ?? "YYYY-MM-DD";
@@ -331,7 +348,7 @@ export function CompanySettingsForm({
                     <span
                       className="text-[9px] px-1.5 py-0.2 rounded font-semibold border bg-primary/10 text-primary border-primary/25"
                     >
-                      {PARENT_CATEGORY_LABELS[activeInvoiceTemplate.parentCategory]?.badgeAr || "قالب معتمد"}
+                      {PARENT_CATEGORY_LABELS[activeInvoiceTemplate.parentCategory as TemplateParentCategory]?.badgeAr || "قالب معتمد"}
                     </span>
                   </div>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">
@@ -399,7 +416,7 @@ export function CompanySettingsForm({
                     <span
                       className="text-[9px] px-1.5 py-0.2 rounded font-semibold border bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-700"
                     >
-                      {PARENT_CATEGORY_LABELS[activeReceiptTemplate.parentCategory]?.badgeAr || "قالب معتمد"}
+                      {PARENT_CATEGORY_LABELS[activeReceiptTemplate.parentCategory as TemplateParentCategory]?.badgeAr || "قالب معتمد"}
                     </span>
                   </div>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">
@@ -461,6 +478,8 @@ export function CompanySettingsForm({
         onSelectTemplate={(tid) => setDefaultTemplateId(tid)}
         companyId={companyId}
         mode="invoice"
+        initialOverrides={templateOverrides}
+        onOverridesChange={setTemplateOverrides}
       />
 
       {/* Receipt Template Browser Drawer */}
@@ -471,6 +490,8 @@ export function CompanySettingsForm({
         onSelectTemplate={(tid) => setDefaultReceiptTemplateId(tid)}
         companyId={companyId}
         mode="receipt"
+        initialOverrides={templateOverrides}
+        onOverridesChange={setTemplateOverrides}
       />
     </>
   );

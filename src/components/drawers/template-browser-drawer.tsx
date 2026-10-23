@@ -8,7 +8,9 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
-  Sparkles,
+  Edit2,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +22,16 @@ import {
   PARENT_CATEGORY_LABELS,
   groupTemplatesByParentCategory,
 } from "@/infrastructure/pdf/templates/registry";
+import {
+  resolveTemplateName,
+  applyTemplateNames,
+  type TemplateOverridesMap,
+} from "@/infrastructure/pdf/templates/template-names";
+import {
+  getCompanyTemplateOverridesAction,
+  updateTemplateNameAction,
+  resetTemplateNameAction,
+} from "@/app/actions/template-names";
 
 export interface DraftInvoicePreviewItem {
   description: string;
@@ -51,6 +63,8 @@ export interface TemplateBrowserDrawerProps {
   customerId?: string;
   draftInvoice?: DraftInvoicePreview | null;
   mode?: "invoice" | "receipt";
+  initialOverrides?: TemplateOverridesMap;
+  onOverridesChange?: (overrides: TemplateOverridesMap) => void;
 }
 
 export function TemplateBrowserDrawer({
@@ -63,9 +77,11 @@ export function TemplateBrowserDrawer({
   customerId,
   draftInvoice,
   mode = "invoice",
+  initialOverrides,
+  onOverridesChange,
 }: TemplateBrowserDrawerProps) {
   const isReceipt = mode === "receipt";
-  const templatesList = isReceipt ? RECEIPT_TEMPLATES_LIST : TEMPLATES_LIST;
+  const baseTemplatesList = isReceipt ? RECEIPT_TEMPLATES_LIST : TEMPLATES_LIST;
   const defaultFallbackId = isReceipt ? "receipt_standard" : "simple_red";
 
   const [currentTemplateId, setCurrentTemplateId] = useState<string>(
@@ -73,6 +89,32 @@ export function TemplateBrowserDrawer({
   );
   const [loading, setLoading] = useState(false);
   const [draftPdfUrl, setDraftPdfUrl] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<TemplateOverridesMap>(
+    initialOverrides || {}
+  );
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameAr, setEditNameAr] = useState("");
+  const [editNameEn, setEditNameEn] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  // Sync initialOverrides if provided from parent
+  useEffect(() => {
+    if (initialOverrides) {
+      setOverrides(initialOverrides);
+    }
+  }, [initialOverrides]);
+
+  // Load overrides if companyId is present and no overrides provided yet
+  useEffect(() => {
+    if (open && companyId && (!initialOverrides || Object.keys(initialOverrides).length === 0)) {
+      getCompanyTemplateOverridesAction(companyId).then((loaded) => {
+        if (loaded && Object.keys(loaded).length > 0) {
+          setOverrides(loaded);
+          onOverridesChange?.(loaded);
+        }
+      });
+    }
+  }, [open, companyId, initialOverrides, onOverridesChange]);
 
   useEffect(() => {
     if (selectedTemplateId) {
@@ -82,16 +124,27 @@ export function TemplateBrowserDrawer({
     }
   }, [selectedTemplateId, open, defaultFallbackId]);
 
+  const templatesList = useMemo(() => {
+    return applyTemplateNames(baseTemplatesList, overrides);
+  }, [baseTemplatesList, overrides]);
+
   const currentIndex = useMemo(() => {
     const idx = templatesList.findIndex((t) => t.id === currentTemplateId);
     return idx >= 0 ? idx : 0;
   }, [currentTemplateId, templatesList]);
 
   const activeDef = useMemo(() => {
-    return isReceipt
+    const rawDef = isReceipt
       ? getReceiptTemplateById(currentTemplateId)
       : getTemplateById(currentTemplateId);
-  }, [currentTemplateId, isReceipt]);
+    const resolved = resolveTemplateName(rawDef, overrides);
+    return {
+      ...rawDef,
+      nameAr: resolved.nameAr,
+      nameEn: resolved.nameEn,
+      isOverridden: resolved.isOverridden,
+    };
+  }, [currentTemplateId, isReceipt, overrides]);
 
   // Live-preview signals (invoice mode only; receipt mode is always sample).
   // invoiceId path already resolves its own customer server-side, so customerId
@@ -203,6 +256,7 @@ export function TemplateBrowserDrawer({
     if (prevItem) {
       setLoading(true);
       setCurrentTemplateId(prevItem.id);
+      setIsEditingName(false);
     }
   };
 
@@ -213,13 +267,57 @@ export function TemplateBrowserDrawer({
     if (nextItem) {
       setLoading(true);
       setCurrentTemplateId(nextItem.id);
+      setIsEditingName(false);
     }
   };
+
+  const handleStartRename = () => {
+    setEditNameAr(activeDef.nameAr);
+    setEditNameEn(activeDef.nameEn);
+    setIsEditingName(true);
+  };
+
+  const handleSaveRename = async () => {
+    if (!companyId) return;
+    setIsSavingName(true);
+    try {
+      const res = await updateTemplateNameAction(
+        companyId,
+        currentTemplateId,
+        editNameAr,
+        editNameEn
+      );
+      if (res.success && res.overrides) {
+        setOverrides(res.overrides);
+        onOverridesChange?.(res.overrides);
+        setIsEditingName(false);
+      }
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handleResetRename = async () => {
+    if (!companyId) return;
+    setIsSavingName(true);
+    try {
+      const res = await resetTemplateNameAction(companyId, currentTemplateId);
+      if (res.success && res.overrides) {
+        setOverrides(res.overrides);
+        onOverridesChange?.(res.overrides);
+        setIsEditingName(false);
+      }
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const grouped = groupTemplatesByParentCategory(templatesList);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4">
       <div className="bg-card border border-border shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
-        {/* ─── UX Change 1 & 2: Ultra-Compact Single-Row Header Toolbar ─── */}
+        {/* ─── Ultra-Compact Single-Row Header Toolbar ─── */}
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-muted/40 shrink-0">
           {/* Title & Active Color Indicator */}
           <div className="flex items-center gap-2 min-w-0">
@@ -252,10 +350,25 @@ export function TemplateBrowserDrawer({
                   {isLivePreview ? "معاينة الفاتورة الحالية" : "بيانات تجريبية"}
                 </span>
               )}
+              {activeDef.isOverridden && (
+                <span className="px-1.5 py-0.2 rounded-xs text-[9px] font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                  مسمى مخصص
+                </span>
+              )}
+              {companyId && (
+                <button
+                  type="button"
+                  onClick={handleStartRename}
+                  className="p-1 hover:bg-muted text-muted-foreground hover:text-primary transition-colors rounded-xs"
+                  title="تعديل مسمى هذا القالب لمنشأتك"
+                >
+                  <Edit2 className="size-3" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* ─── UX Change 3 & 4: Quick Arrows, Select & Apply Button ─── */}
+          {/* Quick Arrows, Select & Apply Button */}
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Quick Cycle Arrows */}
             <div className="inline-flex items-center border border-input bg-background rounded-sm">
@@ -283,6 +396,7 @@ export function TemplateBrowserDrawer({
               onChange={(e) => {
                 setLoading(true);
                 setCurrentTemplateId(e.target.value);
+                setIsEditingName(false);
               }}
               className="h-7.5 bg-background border border-input px-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary min-w-[170px] sm:min-w-[220px]"
             >
@@ -314,6 +428,71 @@ export function TemplateBrowserDrawer({
             </button>
           </div>
         </div>
+
+        {/* ─── Client Template Rename Bar (Expandable) ─── */}
+        {isEditingName && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-primary/5 border-b border-border text-xs">
+            <div className="flex items-center gap-1.5 text-foreground font-semibold">
+              <Edit2 className="size-3.5 text-primary" />
+              <span>تخصيص مسمى القالب لمنشأتك:</span>
+            </div>
+            <div className="flex items-center gap-2 flex-1 max-w-xl">
+              <input
+                type="text"
+                value={editNameAr}
+                onChange={(e) => setEditNameAr(e.target.value)}
+                placeholder="الاسم بالعربية (مثال: نموذج شركة كنان)"
+                className="h-7 px-2 border border-input rounded-sm text-xs bg-background flex-1 text-right focus:outline-none focus:ring-1 focus:ring-primary"
+                dir="rtl"
+              />
+              <input
+                type="text"
+                value={editNameEn}
+                onChange={(e) => setEditNameEn(e.target.value)}
+                placeholder="English Name (Optional)"
+                className="h-7 px-2 border border-input rounded-sm text-xs bg-background flex-1 text-left focus:outline-none focus:ring-1 focus:ring-primary"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                disabled={isSavingName}
+                onClick={handleSaveRename}
+                className="h-7 text-xs px-2.5 gap-1 font-bold"
+              >
+                {isSavingName ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Save className="size-3" />
+                )}
+                <span>حفظ التسمية</span>
+              </Button>
+              {activeDef.isOverridden && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isSavingName}
+                  onClick={handleResetRename}
+                  className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground"
+                  title="استعادة الاسم الأصلي للنظام"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>استعادة الافتراضي</span>
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={isSavingName}
+                onClick={() => setIsEditingName(false)}
+                className="h-7 text-xs px-2 text-muted-foreground"
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ─── Live Actual Rendered PDF Preview ─── */}
         <div className="flex-1 w-full bg-slate-950/10 dark:bg-slate-950 relative overflow-hidden flex items-center justify-center">

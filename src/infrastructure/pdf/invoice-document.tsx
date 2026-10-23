@@ -49,7 +49,7 @@ import { Template13QasserLaura } from "./templates/template-13-qasser-laura";
 import { Template14RedaTrading } from "./templates/template-14-reda-trading";
 import { Template15RedaModern } from "./templates/template-15-reda-modern";
 import { CyanSalesTemplate } from "./templates/cyan-sales-template";
-
+import { KenanCompanyTemplate } from "./templates/kenan-company-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -160,7 +160,7 @@ export function InvoiceDocument({
   if (templateDef.id === "sa_alkoufi") {
     return <SaAlkoufiTemplate {...props} />;
   }
-  if (templateDef.id === "generic_delivery_21") {
+if (templateDef.id === "generic_delivery_21") {
     return <GenericDeliveryNoteTemplate {...props} />;
   }
   if (templateDef.id === "generic_dotmatrix_22") {
@@ -219,6 +219,9 @@ export function InvoiceDocument({
   }
   if (templateDef.id === "template_15_reda_modern") {
     return <Template15RedaModern {...props} />;
+  }
+  if (templateDef.id === "kenan_company") {
+    return <KenanCompanyTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;

@@ -25,6 +25,7 @@ function mapCompanySettingsRow(
     paperOrientation: row.paperOrientation as "portrait" | "landscape",
     defaultTemplateId: row.defaultTemplateId || "simple_red",
     defaultReceiptTemplateId: row.defaultReceiptTemplateId || "receipt_standard",
+    templateNameOverrides: (row.templateNameOverrides as Record<string, { ar?: string; en?: string }>) || {},
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -61,6 +62,7 @@ export class CompanySettingsRepositoryImpl implements CompanySettingsRepository 
         paperOrientation: input.paperOrientation,
         defaultTemplateId: input.defaultTemplateId || "simple_red",
         defaultReceiptTemplateId: input.defaultReceiptTemplateId || "receipt_standard",
+        templateNameOverrides: input.templateNameOverrides || {},
       })
       .onConflictDoUpdate({
         target: companySettings.companyId,
@@ -77,6 +79,7 @@ export class CompanySettingsRepositoryImpl implements CompanySettingsRepository 
           paperOrientation: input.paperOrientation,
           defaultTemplateId: input.defaultTemplateId || "simple_red",
           defaultReceiptTemplateId: input.defaultReceiptTemplateId || "receipt_standard",
+          templateNameOverrides: input.templateNameOverrides ?? undefined,
           updatedAt: new Date(),
         },
       })

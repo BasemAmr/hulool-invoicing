@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -25,6 +25,10 @@ import { DuplicateInvoiceDialog } from "@/components/documents/duplicate-invoice
 import { CustomerDrawer } from "@/components/drawers/customer-drawer";
 import { TemplateBrowserDrawer } from "@/components/drawers/template-browser-drawer";
 import { getTemplateById } from "@/infrastructure/pdf/templates/registry";
+import {
+  resolveTemplateName,
+  type TemplateOverridesMap,
+} from "@/infrastructure/pdf/templates/template-names";
 import { formatIsoDate, formatMoney } from "@/lib/format";
 import { useToast } from "@/components/ui/toaster";
 import {
@@ -36,6 +40,7 @@ import type { InvoiceDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { CustomerRecord } from "@/application/ports/customer-repository";
 import type { ReceiptVoucherRecord } from "@/application/ports/receipt-voucher-repository";
+import type { CompanySettingsRecord } from "@/application/ports/company-settings-repository";
 
 export interface InvoicePreviewClientProps {
   companyId: string;
@@ -44,6 +49,7 @@ export interface InvoicePreviewClientProps {
   initialCustomer: CustomerRecord;
   receiptVoucher: ReceiptVoucherRecord | null;
   qrDataUrl: string | null;
+  initialSettings?: CompanySettingsRecord | null;
 }
 
 export function InvoicePreviewClient({
@@ -53,12 +59,16 @@ export function InvoicePreviewClient({
   initialCustomer,
   receiptVoucher,
   qrDataUrl,
+  initialSettings,
 }: InvoicePreviewClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [customer, setCustomer] = useState<CustomerRecord>(initialCustomer);
   const [templateId, setTemplateId] = useState<string>(
     invoice.templateId || "simple_red"
+  );
+  const [templateOverrides, setTemplateOverrides] = useState<TemplateOverridesMap>(
+    (initialSettings?.templateNameOverrides as TemplateOverridesMap) || {}
   );
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false);
@@ -73,7 +83,15 @@ export function InvoicePreviewClient({
   }`;
   const pdfDownloadUrl = `/api/documents/${invoice.id}/pdf?download=true&template=${templateId}`;
 
-  const activeTemplateDef = getTemplateById(templateId);
+  const rawTemplateDef = getTemplateById(templateId);
+  const activeTemplateDef = useMemo(() => {
+    const resolved = resolveTemplateName(rawTemplateDef, templateOverrides);
+    return {
+      ...rawTemplateDef,
+      nameAr: resolved.nameAr,
+      nameEn: resolved.nameEn,
+    };
+  }, [rawTemplateDef, templateOverrides]);
 
   const handlePrint = () => {
     window.print();
@@ -498,6 +516,8 @@ export function InvoicePreviewClient({
         selectedTemplateId={templateId}
         companyId={companyId}
         invoiceId={invoice.id}
+        initialOverrides={templateOverrides}
+        onOverridesChange={setTemplateOverrides}
         onSelectTemplate={async (newTemplateId) => {
           if (newTemplateId === templateId) return;
           const previousTemplateId = templateId;

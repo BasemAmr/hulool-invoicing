@@ -57,7 +57,11 @@ export async function updateCompanySettingsAction(
   }
 
   try {
-    await container.companySettingsRepository.upsert(parsed.data);
+    const existing = await container.companySettingsRepository.getByCompanyId(parsed.data.companyId);
+    await container.companySettingsRepository.upsert({
+      ...parsed.data,
+      templateNameOverrides: existing?.templateNameOverrides ?? {},
+    });
     revalidatePath(`/c/${companyId}/settings`);
     // The new-invoice page consumes defaultVatRate + defaultTemplateId
     // server-side; without this it keeps serving the pre-save cached page,
