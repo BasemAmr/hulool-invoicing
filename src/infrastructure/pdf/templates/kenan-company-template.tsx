@@ -189,7 +189,7 @@ export function KenanCompanyTemplate({
   return (
     <Document
       title={`فاتورة ${invoice.invoiceNumber || ""}`}
-      author={company.nameAr || "شركة كنان"}
+      author={company.nameAr || company.nameEn || undefined}
       subject="فاتورة ضريبية"
       creator="Hulool Invoicing"
     >
@@ -208,7 +208,7 @@ export function KenanCompanyTemplate({
           {/* Left: English Company Info (LTR) */}
           <View style={styles.companyEnBlock}>
             <Text style={styles.companyEnTitle}>
-              {company.nameEn || "Kenan Global Trading Est"}
+              {company.nameEn || company.nameAr || ""}
             </Text>
             {company.addressStreet && (
               <View style={styles.enRow}>
@@ -268,7 +268,7 @@ export function KenanCompanyTemplate({
           {/* Right: Arabic Company Info (RTL) */}
           <View style={styles.companyArBlock}>
             <Text style={styles.companyArTitle}>
-              {company.nameAr || "مؤسسة كنان العالمي للتجارة"}
+              {company.nameAr || company.nameEn || ""}
             </Text>
             {company.addressStreet && (
               <View style={styles.arRow}>
