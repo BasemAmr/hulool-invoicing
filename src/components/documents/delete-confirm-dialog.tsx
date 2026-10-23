@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AlertTriangle, Loader2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
@@ -28,6 +28,18 @@ export function DeleteConfirmDialog({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Clear state when modal opens, closes, or target item changes
+  useEffect(() => {
+    setErrorMessage(null);
+    setLoading(false);
+  }, [open, itemName]);
+
+  const handleClose = () => {
+    setErrorMessage(null);
+    setLoading(false);
+    onClose();
+  };
+
   if (!open) return null;
 
   async function handleConfirm() {
@@ -38,6 +50,8 @@ export function DeleteConfirmDialog({
       const res = await onConfirm();
       if (res.status === "success") {
         success("تمت عملية الحذف بنجاح", "تم الحذف");
+        setErrorMessage(null);
+        setLoading(false);
         onClose();
         if (onSuccess) onSuccess();
       } else {
@@ -64,9 +78,9 @@ export function DeleteConfirmDialog({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="size-4" />
           </button>
@@ -97,9 +111,9 @@ export function DeleteConfirmDialog({
             type="button"
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
-            className="text-xs"
+            className="text-xs cursor-pointer"
           >
             إلغاء
           </Button>

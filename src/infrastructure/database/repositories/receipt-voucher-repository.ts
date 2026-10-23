@@ -1,11 +1,11 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import type { Database, Tx } from "@/application/tx";
 import { receiptVouchers } from "@/infrastructure/database/schema";
 import type {
   ReceiptVoucherRecord,
   ReceiptVoucherRepository,
 } from "@/application/ports/receipt-voucher-repository";
-import type { ReceiptVoucherCreateInput } from "@/domain/contracts";
+import type { ReceiptVoucherCreateInput, ReceiptVoucherUpdateInput } from "@/domain/contracts";
 import type { CompanyId } from "@/domain/branding";
 import { halalas } from "@/domain/value-objects/money";
 
@@ -53,6 +53,31 @@ export class ReceiptVoucherRepositoryImpl implements ReceiptVoucherRepository {
     return mapReceiptVoucherRow(row);
   }
 
+  async update(
+    id: string,
+    input: ReceiptVoucherUpdateInput,
+    tx?: Tx
+  ): Promise<ReceiptVoucherRecord> {
+    const executor = tx ?? this.db;
+    const values: Record<string, any> = {
+      updatedAt: new Date(),
+    };
+    if (input.customerId !== undefined) values.customerId = input.customerId;
+    if (input.voucherDate !== undefined) values.voucherDate = input.voucherDate;
+    if (input.amount !== undefined) values.amount = (input.amount / 100).toFixed(2);
+    if (input.paymentMethod !== undefined) values.paymentMethod = input.paymentMethod;
+    if (input.reference !== undefined) values.reference = input.reference;
+    if (input.notes !== undefined) values.notes = input.notes;
+
+    const [row] = await executor
+      .update(receiptVouchers)
+      .set(values)
+      .where(eq(receiptVouchers.id, id))
+      .returning();
+    if (!row) throw new Error("سند القبض غير موجود");
+    return mapReceiptVoucherRow(row);
+  }
+
   async findById(id: string, tx?: Tx): Promise<ReceiptVoucherRecord | null> {
     const executor = tx ?? this.db;
     const [row] = await executor
@@ -88,6 +113,31 @@ export class ReceiptVoucherRepositoryImpl implements ReceiptVoucherRepository {
       .limit(limit)
       .offset(offset);
     return rows.map(mapReceiptVoucherRow);
+  }
+
+  async listByCustomer(
+    customerId: CompanyId | string,
+    limit = 50,
+    offset = 0
+  ): Promise<ReceiptVoucherRecord[]> {
+    const rows = await this.db
+      .select()
+      .from(receiptVouchers)
+      .where(eq(receiptVouchers.customerId, customerId))
+      .orderBy(desc(receiptVouchers.createdAt))
+      .limit(limit)
+      .offset(offset);
+    return rows.map(mapReceiptVoucherRow);
+  }
+
+  async countByCustomer(
+    customerId: CompanyId | string
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(receiptVouchers)
+      .where(eq(receiptVouchers.customerId, customerId));
+    return row?.count ?? 0;
   }
 
   async delete(id: string, tx?: Tx): Promise<void> {

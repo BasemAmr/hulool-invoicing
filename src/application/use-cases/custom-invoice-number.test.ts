@@ -5,6 +5,7 @@ import {
   asCustomerId,
   asInvoiceId,
   type CompanyId,
+  type CustomerId,
   type InvoiceId,
 } from "@/domain/branding";
 import {
@@ -141,13 +142,23 @@ class FakeInvoiceRepository implements InvoiceRepository {
     return null;
   }
 
+  async findByGlobalNumber(invoiceNumber: string, excludeInvoiceId?: string, _tx?: Tx): Promise<InvoiceRecord | null> {
+    for (const row of this.rows.values()) {
+      if (this.hiddenFromLookup.has(String(row.id))) continue;
+      if (excludeInvoiceId && String(row.id) === String(excludeInvoiceId)) continue;
+      if (row.invoiceNumber === invoiceNumber) {
+        return row;
+      }
+    }
+    return null;
+  }
+
   async markIssued(id: InvoiceId, input: MarkIssuedInput, _tx: Tx): Promise<InvoiceRecord> {
     const existing = this.rows.get(String(id));
     if (!existing) throw new Error("Invoice not found");
     for (const other of this.rows.values()) {
       if (
         String(other.id) !== String(id) &&
-        String(other.companyId) === String(existing.companyId) &&
         other.invoiceNumber === input.invoiceNumber
       ) {
         throw pgUniqueViolation();
@@ -164,12 +175,26 @@ class FakeInvoiceRepository implements InvoiceRepository {
     return updated;
   }
 
-  async listByCompany(): Promise<InvoiceRecord[]> {
-    throw new Error("not used in these tests");
+  async listByCompany(companyId: CompanyId): Promise<InvoiceRecord[]> {
+    return Array.from(this.rows.values()).filter(
+      (r) => String(r.companyId) === String(companyId)
+    );
+  }
+
+  async listByCustomer(customerId: CustomerId | string): Promise<InvoiceRecord[]> {
+    return Array.from(this.rows.values()).filter(
+      (r) => String(r.customerId) === String(customerId)
+    );
+  }
+
+  async countByCustomer(customerId: CustomerId | string): Promise<number> {
+    return Array.from(this.rows.values()).filter(
+      (r) => String(r.customerId) === String(customerId)
+    ).length;
   }
 
   async listAll(): Promise<InvoiceRecord[]> {
-    throw new Error("not used in these tests");
+    return Array.from(this.rows.values());
   }
 }
 
@@ -304,7 +329,7 @@ describe("IssueInvoice with custom numbers", () => {
     expect((await invoices.findByNumber(COMPANY_A, "INV00007"))?.id).toBe(String(taken));
   });
 
-  it("allows the same number across DIFFERENT companies", async () => {
+  it("rejects the same number across DIFFERENT companies (global guard)", async () => {
     const other = draftId(1);
     invoices.rows.set(
       String(other),
@@ -312,8 +337,9 @@ describe("IssueInvoice with custom numbers", () => {
     );
     const draft = draftId(2);
     invoices.rows.set(String(draft), record({ id: draft, companyId: COMPANY_A }));
-    const dto = await issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV00007" });
-    expect(dto.invoiceNumber).toBe("INV00007");
+    await expect(
+      issue.execute({ invoiceId: String(draft), customInvoiceNumber: "INV00007" }),
+    ).rejects.toThrowError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
   });
 
   it("blank custom input falls back to auto-allocation (auto path untouched)", async () => {
@@ -412,7 +438,7 @@ describe("UpdateDraftInvoice with invoice numbers", () => {
     expect((await invoices.findByIdWithItems(first))?.invoiceNumber).toBe("INV00001");
   });
 
-  it("allows the same number across DIFFERENT companies", async () => {
+  it("rejects the same number across DIFFERENT companies on update (global guard)", async () => {
     const inB = draftId(1);
     invoices.rows.set(
       String(inB),
@@ -423,8 +449,9 @@ describe("UpdateDraftInvoice with invoice numbers", () => {
       String(inA),
       record({ id: inA, companyId: COMPANY_A, invoiceNumber: "INV00001", status: "issued" }),
     );
-    const dto = await update.execute(updateInput(inA, COMPANY_A, { invoiceNumber: "INV00002" }));
-    expect(dto.invoiceNumber).toBe("INV00002");
+    await expect(
+      update.execute(updateInput(inA, COMPANY_A, { invoiceNumber: "INV00002" })),
+    ).rejects.toThrowError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
   });
 
   it("rejects an explicitly cleared number (an issued invoice cannot go numberless)", async () => {

@@ -1,4 +1,4 @@
-import { toDecimalString } from "@/domain/value-objects/money";
+import { halalas, toDecimalString } from "@/domain/value-objects/money";
 import type { InvoiceRecord } from "./ports/invoice-repository";
 
 /**
@@ -36,6 +36,7 @@ export interface InvoiceDto {
   subtotal: string;
   vatAmount: string;
   total: string;
+  discountAmount?: string;
   terms: string | null;
   notes: string | null;
   qrPayload: string | null;
@@ -62,6 +63,7 @@ export function toInvoiceDto(record: InvoiceRecord): InvoiceDto {
     subtotal: toDecimalString(record.subtotal),
     vatAmount: toDecimalString(record.vatAmount),
     total: toDecimalString(record.total),
+    discountAmount: toDecimalString(record.discountAmount ?? halalas(0)),
     terms: record.terms,
     notes: record.notes,
     qrPayload: record.qrPayload,

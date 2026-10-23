@@ -41,6 +41,6 @@ describe("Template Names Resolver & Kenan Template", () => {
     };
     const updated = applyTemplateNames(list, overrides);
     expect(updated[0]?.nameAr).toBe("كنان مخصص");
-    expect(updated[1]?.nameAr).toBe("نموذج بسيط أحمر");
+    expect(updated[1]?.nameAr).toBe(getTemplateById("simple_red").nameAr);
   });
 });

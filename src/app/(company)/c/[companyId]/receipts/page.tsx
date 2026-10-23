@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Receipt, Trash2 } from "lucide-react";
+import { Plus, Receipt, Trash2, Edit2 } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { createContainer } from "@/application/container";
@@ -143,6 +143,20 @@ export default async function ReceiptVouchersPage({
                         filename={filename}
                         itemTitle={`سند القبض ${receipt.voucherNumber}`}
                       />
+
+                      {/* Edit Action - ONLY FOR MANUALLY CREATED ONES */}
+                      {!receipt.invoiceId && (
+                        <Link href={`${cPath}/receipts/${receipt.id}/edit`}>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted p-1 h-auto"
+                            title="تعديل السند اليدوي"
+                          >
+                            <Edit2 className="size-3.5" />
+                          </Button>
+                        </Link>
+                      )}
 
                       {/* Delete Action */}
                       <form

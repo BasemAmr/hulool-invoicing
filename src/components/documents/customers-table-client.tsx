@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Plus, Users, Search, Edit2, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { Plus, Users, Search, Edit2, Trash2, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,14 +18,21 @@ import { DeleteConfirmDialog } from "@/components/documents/delete-confirm-dialo
 import { deleteCustomerAction } from "@/app/actions/customers";
 import type { CustomerRecord } from "@/application/ports/customer-repository";
 
+export interface CustomerDocStats {
+  invoicesCount: number;
+  receiptsCount: number;
+}
+
 export function CustomersTableClient({
   customers: initialCustomers,
   title = "سجل العملاء",
   subtitle,
+  statsMap = {},
 }: {
   customers: CustomerRecord[];
   title?: string;
   subtitle?: string;
+  statsMap?: Record<string, CustomerDocStats>;
 }) {
   const [customers, setCustomers] = useState<CustomerRecord[]>(initialCustomers);
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,6 +135,7 @@ export function CustomersTableClient({
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead className="text-start">اسم العميل</TableHead>
+                <TableHead className="w-36 text-center">عدد الفواتير / السندات</TableHead>
                 <TableHead className="w-32 text-start">الرقم الضريبي</TableHead>
                 <TableHead className="w-28 text-start">الرقم الموحد</TableHead>
                 <TableHead className="w-28 text-start">المدينة</TableHead>
@@ -139,12 +148,29 @@ export function CustomersTableClient({
               {filteredCustomers.map((customer) => (
                 <TableRow key={customer.id} className="text-xs">
                   <TableCell className="text-start py-2.5">
-                    <div className="font-semibold text-foreground">{customer.nameAr}</div>
+                    <Link
+                      href={`/customers/${customer.id}`}
+                      className="font-semibold text-foreground hover:text-primary hover:underline transition-colors block"
+                      title="عرض صفحة العميل وفواتيره"
+                    >
+                      {customer.nameAr}
+                    </Link>
                     {customer.nameEn && (
                       <span className="block text-[11px] text-muted-foreground font-mono" dir="ltr">
                         {customer.nameEn}
                       </span>
                     )}
+                  </TableCell>
+                  <TableCell className="text-center py-2.5">
+                    <div
+                      className="inline-flex items-center justify-center gap-1 font-mono font-semibold tabular-nums text-foreground text-xs"
+                      dir="ltr"
+                      title={`الفواتير: ${statsMap[customer.id]?.invoicesCount ?? 0} | السندات: ${statsMap[customer.id]?.receiptsCount ?? 0}`}
+                    >
+                      <span>{statsMap[customer.id]?.receiptsCount ?? 0}</span>
+                      <span className="text-muted-foreground font-normal">/</span>
+                      <span>{statsMap[customer.id]?.invoicesCount ?? 0}</span>
+                    </div>
                   </TableCell>
                   <TableCell className="font-mono text-muted-foreground py-2.5">
                     {customer.vatNumber ?? "—"}
@@ -163,6 +189,13 @@ export function CustomersTableClient({
                   </TableCell>
                   <TableCell className="text-end py-2.5">
                     <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/customers/${customer.id}`}
+                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors rounded-xs"
+                        title="عرض سجل فواتير العميل"
+                      >
+                        <Eye className="size-3.5" />
+                      </Link>
                       <Button
                         variant="ghost"
                         size="xs"

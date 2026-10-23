@@ -1,4 +1,4 @@
-import { asCompanyId, asCustomerId } from "@/domain/branding";
+import { asCompanyId, asCustomerId, type Halalas } from "@/domain/branding";
 import { halalas, priceStringToHalalas, toDecimalString } from "@/domain/value-objects/money";
 import { CURRENCY } from "@/domain/constants";
 import { invoiceCreateSchema } from "@/domain/contracts";
@@ -66,6 +66,13 @@ export class CreateDraftInvoice {
       };
     });
 
+    const invoiceDiscountHalalas = data.discountAmount
+      ? typeof data.discountAmount === "string"
+        ? priceStringToHalalas(data.discountAmount)
+        : halalas(data.discountAmount)
+      : halalas(0);
+    const finalTotal = Math.max(0, totals.subtotal + totals.vatTotal - invoiceDiscountHalalas) as Halalas;
+
     const now = new Date();
     const record = await this.invoiceRepository.createDraft(
       {
@@ -83,7 +90,8 @@ export class CreateDraftInvoice {
         currency: CURRENCY,
         subtotal: totals.subtotal,
         vatAmount: totals.vatTotal,
-        total: totals.total,
+        discountAmount: invoiceDiscountHalalas,
+        total: finalTotal,
         items,
       },
       now,

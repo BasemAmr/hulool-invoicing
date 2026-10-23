@@ -539,6 +539,21 @@ export function KenanCompanyTemplate({
               </View>
             </View>
 
+            {/* Row 2.5: Invoice Discount */}
+            {invoice.discountAmount && parseFloat(invoice.discountAmount) > 0 ? (
+              <View style={styles.totalsRow}>
+                <View style={styles.totalsLabelCell}>
+                  <Text style={styles.totalsLabelText}>خصم الفاتورة:</Text>
+                </View>
+                <View style={styles.totalsValueCell}>
+                  <Text style={styles.totalsCurrency}>(-) ريال</Text>
+                  <Text style={[styles.totalsNumber, styles.bold]}>
+                    {formatExact(invoice.discountAmount)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
             {/* Row 3: Grand Total Incl. VAT */}
             <View style={[styles.totalsRow, styles.totalsRowGrand]}>
               <View style={styles.totalsLabelCell}>

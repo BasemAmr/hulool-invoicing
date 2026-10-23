@@ -47,6 +47,7 @@ export interface DraftInvoicePreview {
   items: DraftInvoicePreviewItem[];
   notes?: string;
   terms?: string;
+  discountAmount?: string;
   issueDate?: string;
   /** HH:MM wall-time for live preview display. */
   issueTime?: string;

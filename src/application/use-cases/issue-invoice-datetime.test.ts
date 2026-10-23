@@ -77,6 +77,9 @@ class FakeInvoices implements InvoiceRepository {
   async findByNumber(): Promise<InvoiceRecord | null> {
     return null;
   }
+  async findByGlobalNumber(): Promise<InvoiceRecord | null> {
+    return null;
+  }
   async markIssued(id: InvoiceId, input: MarkIssuedInput): Promise<InvoiceRecord> {
     const existing = this.rows.get(String(id));
     if (!existing) throw new Error("Invoice not found");
@@ -92,6 +95,12 @@ class FakeInvoices implements InvoiceRepository {
   }
   async listByCompany(companyId: string): Promise<InvoiceRecord[]> {
     return Array.from(this.rows.values()).filter((r) => r.companyId === companyId);
+  }
+  async listByCustomer(customerId: string): Promise<InvoiceRecord[]> {
+    return Array.from(this.rows.values()).filter((r) => r.customerId === customerId);
+  }
+  async countByCustomer(customerId: string): Promise<number> {
+    return Array.from(this.rows.values()).filter((r) => r.customerId === customerId).length;
   }
   async listAll(): Promise<InvoiceRecord[]> {
     throw new Error("not used");
@@ -206,18 +215,13 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
       "14:30",
       new Date("2026-09-15T10:00:00.000Z"),
     );
-    expect(invoiceInstant).toBe("2026-09-15T11:30:00.000Z");
-    // QR Tag 3 is the base instant ± random 180–560 min (seconds precision).
+    expect(invoiceInstant).toBe("2026-09-15T11:30:00Z");
     const tag3 = decodeQrTimestamp(dto.qrPayload!);
-    expect(tag3).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-    const drift = driftMinutes(tag3, invoiceInstant);
-    expect(drift).toBeGreaterThanOrEqual(180);
-    expect(drift).toBeLessThanOrEqual(560);
-    // And it must NOT leak server-now (10:00Z) verbatim.
+    expect(tag3).toBe("2026-09-15T11:30:00Z");
     expect(tag3).not.toBe("2026-09-15T10:00:00Z");
   });
 
-  it("legacy rows without a time issue at midnight ± jitter (00:00 Riyadh → 21:00Z prev day base)", async () => {
+  it("legacy rows without a time issue at midnight (00:00 Riyadh → 21:00Z prev day base)", async () => {
     const { invoices, issue } = harness();
     const id = asInvoiceId("dddddddd-dddd-4ddd-8ddd-000000000002");
     invoices.rows.set(
@@ -226,14 +230,8 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
     );
 
     const dto = await issue.execute({ invoiceId: String(id) });
-    // Base instant unchanged (midnight Riyadh → 21:00Z prev day); Tag 3 is
-    // that base ± 180–560 min in seconds-precision shape.
-    const base = "2026-09-14T21:00:00.000Z";
     const tag3 = decodeQrTimestamp(dto.qrPayload!);
-    expect(tag3).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-    const drift = driftMinutes(tag3, base);
-    expect(drift).toBeGreaterThanOrEqual(180);
-    expect(drift).toBeLessThanOrEqual(560);
+    expect(tag3).toBe("2026-09-14T21:00:00Z");
   });
 
   it("issuedAt still records the system issuance moment (separate concept)", async () => {
@@ -245,12 +243,8 @@ describe("IssueInvoice QR timestamp comes from the invoice datetime", () => {
     );
 
     const dto = await issue.execute({ invoiceId: String(id) });
-    // Server-now (10:00Z) ≠ base invoice instant (11:30Z): proves the two concepts split.
-    // issuedAt keeps millis shape (system moment, untouched); Tag 3 is seconds precision ± jitter.
     expect(dto.issuedAt).toBe("2026-09-15T10:00:00.000Z");
     const tag3 = decodeQrTimestamp(dto.qrPayload!);
-    const drift = driftMinutes(tag3, "2026-09-15T11:30:00.000Z");
-    expect(drift).toBeGreaterThanOrEqual(180);
-    expect(drift).toBeLessThanOrEqual(560);
+    expect(tag3).toBe("2026-09-15T11:30:00Z");
   });
 });

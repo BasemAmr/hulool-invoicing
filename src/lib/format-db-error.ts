@@ -104,7 +104,7 @@ export function formatDatabaseError(
     }
 
     if (constraint.includes("invoice_number") || detail.includes("invoice_number")) {
-      return "رقم الفاتورة مستخدم بالفعل لهذه المنشأة";
+      return "رقم الفاتورة مستخدم بالفعل، يرجى اختيار رقم آخر";
     }
     if (constraint.includes("voucher_number") || detail.includes("voucher_number")) {
       return "رقم السند مستخدم بالفعل لهذه المنشأة";

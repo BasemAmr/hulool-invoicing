@@ -135,6 +135,7 @@ export const invoiceCreateSchema = z.object({
     .optional(),
   overallDiscountRate: z.number().min(0).max(1).optional(),
   overallTaxRate: z.number().min(0).max(1).optional(),
+  discountAmount: z.union([z.number(), z.string()]).optional(),
   terms: z.string().optional(),
   notes: z.string().optional(),
   idempotencyKey: z.string().min(1).optional(),
@@ -224,6 +225,19 @@ export const receiptVoucherCreateSchema = z.object({
   notes: z.string().optional(),
 });
 export type ReceiptVoucherCreateInput = z.infer<typeof receiptVoucherCreateSchema>;
+
+export const receiptVoucherUpdateSchema = z.object({
+  customerId: z.string().uuid().optional(),
+  voucherDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "voucherDate must be YYYY-MM-DD")
+    .optional(),
+  amount: z.number().int().positive("المبلغ يجب أن يكون أكبر من صفر").optional(), // In halalas
+  paymentMethod: z.enum(["cash", "bank_transfer", "other"]).optional(),
+  reference: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type ReceiptVoucherUpdateInput = z.infer<typeof receiptVoucherUpdateSchema>;
 
 /** Per-company parametric PDF template config (JSON in companies.template_config). */
 export const documentTemplateConfigSchema = z.object({

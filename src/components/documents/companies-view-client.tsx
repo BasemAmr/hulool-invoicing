@@ -18,17 +18,27 @@ import {
   Pin,
   Building,
   CheckCircle2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CompanyDrawer } from "@/components/drawers/company-drawer";
+import { DeleteConfirmDialog } from "@/components/documents/delete-confirm-dialog";
+import { deleteCompanyAction } from "@/app/actions/companies";
 import { useToast } from "@/components/ui/toaster";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 
+export interface CompanyDocStats {
+  invoicesCount: number;
+  receiptsCount: number;
+}
+
 export function CompaniesViewClient({
   initialCompanies,
+  statsMap = {},
 }: {
   initialCompanies: CompanyRecord[];
+  statsMap?: Record<string, CompanyDocStats>;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -42,6 +52,7 @@ export function CompaniesViewClient({
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanyRecord | null>(null);
+  const [companyToDelete, setCompanyToDelete] = useState<CompanyRecord | null>(null);
 
   useEffect(() => {
     setCompanies(initialCompanies);
@@ -283,6 +294,7 @@ export function CompaniesViewClient({
                 <th className="p-2 text-start min-w-[120px]">نوع المنشأة</th>
                 <th className="p-2 text-start min-w-[130px]">تابع للعميل</th>
                 <th className="p-2 text-start w-20">البادئة</th>
+                <th className="p-2 text-center w-36">عدد الفواتير / السندات</th>
                 <th className="p-2 text-start w-28">السجل التجاري</th>
                 <th className="p-2 text-start w-24">المدينة</th>
                 <th className="p-2 text-start w-48">الإجراءات السريعة</th>
@@ -353,6 +365,19 @@ export function CompaniesViewClient({
                       </span>
                     </td>
 
+                    {/* عدد الفواتير / السندات */}
+                    <td className="p-2 text-center">
+                      <div
+                        className="inline-flex items-center justify-center gap-1 font-mono font-semibold text-foreground text-xs tabular-nums"
+                        dir="ltr"
+                        title={`الفواتير: ${statsMap[company.id]?.invoicesCount ?? 0} | السندات: ${statsMap[company.id]?.receiptsCount ?? 0}`}
+                      >
+                        <span>{statsMap[company.id]?.receiptsCount ?? 0}</span>
+                        <span className="text-muted-foreground font-normal">/</span>
+                        <span>{statsMap[company.id]?.invoicesCount ?? 0}</span>
+                      </div>
+                    </td>
+
                     {/* 5. CR Number */}
                     <td
                       className="p-2 text-start font-mono tabular-nums text-muted-foreground"
@@ -396,6 +421,19 @@ export function CompaniesViewClient({
                           title="تعديل بيانات المنشأة"
                         >
                           <Edit2 className="size-3" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCompanyToDelete(company);
+                          }}
+                          className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          title="حذف المنشأة"
+                        >
+                          <Trash2 className="size-3" />
                         </button>
 
                         <Link
@@ -446,6 +484,28 @@ export function CompaniesViewClient({
             }
             return [saved, ...prev];
           });
+        }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        key={companyToDelete?.id || "empty"}
+        open={!!companyToDelete}
+        onClose={() => setCompanyToDelete(null)}
+        title="تأكيد حذف المنشأة"
+        description="هل أنت متأكد من رغبتك في حذف بيانات هذه المنشأة نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+        itemName={companyToDelete?.nameAr}
+        onConfirm={async () => {
+          if (!companyToDelete) {
+            return { status: "error", message: "لم يتم تحديد المنشأة" };
+          }
+          return deleteCompanyAction(companyToDelete.id);
+        }}
+        onSuccess={() => {
+          if (companyToDelete) {
+            setCompanies((prev) => prev.filter((c) => c.id !== companyToDelete.id));
+            setCompanyToDelete(null);
+          }
         }}
       />
     </div>

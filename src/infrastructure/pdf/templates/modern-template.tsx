@@ -256,10 +256,12 @@ export function ModernTemplate({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
 
@@ -539,7 +541,7 @@ export function ModernTemplate({
             <View style={styles.totalLine}>
               <Text style={styles.totalKey}>مجموع الخصومات</Text>
               <Text style={styles.totalVal}>
-                {formatExactAmount(computedDiscount)} SAR
+                {formatExactAmount(computedDiscount + invoiceDiscount)} SAR
               </Text>
             </View>
             <View style={styles.totalLine}>
@@ -554,6 +556,14 @@ export function ModernTemplate({
                 {formatExactAmount(totalVat)} SAR
               </Text>
             </View>
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalLine}>
+                <Text style={styles.totalKey}>خصم إضافي على الفاتورة</Text>
+                <Text style={styles.totalVal}>
+                  -{formatExactAmount(invoiceDiscount)} SAR
+                </Text>
+              </View>
+            ) : null}
             <View style={[styles.totalLine, styles.totalLineGrand]}>
               <Text style={[styles.totalKey, styles.grandTotalKey]}>
                 إجمالي المبلغ المستحق

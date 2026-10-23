@@ -35,6 +35,7 @@ export interface InvoiceRecord {
   subtotal: Halalas;
   vatAmount: Halalas;
   total: Halalas;
+  discountAmount?: Halalas;
   terms: string | null;
   notes: string | null;
   qrPayload: string | null;
@@ -59,6 +60,7 @@ export interface CreateDraftInvoiceInput {
   subtotal: Halalas;
   vatAmount: Halalas;
   total: Halalas;
+  discountAmount?: Halalas;
   items: InvoiceItemRecord[];
 }
 
@@ -99,12 +101,19 @@ export interface InvoiceRepository {
   findByIdWithItems(id: InvoiceId, tx?: Tx): Promise<InvoiceRecord | null>;
   /**
    * Exact per-company number lookup for the custom-number uniqueness
-   * pre-check. Same-company scope only by construction (companyId is part
-   * of the predicate), so cross-company reuse never shows up here.
+   * pre-check.
    */
   findByNumber(
     companyId: CompanyId,
     invoiceNumber: string,
+    tx?: Tx,
+  ): Promise<InvoiceRecord | null>;
+  /**
+   * Universal / cross-company invoice number lookup to guard against duplicates globally.
+   */
+  findByGlobalNumber(
+    invoiceNumber: string,
+    excludeInvoiceId?: string,
     tx?: Tx,
   ): Promise<InvoiceRecord | null>;
   markIssued(
@@ -118,6 +127,15 @@ export interface InvoiceRepository {
     limit: number,
     offset: number,
   ): Promise<InvoiceRecord[]>;
+  /** Listing by customer across ALL companies. */
+  listByCustomer(
+    customerId: CustomerId | string,
+    limit: number,
+    offset: number,
+  ): Promise<InvoiceRecord[]>;
+  countByCustomer(
+    customerId: CustomerId | string,
+  ): Promise<number>;
   /** Cross-company listing for the dashboard. */
   listAll(
     filters: InvoiceListFilters,

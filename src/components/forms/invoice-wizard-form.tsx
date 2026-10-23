@@ -228,6 +228,7 @@ export interface DuplicatePrefill {
   dueDate?: string | null;
   templateId?: string;
   invoiceType?: "standard" | "simplified";
+  discountAmount?: string;
   notes?: string | null;
   terms?: string | null;
   items?: InvoiceDto["items"];
@@ -352,6 +353,50 @@ export function InvoiceWizardForm({
   const gearRef = useRef<HTMLDivElement>(null);
   const [overallTaxRate, setOverallTaxRate] = useState<string>("0");
   const [showOverallTax, setShowOverallTax] = useState(false);
+  const [invoiceDiscount, setInvoiceDiscount] = useState<string>(
+    initialInvoice?.discountAmount || duplicatePrefill?.discountAmount || "0.00"
+  );
+
+  // Live duplicate number validation (UI guard across all companies)
+  const [isNumberDuplicate, setIsNumberDuplicate] = useState(false);
+  const [checkingNumber, setCheckingNumber] = useState(false);
+
+  useEffect(() => {
+    const trimmed = invoiceNumber.trim();
+    if (!trimmed) {
+      setIsNumberDuplicate(false);
+      return;
+    }
+    if (initialInvoice && initialInvoice.invoiceNumber === trimmed) {
+      setIsNumberDuplicate(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setCheckingNumber(true);
+      fetch(
+        `/api/invoices/check-number?number=${encodeURIComponent(trimmed)}${
+          initialInvoice?.id ? `&excludeId=${initialInvoice.id}` : ""
+        }`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled) {
+            setIsNumberDuplicate(data.exists === true);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setCheckingNumber(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [invoiceNumber, initialInvoice]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -461,8 +506,11 @@ export function InvoiceWizardForm({
           Math.round((sub * extraTaxPct) / 100)
         );
         vat = halalas(vat + extraTaxHalalas);
-        grand = halalas(sub + vat);
       }
+
+      const discSar = parseFloat(invoiceDiscount) || 0;
+      const invoiceDiscHalalas = halalas(Math.max(0, Math.round(discSar * 100)));
+      grand = halalas(Math.max(0, sub + vat - invoiceDiscHalalas));
 
       return {
         subtotal: toDecimalString(sub),
@@ -478,7 +526,7 @@ export function InvoiceWizardForm({
         calculatedLines: [],
       };
     }
-  }, [lines, overallTaxRate]);
+  }, [lines, overallTaxRate, invoiceDiscount]);
 
   // Line Item Handlers
   const addLine = () => {
@@ -607,11 +655,12 @@ export function InvoiceWizardForm({
       items,
       notes: notes || undefined,
       terms: terms || undefined,
+      discountAmount: invoiceDiscount || "0.00",
       issueDate: issueDate || undefined,
       issueTime: issueTime || undefined,
       dueDate: dueDate || undefined,
     };
-  }, [lines, notes, terms, issueDate, issueTime, dueDate]);
+  }, [lines, notes, terms, invoiceDiscount, issueDate, issueTime, dueDate]);
 
   const formattedCompanyAddress = [
     activeCompany?.addressBuildingNumber,
@@ -844,10 +893,13 @@ export function InvoiceWizardForm({
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 text-xs">
-            {/* Invoice Number (editable request; server enforces per-company uniqueness) */}
-            <div className="flex flex-col gap-0.5">
-              <label className="text-[10px] font-medium text-muted-foreground">
-                رقم الفاتورة
+            {/* Invoice Number (editable request; guarded globally against duplicates across all companies) */}
+            <div className="flex flex-col gap-0.5 col-span-2 sm:col-span-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center justify-between">
+                <span>رقم الفاتورة</span>
+                {checkingNumber && (
+                  <span className="text-[9px] text-muted-foreground animate-pulse">جاري التحقق...</span>
+                )}
               </label>
               <Input
                 name="invoiceNumberCustom"
@@ -856,9 +908,16 @@ export function InvoiceWizardForm({
                 maxLength={64}
                 dir="auto"
                 placeholder="ترقيم تلقائي عند الحفظ"
-                title="يمكنك تعديل الرقم — يجب أن يكون فريداً ضمن الشركة"
-                className="text-xs font-mono h-6.5 px-2"
+                title="يمكنك تعديل الرقم — يجب أن يكون فريداً في النظام"
+                className={`text-xs font-mono h-6.5 px-2 ${
+                  isNumberDuplicate ? "border-destructive text-destructive focus:ring-destructive" : ""
+                }`}
               />
+              {isNumberDuplicate && (
+                <span className="text-[10px] text-destructive font-medium mt-0.5">
+                  رقم الفاتورة مستخدم بالفعل، يرجى اختيار رقم آخر
+                </span>
+              )}
             </div>
 
             {/* Template Selector Dropdown */}
@@ -1247,6 +1306,27 @@ export function InvoiceWizardForm({
               </span>
             </div>
 
+            {/* FIELD OF DISCOUNT */}
+            <div className="flex items-center justify-between border-b border-border pb-1 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground font-semibold">خصم الفاتورة (ر.س):</span>
+                <input
+                  type="number"
+                  name="discountAmount"
+                  step="0.01"
+                  min="0"
+                  value={invoiceDiscount}
+                  onChange={(e) => setInvoiceDiscount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-24 h-6 text-xs text-center border border-input font-mono bg-background text-foreground rounded-xs"
+                  dir="ltr"
+                />
+              </div>
+              <span className="font-mono font-semibold text-destructive">
+                {parseFloat(invoiceDiscount) > 0 ? `-${formatMoney(invoiceDiscount)} SAR` : "0.00 SAR"}
+              </span>
+            </div>
+
             <div className="flex items-center justify-between pt-0.5 font-bold text-sm text-foreground">
               <span>الإجمالي الكلي:</span>
               <span className="font-mono text-base text-primary">
@@ -1260,7 +1340,8 @@ export function InvoiceWizardForm({
             <Button
               type="submit"
               size="sm"
-              disabled={pending}
+              disabled={pending || isNumberDuplicate || checkingNumber}
+              title={isNumberDuplicate ? "رقم الفاتورة مستخدم بالفعل، يرجى تغييره قبل الحفظ" : undefined}
               className="gap-2 text-xs font-semibold px-5 h-8"
             >
               {pending ? (

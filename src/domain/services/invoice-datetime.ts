@@ -136,7 +136,7 @@ export function invoiceDateTimeToUtcIso(
 ): string {
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(issueDate);
   const time = normalizeIssueTime(issueTime);
-  if (!dateOk) return fallbackNow.toISOString();
+  if (!dateOk) return fallbackNow.toISOString().replace(/\.\d+Z$/, 'Z');
   const [h, m] = time.split(":").map(Number);
   // Interpret wall-time as Riyadh (UTC+3) → shift to UTC.
   const utcMs =

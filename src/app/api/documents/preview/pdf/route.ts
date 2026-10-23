@@ -185,6 +185,7 @@ interface DraftInput {
   items?: unknown;
   notes?: unknown;
   terms?: unknown;
+  discountAmount?: unknown;
   issueDate?: unknown;
   issueTime?: unknown;
   dueDate?: unknown;
@@ -306,6 +307,10 @@ function buildDraftInvoiceDto(
       ? draft.invoiceNumber.trim()
       : `${company.prefix || "INV"}-00001`;
 
+  const discNum = typeof draft.discountAmount === "string" ? parseFloat(draft.discountAmount) || 0 : 0;
+  const draftDiscountHalalas = halalas(Math.max(0, Math.round(discNum * 100)));
+  const finalDraftTotal = halalas(Math.max(0, totals.subtotal + totals.vatTotal - draftDiscountHalalas));
+
   return {
     id: "preview-draft",
     companyId: company.id as string,
@@ -319,7 +324,8 @@ function buildDraftInvoiceDto(
     currency: "SAR",
     subtotal: toDecimalString(totals.subtotal),
     vatAmount: toDecimalString(totals.vatTotal),
-    total: toDecimalString(totals.total),
+    discountAmount: toDecimalString(draftDiscountHalalas),
+    total: toDecimalString(finalDraftTotal),
     notes,
     terms,
     templateId,

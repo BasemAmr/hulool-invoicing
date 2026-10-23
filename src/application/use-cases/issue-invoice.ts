@@ -125,18 +125,13 @@ export class IssueInvoice {
         if (customTrimmed.length > MAX_CUSTOM_INVOICE_NUMBER_LENGTH) {
           throw new ValidationError(INVOICE_NUMBER_TOO_LONG_MESSAGE);
         }
-        // Friendly pre-check, same-company scope only (findByNumber predicates
-        // on companyId, so cross-company reuse never clashes here). Excludes
-        // the row being issued itself: a draft edited to a custom number
-        // already carries it from the preceding updateDraft in the edit flow.
-        // This is the user-facing path; the unique constraint is the race
-        // backstop around markIssued below.
-        const clash = await this.invoiceRepository.findByNumber(
-          invoice.companyId,
+        // Friendly pre-check globally across ALL companies (excludes the row being issued itself)
+        const clash = await this.invoiceRepository.findByGlobalNumber(
           customTrimmed,
+          String(invoice.id),
           tx,
         );
-        if (clash && String(clash.id) !== String(invoice.id)) {
+        if (clash) {
           throw new ValidationError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
         }
         // Counter catch-up: a custom `PREFIX-nnnnn` above the sentinel would

@@ -264,10 +264,12 @@ export function BilingualZatcaTemplate({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
 
@@ -597,7 +599,7 @@ export function BilingualZatcaTemplate({
             </View>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsKey}>مجموع الخصومات / Total Discounts</Text>
-              <Text style={styles.totalsVal}>{formatExactAmount(computedDiscount)} SAR</Text>
+              <Text style={styles.totalsVal}>{formatExactAmount(computedDiscount + invoiceDiscount)} SAR</Text>
             </View>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsKey}>المجموع الخاضع للضريبة / Taxable Amt</Text>
@@ -607,6 +609,12 @@ export function BilingualZatcaTemplate({
               <Text style={styles.totalsKey}>ضريبة القيمة المضافة (15%) / VAT</Text>
               <Text style={styles.totalsVal}>{formatExactAmount(totalVat)} SAR</Text>
             </View>
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalsRow}>
+                <Text style={styles.totalsKey}>خصم إضافي / Invoice Discount</Text>
+                <Text style={styles.totalsVal}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+              </View>
+            ) : null}
             <View style={[styles.totalsRow, styles.totalsRowGrand]}>
               <Text style={[styles.totalsKey, styles.grandTotalKey]}>
                 إجمالي المبلغ المستحق / Total Due

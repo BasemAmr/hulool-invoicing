@@ -273,10 +273,12 @@ export function ClassicTemplate({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
 
@@ -507,7 +509,7 @@ export function ClassicTemplate({
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalKey}>مجموع الخصومات</Text>
-                  <Text style={styles.totalVal}>{formatExactAmount(computedDiscount)} SAR</Text>
+                  <Text style={styles.totalVal}>{formatExactAmount(computedDiscount + invoiceDiscount)} SAR</Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalKey}>المبلغ الخاضع للضريبة</Text>
@@ -517,6 +519,12 @@ export function ClassicTemplate({
                   <Text style={styles.totalKey}>ضريبة القيمة المضافة (15%)</Text>
                   <Text style={styles.totalVal}>{formatExactAmount(totalVat)} SAR</Text>
                 </View>
+                {invoiceDiscount > 0 ? (
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalKey}>خصم إضافي على الفاتورة</Text>
+                    <Text style={styles.totalVal}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+                  </View>
+                ) : null}
                 <View style={styles.grandTotalRow}>
                   <Text style={styles.grandTotalKey}>إجمالي المبلغ المستحق</Text>
                   <Text style={styles.grandTotalVal}>

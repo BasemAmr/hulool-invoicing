@@ -335,6 +335,17 @@ export function ContractingInvoiceTemplate({
             </View>
           </View>
 
+          {/* Row 2.5: Invoice Discount */}
+          {invoice.discountAmount && parseFloat(invoice.discountAmount) > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalVal}>﷼ -{formatExactAmount(invoice.discountAmount)}</Text>
+              <View style={styles.totalLabelWrap}>
+                <Text style={styles.totalLabelAr}>خصم الفاتورة</Text>
+                <Text style={styles.totalLabelEn}>Invoice Discount</Text>
+              </View>
+            </View>
+          ) : null}
+
           {/* Row 3: Total After VAT (Highlighted Bar) */}
           <View style={[styles.totalRow, styles.totalRowHighlight]}>
             <Text style={styles.totalValBold}>﷼ {formatExactAmount(invoice.total)}</Text>

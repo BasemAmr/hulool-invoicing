@@ -189,6 +189,7 @@ export const invoices = pgTable(
     subtotal: numeric("subtotal", { precision: 15, scale: 2 }).notNull(),
     vatAmount: numeric("vat_amount", { precision: 15, scale: 2 }).notNull(),
     total: numeric("total", { precision: 15, scale: 2 }).notNull(),
+    discountAmount: numeric("discount_amount", { precision: 15, scale: 2 }).notNull().default("0.00"),
     overallDiscountRate: numeric("overall_discount_rate", { precision: 5, scale: 4 }),
     overallTaxRate: numeric("overall_tax_rate", { precision: 5, scale: 4 }),
     notes: text("notes"),
@@ -205,6 +206,9 @@ export const invoices = pgTable(
   (t) => [
     unique("invoices_company_invoice_number_unique").on(
       t.companyId,
+      t.invoiceNumber,
+    ),
+    unique("invoices_invoice_number_unique").on(
       t.invoiceNumber,
     ),
   ],

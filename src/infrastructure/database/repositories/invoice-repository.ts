@@ -1,6 +1,6 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
 
-import { asCompanyId, asCustomerId, asInvoiceId, type CompanyId, type InvoiceId } from "@/domain/branding";
+import { asCompanyId, asCustomerId, asInvoiceId, type CompanyId, type CustomerId, type InvoiceId } from "@/domain/branding";
 import type {
   CreateDraftInvoiceInput,
   InvoiceItemRecord,
@@ -13,7 +13,7 @@ import type {
 import type { Database, Tx } from "@/application/tx";
 import { InvalidTransitionError, NotFoundError } from "@/domain/errors";
 import { normalizeIssueTime } from "@/domain/services/invoice-datetime";
-import { fromDecimalString, toDecimalString } from "@/domain/value-objects/money";
+import { fromDecimalString, halalas, toDecimalString } from "@/domain/value-objects/money";
 import { invoices, invoiceItems, receiptVouchers } from "../schema";
 
 type InvoiceRow = typeof invoices.$inferSelect;
@@ -52,6 +52,7 @@ function mapInvoiceRow(inv: InvoiceRow, items: InvoiceItemRow[]): InvoiceRecord 
     subtotal: fromDecimalString(inv.subtotal),
     vatAmount: fromDecimalString(inv.vatAmount),
     total: fromDecimalString(inv.total),
+    discountAmount: fromDecimalString(inv.discountAmount || "0.00"),
     terms: inv.terms,
     notes: inv.notes,
     qrPayload: inv.qrPayload,
@@ -88,6 +89,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           subtotal: toDecimalString(input.subtotal),
           vatAmount: toDecimalString(input.vatAmount),
           total: toDecimalString(input.total),
+          discountAmount: toDecimalString(input.discountAmount ?? halalas(0)),
           terms: input.terms,
           notes: input.notes,
           qrPayload: null,
@@ -161,6 +163,7 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
           subtotal: toDecimalString(input.subtotal),
           vatAmount: toDecimalString(input.vatAmount),
           total: toDecimalString(input.total),
+          discountAmount: toDecimalString(input.discountAmount ?? halalas(0)),
           terms: input.terms,
           notes: input.notes,
           updatedAt: now,
@@ -286,6 +289,32 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
     return mapInvoiceRow(inv, items);
   }
 
+  async findByGlobalNumber(
+    invoiceNumber: string,
+    excludeInvoiceId?: string,
+    tx?: Tx,
+  ): Promise<InvoiceRecord | null> {
+    const executor = tx ?? this.db;
+    const conditions = [eq(invoices.invoiceNumber, invoiceNumber)];
+    if (excludeInvoiceId) {
+      conditions.push(ne(invoices.id, excludeInvoiceId));
+    }
+    const [inv] = await executor
+      .select()
+      .from(invoices)
+      .where(and(...conditions))
+      .limit(1);
+    if (!inv) return null;
+
+    const items = await executor
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, inv.id))
+      .orderBy(asc(invoiceItems.position));
+
+    return mapInvoiceRow(inv, items);
+  }
+
   async markIssued(
     id: InvoiceId,
     input: MarkIssuedInput,
@@ -328,6 +357,29 @@ export class InvoiceRepositoryImpl implements InvoiceRepository {
       limit,
       offset,
     );
+  }
+
+  async listByCustomer(
+    customerId: CustomerId | string,
+    limit: number,
+    offset: number,
+  ): Promise<InvoiceRecord[]> {
+    return this.listWithConditions(
+      [eq(invoices.customerId, customerId as CustomerId)],
+      { status: null },
+      limit,
+      offset,
+    );
+  }
+
+  async countByCustomer(
+    customerId: CustomerId | string,
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(invoices)
+      .where(eq(invoices.customerId, customerId as CustomerId));
+    return row?.count ?? 0;
   }
 
   async listAll(

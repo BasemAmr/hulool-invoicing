@@ -1,4 +1,4 @@
-import { asCompanyId, asCustomerId, asInvoiceId } from "@/domain/branding";
+import { asCompanyId, asCustomerId, asInvoiceId, type Halalas } from "@/domain/branding";
 import { halalas, priceStringToHalalas, toDecimalString } from "@/domain/value-objects/money";
 import { CURRENCY } from "@/domain/constants";
 import { invoiceUpdateSchema } from "@/domain/contracts";
@@ -57,12 +57,12 @@ export class UpdateDraftInvoice {
 
       // Friendly pre-check excluding self: keeping the current number (the
       // common "save without touching the field" case) never conflicts with
-      // itself. Cross-company reuse is invisible here by construction.
-      const clash = await this.invoiceRepository.findByNumber(
-        asCompanyId(data.companyId),
+      // itself. Guard against duplicates globally across all companies.
+      const clash = await this.invoiceRepository.findByGlobalNumber(
         invoiceNumber,
+        String(data.id),
       );
-      if (clash && String(clash.id) !== String(data.id)) {
+      if (clash) {
         throw new ValidationError(DUPLICATE_INVOICE_NUMBER_MESSAGE);
       }
     }
@@ -107,6 +107,13 @@ export class UpdateDraftInvoice {
     const now = new Date();
     // Race backstop: a concurrent rename to the same number can slip past
     // the pre-check above; the unique constraint aborts the repo transaction
+    const invoiceDiscountHalalas = data.discountAmount
+      ? typeof data.discountAmount === "string"
+        ? priceStringToHalalas(data.discountAmount)
+        : halalas(data.discountAmount)
+      : halalas(0);
+    const finalTotal = Math.max(0, totals.subtotal + totals.vatTotal - invoiceDiscountHalalas) as Halalas;
+
     // (parent UPDATE precedes the item swap, so nothing is half-written) and
     // is mapped here to the same friendly message instead of a 500.
     // Deliberate narrow mapping: non-unique DB failures rethrow untouched.
@@ -129,7 +136,8 @@ export class UpdateDraftInvoice {
           currency: CURRENCY,
           subtotal: totals.subtotal,
           vatAmount: totals.vatTotal,
-          total: totals.total,
+          discountAmount: invoiceDiscountHalalas,
+          total: finalTotal,
           items,
           invoiceNumber,
         },

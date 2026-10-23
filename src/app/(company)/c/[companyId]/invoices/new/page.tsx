@@ -92,6 +92,7 @@ export default async function NewCompanyInvoicePage({
         dueDate?: string | null;
         templateId?: string;
         invoiceType?: "standard" | "simplified";
+        discountAmount?: string;
         notes?: string | null;
         terms?: string | null;
         items?: ReturnType<typeof toInvoiceDto>["items"];
@@ -117,6 +118,7 @@ export default async function NewCompanyInvoicePage({
           dueDate: dto.dueDate,
           templateId: dto.templateId,
           invoiceType: dto.invoiceType,
+          discountAmount: dto.discountAmount,
           notes: dto.notes,
           terms: dto.terms,
           items: dto.items,

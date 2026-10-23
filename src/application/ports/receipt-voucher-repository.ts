@@ -1,5 +1,5 @@
 import type { CompanyId, CustomerId, Halalas } from "@/domain/branding";
-import type { ReceiptVoucherCreateInput } from "@/domain/contracts";
+import type { ReceiptVoucherCreateInput, ReceiptVoucherUpdateInput } from "@/domain/contracts";
 import type { Tx } from "../tx";
 
 export interface ReceiptVoucherRecord {
@@ -20,6 +20,7 @@ export interface ReceiptVoucherRecord {
 
 export interface ReceiptVoucherRepository {
   create(input: ReceiptVoucherCreateInput, tx?: Tx): Promise<ReceiptVoucherRecord>;
+  update(id: string, input: ReceiptVoucherUpdateInput, tx?: Tx): Promise<ReceiptVoucherRecord>;
   findById(id: string, tx?: Tx): Promise<ReceiptVoucherRecord | null>;
   findByInvoiceId(invoiceId: string, tx?: Tx): Promise<ReceiptVoucherRecord | null>;
   listByCompany(
@@ -27,5 +28,13 @@ export interface ReceiptVoucherRepository {
     limit?: number,
     offset?: number
   ): Promise<ReceiptVoucherRecord[]>;
+  listByCustomer(
+    customerId: CustomerId | string,
+    limit?: number,
+    offset?: number
+  ): Promise<ReceiptVoucherRecord[]>;
+  countByCustomer(
+    customerId: CustomerId | string
+  ): Promise<number>;
   delete(id: string, tx?: Tx): Promise<void>;
 }

@@ -92,6 +92,7 @@ export async function createDraftInvoiceAction(
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
     terms: nonEmpty(formData.get("terms")),
+    discountAmount: nonEmpty(formData.get("discountAmount")) ?? "0.00",
     items,
   };
 
@@ -112,8 +113,7 @@ export async function createDraftInvoiceAction(
     // surface through the catch below (friendly Arabic message) instead of
     // escaping the action and turning the whole save into a 500.
     if (customInvoiceNumber) {
-      const clash = await container.invoiceRepository.findByNumber(
-        asCompanyId(String(formData.get("companyId") ?? "")),
+      const clash = await container.invoiceRepository.findByGlobalNumber(
         customInvoiceNumber,
       );
       if (clash) {
@@ -286,6 +286,7 @@ export async function updateDraftInvoiceAction(
     notes: nonEmpty(formData.get("notes")),
     invoiceType,
     terms: nonEmpty(formData.get("terms")),
+    discountAmount: nonEmpty(formData.get("discountAmount")) ?? "0.00",
     items,
     // Spread only when renaming: omitting the key keeps updateDraft's
     // preserve path (undefined), so legacy/auto callers are untouched.
@@ -307,6 +308,16 @@ export async function updateDraftInvoiceAction(
     // auto path (no rename, IssueInvoice allocates as today).
     if (numberFieldPresent && !requestedNumber && wasIssued) {
       return { status: "error", message: MISSING_INVOICE_NUMBER_MESSAGE };
+    }
+
+    if (requestedNumber) {
+      const clash = await container.invoiceRepository.findByGlobalNumber(
+        requestedNumber,
+        invoiceId,
+      );
+      if (clash) {
+        return { status: "error", message: DUPLICATE_INVOICE_NUMBER_MESSAGE };
+      }
     }
 
     const { UpdateDraftInvoice } = await import("@/application/use-cases/update-draft-invoice");
