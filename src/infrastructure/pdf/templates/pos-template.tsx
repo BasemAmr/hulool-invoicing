@@ -257,10 +257,12 @@ export function PosTemplate({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
 
@@ -308,6 +310,7 @@ export function PosTemplate({
   // 4. Totals (7 rows)
   contentHeight += 7 * 14; // 98pt
   contentHeight += 8; // totalRowGrand extra padding
+  if (invoiceDiscount > 0) contentHeight += 14;
 
   // 5. Tafqeet box
   contentHeight += 22;
@@ -451,7 +454,7 @@ export function PosTemplate({
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalKey}>مجموع الخصومات</Text>
-            <Text style={styles.totalVal}>{formatExactAmount(computedDiscount)} SAR</Text>
+            <Text style={styles.totalVal}>{formatExactAmount(computedDiscount + invoiceDiscount)} SAR</Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalKey}>المبلغ الخاضع للضريبة</Text>
@@ -461,6 +464,12 @@ export function PosTemplate({
             <Text style={styles.totalKey}>ضريبة القيمة المضافة 15%</Text>
             <Text style={styles.totalVal}>{formatExactAmount(totalVat)} SAR</Text>
           </View>
+          {invoiceDiscount > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalKey}>خصم إضافي على الفاتورة</Text>
+              <Text style={styles.totalVal}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+            </View>
+          ) : null}
           <View style={[styles.totalRow, styles.totalRowGrand]}>
             <Text style={[styles.totalKey, styles.boldText]}>إجمالي المبلغ المستحق</Text>
             <Text style={[styles.totalVal, styles.boldText]}>

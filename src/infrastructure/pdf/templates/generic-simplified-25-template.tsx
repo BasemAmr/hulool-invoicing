@@ -263,13 +263,14 @@ export function GenericSimplified25Template({
   const invoiceSubtotal = toNumber(invoice.subtotal);
   const invoiceVat = toNumber(invoice.vatAmount);
   const invoiceTotal = toNumber(invoice.total);
+  const invoiceDiscount = toNumber(invoice.discountAmount);
 
   const finalGross = grossTotalCalc > 0 ? grossTotalCalc : invoiceSubtotal;
-  const finalDiscount = discountTotalCalc;
+  const finalDiscount = discountTotalCalc + invoiceDiscount;
   const finalTaxable = taxableTotalCalc > 0 ? taxableTotalCalc : invoiceSubtotal;
   const finalVat = vatTotalCalc > 0 ? vatTotalCalc : invoiceVat;
   const finalTotal =
-    invoiceTotal > 0 ? invoiceTotal : finalTaxable + finalVat;
+    invoiceTotal > 0 ? invoiceTotal : Math.max(0, finalTaxable + finalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(finalTotal);
 
@@ -567,6 +568,15 @@ export function GenericSimplified25Template({
                 <Text style={styles.sumLabel}>ضريبة القيمة المضافة VAT (15%)</Text>
                 <Text style={styles.sumVal}>{formatExactAmount(finalVat)} {currencyText}</Text>
               </View>
+
+              {invoiceDiscount > 0 ? (
+                <View style={styles.sumRow}>
+                  <Text style={styles.sumLabel}>خصم الفاتورة Invoice Discount</Text>
+                  <Text style={[styles.sumVal, { color: "#991B1B" }]}>
+                    -{formatExactAmount(invoiceDiscount)} {currencyText}
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={[styles.sumRow, styles.sumGrandRow]}>
                 <Text style={styles.sumGrandLabel}>المجموع الكلي شامل الضريبة Total Incl. VAT</Text>

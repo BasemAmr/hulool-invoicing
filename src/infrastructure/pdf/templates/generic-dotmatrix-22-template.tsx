@@ -273,10 +273,12 @@ export function GenericDotmatrix22Template({
 
   const sumQty = rows.reduce((a, r) => a + r.qty, 0);
   const rawSubtotalCalc = rows.reduce((a, r) => a + r.rawLineAmount, 0);
+  const lineDiscountVal = rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const invoiceDiscount = toNumber(invoice.discountAmount);
   const discountVal =
     (invoice as unknown as { discountTotal?: string | number }).discountTotal !== undefined
       ? toNumber((invoice as unknown as { discountTotal?: string | number }).discountTotal)
-      : rows.reduce((a, r) => a + r.lineDiscount, 0);
+      : lineDiscountVal + invoiceDiscount;
 
   const grossSubtotal =
     discountVal > 0
@@ -300,7 +302,7 @@ export function GenericDotmatrix22Template({
   const totalVal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableVal + vatVal;
+      : Math.max(0, taxableVal + vatVal - invoiceDiscount);
 
   const firstVatRate = rows.find((r) => r.vatRateNum > 0)?.vatRateNum ?? 15;
   const vatRatePercentage = `${firstVatRate}%`;

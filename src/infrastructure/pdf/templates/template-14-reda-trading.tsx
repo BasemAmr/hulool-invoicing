@@ -317,10 +317,14 @@ export function Template14RedaTrading({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const sumDisc = rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const totalDiscount = sumDisc + invoiceDiscount;
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetAr = tafqeet(grandTotal);
   const tafqeetEn = numberToEnglishWords(grandTotal);
@@ -336,6 +340,9 @@ export function Template14RedaTrading({
     extraContentHeight += 16 + Math.min(invoice.terms.split("\n").length, 4) * 8;
   }
   if (company.footerText) {
+    extraContentHeight += 14;
+  }
+  if (invoiceDiscount > 0) {
     extraContentHeight += 14;
   }
 
@@ -893,6 +900,21 @@ export function Template14RedaTrading({
                 <Text style={styles.totalLabelArText}>ضريبة القيمة المضافة (ريال سعودي)</Text>
               </View>
             </View>
+
+            {/* Invoice Discount */}
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalRow}>
+                <View style={[styles.totalLabelCellEn, styles.w35]}>
+                  <Text style={styles.totalLabelEnText}>Invoice Discount (SAR):</Text>
+                </View>
+                <View style={[styles.totalValCell, styles.w20]}>
+                  <Text style={[styles.totalValBold, { color: "#dc2626" }]}>-{formatExactAmount(invoiceDiscount)}</Text>
+                </View>
+                <View style={[styles.totalLabelCellAr, styles.w45]}>
+                  <Text style={styles.totalLabelArText}>خصم الفاتورة (ريال سعودي)</Text>
+                </View>
+              </View>
+            ) : null}
 
             {/* Amount Incl. VAT */}
             <View style={styles.totalRow}>

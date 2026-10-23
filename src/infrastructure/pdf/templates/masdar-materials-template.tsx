@@ -191,13 +191,16 @@ export function MasdarBuildingMaterialsTemplate({
     return acc + d;
   }, 0);
 
-  const invoiceDiscountTotal = Number((invoice as any).discountTotal || (invoice as any).discount || 0);
-  const discountTotal = invoiceDiscountTotal > 0 ? invoiceDiscountTotal : totalLineDiscounts;
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
+  const discountTotal = totalLineDiscounts + invoiceDiscount;
 
   const grossSubtotal = Number(invoice.subtotal || rawSubtotal);
   const taxableAmount = Math.max(0, grossSubtotal - (discountTotal > 0 ? discountTotal : 0));
   const vatTotal = Number(invoice.vatAmount || 0);
-  const grandTotal = Number(invoice.total || (taxableAmount + vatTotal));
+  const grandTotal =
+    invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
+      ? Number(invoice.total)
+      : Math.max(0, taxableAmount + vatTotal - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
 
@@ -207,6 +210,7 @@ export function MasdarBuildingMaterialsTemplate({
   const pageWidth = paperSize === "LETTER" ? 612 : 595.28;
   const extraItemsCount = Math.max(0, items.length - 4);
   let extraContentHeight = extraItemsCount * 26;
+  if (invoiceDiscount > 0) extraContentHeight += 20;
   if (invoice.notes && invoice.notes.length > 50) extraContentHeight += 20;
   if (company.footerText) extraContentHeight += 16;
   const page1Height = Math.max(basePageHeight, basePageHeight + extraContentHeight);
@@ -595,6 +599,16 @@ export function MasdarBuildingMaterialsTemplate({
               <Text style={styles.totalLabel}>ضريبة القيمة المضافة / VAT (15%)</Text>
               <Text style={styles.totalValue}>{formatExactAmount(vatTotal)}</Text>
             </View>
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalLabel, { color: "#E11D48" }]}>
+                  خصم إضافي على الفاتورة / Invoice Discount
+                </Text>
+                <Text style={[styles.totalValue, { color: "#E11D48" }]}>
+                  -{formatExactAmount(invoiceDiscount)}
+                </Text>
+              </View>
+            ) : null}
             {/* 5. Total Inc VAT */}
             <View style={[styles.totalRow, { backgroundColor: "#F1F5F9" }]}>
               <Text style={[styles.totalLabel, { fontWeight: "bold", color: "#1E3A8A" }]}>

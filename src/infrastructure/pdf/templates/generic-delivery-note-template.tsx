@@ -241,7 +241,9 @@ export function GenericDeliveryNoteTemplate({
 
   const sumQty = rows.reduce((a, r) => a + r.qty, 0);
   const grossSubtotal = rows.reduce((a, r) => a + r.rawLineAmount, 0);
-  const discountVal = (invoice as any).discountTotal ?? rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const lineDiscountVal = rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const discountVal = (invoice as any).discountTotal ?? (lineDiscountVal + invoiceDiscount);
   const taxableVal = invoice.subtotal !== undefined && invoice.subtotal !== null
     ? toNumber(invoice.subtotal)
     : Math.max(0, grossSubtotal - toNumber(discountVal));
@@ -250,7 +252,7 @@ export function GenericDeliveryNoteTemplate({
     : rows.reduce((a, r) => a + r.itemVat, 0);
   const totalVal = invoice.total !== undefined && invoice.total !== null
     ? toNumber(invoice.total)
-    : taxableVal + vatVal;
+    : Math.max(0, taxableVal + vatVal - invoiceDiscount);
 
   const firstItemVatRate = rows.find((r) => r.vatRateNum !== undefined)?.vatRateNum;
   const vatRatePercentage = firstItemVatRate !== undefined ? `${firstItemVatRate}%` : "15%";

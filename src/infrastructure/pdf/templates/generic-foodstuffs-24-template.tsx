@@ -288,13 +288,14 @@ export function GenericFoodstuffs24Template({
   const invoiceSubtotal = toNumber(invoice.subtotal);
   const invoiceVat = toNumber(invoice.vatAmount);
   const invoiceTotal = toNumber(invoice.total);
+  const invoiceDiscount = toNumber(invoice.discountAmount);
 
   const finalGross = grossTotalCalc > 0 ? grossTotalCalc : invoiceSubtotal;
-  const finalDiscount = discountTotalCalc;
+  const finalDiscount = discountTotalCalc + invoiceDiscount;
   const finalTaxable = taxableTotalCalc > 0 ? taxableTotalCalc : invoiceSubtotal;
   const finalVat = vatTotalCalc > 0 ? vatTotalCalc : invoiceVat;
   const finalTotal =
-    invoiceTotal > 0 ? invoiceTotal : finalTaxable + finalVat;
+    invoiceTotal > 0 ? invoiceTotal : Math.max(0, finalTaxable + finalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(finalTotal);
 
@@ -719,6 +720,20 @@ export function GenericFoodstuffs24Template({
                   {formatExactAmount(finalVat)} {currencyText}
                 </Text>
               </View>
+
+              {/* Invoice Discount */}
+              {invoiceDiscount > 0 ? (
+                <View style={styles.totalRow}>
+                  <View style={styles.totalLabelBox}>
+                    <Text style={styles.totalLabelAr}>خصم الفاتورة</Text>
+                    <Text style={styles.totalLabelEn}>Invoice Discount</Text>
+                  </View>
+                  <Text style={styles.totalColon}>:</Text>
+                  <Text style={[styles.totalVal, { color: "#A21CAF" }]}>
+                    -{formatExactAmount(invoiceDiscount)} {currencyText}
+                  </Text>
+                </View>
+              ) : null}
 
               {/* Grand Total */}
               <View style={[styles.totalRow, styles.grandTotalRow]}>

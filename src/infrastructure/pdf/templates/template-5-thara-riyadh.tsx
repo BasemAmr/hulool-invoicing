@@ -264,8 +264,10 @@ export function Template5TharaRiyadh({
     };
   });
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
   const sumGross = rows.reduce((a, r) => a + r.gross, 0);
-  const sumDiscount = rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const sumLineDiscount = rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const sumDiscount = sumLineDiscount + invoiceDiscount;
   const sumTaxable = rows.reduce((a, r) => a + r.taxableSubtotal, 0);
 
   const taxableAmount =
@@ -281,7 +283,7 @@ export function Template5TharaRiyadh({
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
 
@@ -294,6 +296,9 @@ export function Template5TharaRiyadh({
   let extraContentHeight = extraItemsCount * 26;
   const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
   extraContentHeight += discountItemsCount * 14;
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 18;
+  }
 
   if (invoice.notes) {
     extraContentHeight += 20 + Math.min(invoice.notes.split("\n").length, 5) * 11;
@@ -636,6 +641,19 @@ export function Template5TharaRiyadh({
                     <Text style={styles.totalsLabelEn}>VAT Amount</Text>
                   </View>
                 </View>
+
+                {/* Invoice Discount if > 0 */}
+                {invoiceDiscount > 0 ? (
+                  <View style={styles.totalsTableRow}>
+                    <Text style={[styles.totalsValText, { color: "#C2410C" }]}>
+                      -{formatExactAmount(invoiceDiscount)} ر.س
+                    </Text>
+                    <View style={styles.totalsLabelBlock}>
+                      <Text style={styles.totalsLabelAr}>خصم الفاتورة</Text>
+                      <Text style={styles.totalsLabelEn}>Invoice Discount</Text>
+                    </View>
+                  </View>
+                ) : null}
 
                 {/* Grand Total (Highlighted in Thara Peach Tint #FCE7DB) */}
                 <View style={[styles.totalsTableRow, styles.grandTotalRowHighlight]}>

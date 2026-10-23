@@ -202,9 +202,10 @@ export function CyanSalesTemplate({
 
   // ─── Items & Calculations ───
   const items = invoice.items || [];
+  const lineDiscountVal = items.reduce((s, it) => s + Number(it.discountAmount || 0), 0);
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
   const discountVal =
-    (invoice as any).discountTotal ??
-    items.reduce((s, it) => s + Number(it.discountAmount || 0), 0);
+    (invoice as any).discountTotal ?? (lineDiscountVal + invoiceDiscount);
 
   const rawSubtotalCalc = items.reduce(
     (s, it) => s + Number(it.quantity || 0) * Number(it.unitPrice || 0),
@@ -219,7 +220,7 @@ export function CyanSalesTemplate({
 
   const taxableVal = invoice.subtotal ?? Math.max(0, grossSubtotal - Number(discountVal));
   const vatVal = invoice.vatAmount ?? items.reduce((s, it) => s + Number(it.lineVat || 0), 0);
-  const totalVal = invoice.total ?? Number(taxableVal) + Number(vatVal);
+  const totalVal = invoice.total ?? Math.max(0, Number(taxableVal) + Number(vatVal) - invoiceDiscount);
 
   const tafqeetText = Number(totalVal) > 0 ? tafqeet(totalVal) : "";
 

@@ -316,18 +316,19 @@ export function Template6JabalAlRayan({
   });
 
   // Totals calculations
+  const invoiceDiscount = toNumber(invoice.discountAmount);
   const subtotalVal = invoice.subtotal !== undefined && invoice.subtotal !== null
     ? toNumber(invoice.subtotal)
     : computedSubtotal;
-  const headerDiscount = toNumber(invExt.discountTotal ?? invExt.discount ?? 0);
-  const totalDiscountVal = headerDiscount > 0 ? headerDiscount : computedDiscount;
+  const headerDiscount = invoiceDiscount > 0 ? invoiceDiscount : toNumber(invExt.discountTotal ?? invExt.discount ?? 0);
+  const totalDiscountVal = computedDiscount + headerDiscount;
   const taxableSubtotalVal = Math.max(0, subtotalVal - totalDiscountVal);
   const vatVal = invoice.vatAmount !== undefined && invoice.vatAmount !== null
     ? toNumber(invoice.vatAmount)
     : computedVat;
   const totalVal = invoice.total !== undefined && invoice.total !== null
     ? toNumber(invoice.total)
-    : taxableSubtotalVal + vatVal;
+    : Math.max(0, taxableSubtotalVal + vatVal);
 
   const firstItemVatRate = rows.find((r) => r.vatRate !== undefined)?.vatRate ?? 15;
   const vatRatePercentage = `${firstItemVatRate}%`;
@@ -341,6 +342,9 @@ export function Template6JabalAlRayan({
   const itemRowHeight = 22;
   const extraItemsCount = Math.max(0, rows.length - 7);
   let extraContentHeight = extraItemsCount * itemRowHeight;
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 18;
+  }
   if (invoice.notes) {
     extraContentHeight += 18 + Math.min(invoice.notes.split("\n").length, 3) * 10;
   }
@@ -758,6 +762,20 @@ export function Template6JabalAlRayan({
                   <Text style={styles.totalsValueText}>{formatExactAmount(vatVal)}</Text>
                 </View>
               </View>
+
+              {invoiceDiscount > 0 ? (
+                <View style={styles.totalsRow}>
+                  <View style={styles.totalsLabelCol}>
+                    <Text style={styles.totalsLabelAr}>خصم الفاتورة</Text>
+                    <Text style={styles.totalsLabelEn}>INVOICE DISCOUNT</Text>
+                  </View>
+                  <View style={styles.totalsValueCol}>
+                    <Text style={[styles.totalsValueText, { color: "#dc2626" }]}>
+                      -{formatExactAmount(invoiceDiscount)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
 
               {/* Grand Total Inc. VAT */}
               <View style={styles.totalsRowHighlight}>

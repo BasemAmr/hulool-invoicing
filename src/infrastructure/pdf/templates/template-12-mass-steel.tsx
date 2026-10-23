@@ -274,12 +274,14 @@ export function Template12MassSteel({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
-  const totalDiscount = computedDiscount;
+  const totalDiscount = computedDiscount + invoiceDiscount;
   const tafqeetText = tafqeet(grandTotal);
 
   // Dynamic height calculation so the whole document always fits on one continuous page
@@ -297,6 +299,9 @@ export function Template12MassSteel({
   }
   if (company.footerText) {
     extraContentHeight += 16;
+  }
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 12;
   }
 
   // Add a safety buffer of 80pt so react-pdf never overflows by 1-2px onto a second blank page
@@ -602,6 +607,19 @@ export function Template12MassSteel({
                 <Text style={styles.totalLabelEn}>VAT Amount</Text>
               </View>
             </View>
+
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalRow}>
+                <View style={styles.totalValCell}>
+                  <Text style={[styles.totalValText, { color: "#dc2626" }]}>-{formatExactAmount(invoiceDiscount)}</Text>
+                </View>
+                <View style={styles.totalLabelCell}>
+                  <Text style={styles.totalLabelAr}>خصم الفاتورة</Text>
+                  <Text style={styles.totalLabelDash}>-</Text>
+                  <Text style={styles.totalLabelEn}>Invoice Discount</Text>
+                </View>
+              </View>
+            ) : null}
 
             {/* Net Amount / Grand Total */}
             <View style={[styles.totalRow, styles.netAmountRow]}>

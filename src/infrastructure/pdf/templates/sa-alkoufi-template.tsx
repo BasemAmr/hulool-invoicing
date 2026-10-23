@@ -241,12 +241,13 @@ export function SaAlkoufiTemplate({
     0
   );
 
+  const lineDiscountVal = items.reduce(
+    (sum, item) => sum + Number(item.discountAmount || (item as any).discount || 0),
+    0
+  );
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
   const discountVal =
-    invExt.discountTotal ??
-    items.reduce(
-      (sum, item) => sum + Number(item.discountAmount || (item as any).discount || 0),
-      0
-    );
+    invExt.discountTotal ?? (lineDiscountVal + invoiceDiscount);
 
   const grossSubtotal =
     Number(discountVal) > 0
@@ -262,7 +263,7 @@ export function SaAlkoufiTemplate({
     invoice.vatAmount ??
     items.reduce((sum, item) => sum + Number(item.lineVat || 0), 0);
 
-  const totalVal = invoice.total ?? Number(taxableVal) + Number(vatVal);
+  const totalVal = invoice.total ?? Math.max(0, Number(taxableVal) + Number(vatVal) - invoiceDiscount);
 
   const firstItemVatRate = items.find(
     (it) => it.vatRate !== undefined && it.vatRate !== null

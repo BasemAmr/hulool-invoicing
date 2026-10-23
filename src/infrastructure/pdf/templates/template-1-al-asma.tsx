@@ -251,6 +251,8 @@ export function Template1AlAsma({
 
   const sumGross = rows.reduce((a, r) => a + r.gross, 0);
   const sumDisc = rows.reduce((a, r) => a + r.lineDiscount, 0);
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const totalDiscountVal = sumDisc + invoiceDiscount;
   const sumTaxable = rows.reduce((a, r) => a + r.taxableSubtotal, 0);
 
   const taxableAmount =
@@ -266,7 +268,7 @@ export function Template1AlAsma({
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const amountPaid = grandTotal;
   const balanceDue = 0;
@@ -573,7 +575,7 @@ export function Template1AlAsma({
                   <Text style={styles.totalLabelEn}>Total Discount</Text>
                 </View>
                 <View style={styles.totalValueCell}>
-                  <Text style={styles.totalValueText}>{formatExactAmount(sumDisc)}</Text>
+                  <Text style={styles.totalValueText}>{formatExactAmount(totalDiscountVal)}</Text>
                 </View>
               </View>
 
@@ -598,6 +600,20 @@ export function Template1AlAsma({
                   <Text style={styles.totalValueText}>{formatExactAmount(totalVat)}</Text>
                 </View>
               </View>
+
+              {invoiceDiscount > 0 ? (
+                <View style={styles.totalRow}>
+                  <View style={styles.totalLabelCell}>
+                    <Text style={styles.totalLabelAr}>خصم الفاتورة</Text>
+                    <Text style={styles.totalLabelEn}>Invoice Discount</Text>
+                  </View>
+                  <View style={styles.totalValueCell}>
+                    <Text style={[styles.totalValueText, { color: "#dc2626" }]}>
+                      -{formatExactAmount(invoiceDiscount)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
 
               {/* Grand Total */}
               <View style={[styles.totalRow, styles.grandTotalRow]}>

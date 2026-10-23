@@ -282,6 +282,8 @@ export function Template8SalehAlHaider({
     };
   });
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const totalDiscountVal = computedDiscount + invoiceDiscount;
   const sumTaxable = rows.reduce((a, r) => a + r.taxableSubtotal, 0);
 
   const taxableAmount =
@@ -297,7 +299,7 @@ export function Template8SalehAlHaider({
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const firstVatRate = rows.find((r) => r.vatRate !== undefined)?.vatRate ?? 15;
   const tafqeetText = tafqeet(grandTotal);
@@ -308,6 +310,9 @@ export function Template8SalehAlHaider({
   let extraContentHeight = extraItemsCount * 22;
   const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
   extraContentHeight += discountItemsCount * 14;
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 24;
+  }
 
   if (invoice.notes) {
     extraContentHeight += 24 + Math.min(invoice.notes.split("\n").length, 5) * 10;
@@ -568,7 +573,7 @@ export function Template8SalehAlHaider({
           {/* Row 2: Discount & Taxable Amount */}
           <View style={styles.totalsRow}>
             <View style={styles.totalsCellLeft}>
-              <Text style={styles.totalsValue}>{formatExactAmount(computedDiscount)}</Text>
+              <Text style={styles.totalsValue}>{formatExactAmount(totalDiscountVal)}</Text>
               <Text style={styles.totalsLabel}>إجمالي الخصم</Text>
             </View>
             <View style={styles.totalsCellRight}>
@@ -599,6 +604,19 @@ export function Template8SalehAlHaider({
               <Text style={styles.totalsStatusText}>تم الدفع بالكامل . مدفوعة</Text>
             </View>
           </View>
+
+          {invoiceDiscount > 0 ? (
+            <View style={styles.totalsRow}>
+              <View style={styles.totalsCellLeft}>
+                <Text style={[styles.totalsValue, { color: "#dc2626" }]}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+                <Text style={styles.totalsLabel}>خصم الفاتورة</Text>
+              </View>
+              <View style={styles.totalsCellRight}>
+                <Text style={styles.totalsValue}>Invoice Discount</Text>
+                <Text style={styles.totalsLabel}>خصم إضافي على الفاتورة</Text>
+              </View>
+            </View>
+          ) : null}
 
           {/* Row 5: Grand Total & Spelled-out Tafqeet */}
           <View style={[styles.totalsRow, styles.totalsFinalRow]}>

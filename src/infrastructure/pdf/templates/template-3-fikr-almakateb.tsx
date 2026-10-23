@@ -348,9 +348,10 @@ export function Template3FikrAlmakateb({
   });
 
   // Master Totals Calculations
+  const invoiceDiscount = toNumber(invoice.discountAmount);
   const grossTotalVal = sumGross > 0 ? sumGross : toNumber(invoice.subtotal);
-  const headerDiscount = toNumber(invExt.discountTotal);
-  const totalDiscountVal = headerDiscount > 0 ? headerDiscount : sumLineDiscounts;
+  const headerDiscount = invoiceDiscount > 0 ? invoiceDiscount : toNumber(invExt.discountTotal);
+  const totalDiscountVal = sumLineDiscounts + headerDiscount;
   const taxableAmountVal =
     invoice.subtotal !== null && invoice.subtotal !== undefined && invoice.subtotal !== ""
       ? toNumber(invoice.subtotal)
@@ -364,7 +365,7 @@ export function Template3FikrAlmakateb({
   const grandTotalVal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmountVal + vatVal;
+      : Math.max(0, taxableAmountVal + vatVal - invoiceDiscount);
 
   const invoicePaidVal = grandTotalVal;
   const balanceDueVal = 0;
@@ -393,6 +394,9 @@ export function Template3FikrAlmakateb({
 
   const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
   extraContentHeight += discountItemsCount * 14;
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 18;
+  }
 
   if (invoice.notes) {
     extraContentHeight += 24 + Math.min(invoice.notes.split("\n").length, 5) * 11;
@@ -845,6 +849,22 @@ export function Template3FikrAlmakateb({
                   <Text style={styles.totalsLabelEn}>Total VAT ({primaryVatRate}%)</Text>
                 </View>
               </View>
+
+              {invoiceDiscount > 0 ? (
+                <View style={styles.totalsRow}>
+                  <View style={styles.totalsValCell}>
+                    <Text style={[styles.totalsValText, { color: "#dc2626" }]}>
+                      -{formatExactAmount(invoiceDiscount)}
+                    </Text>
+                  </View>
+                  <View style={styles.totalsLabelArCell}>
+                    <Text style={styles.totalsLabelAr}>خصم الفاتورة</Text>
+                  </View>
+                  <View style={styles.totalsLabelEnCell}>
+                    <Text style={styles.totalsLabelEn}>Invoice Discount</Text>
+                  </View>
+                </View>
+              ) : null}
 
               {/* Row 5: Total after VAT / Grand Total */}
               <View style={[styles.totalsRow, styles.totalsRowGrand]}>

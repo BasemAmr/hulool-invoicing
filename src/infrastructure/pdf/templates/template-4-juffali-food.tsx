@@ -274,9 +274,11 @@ export function Template4JuffaliFood({
   const sumTaxable = rows.reduce((sum, r) => sum + r.taxableSubtotal, 0);
   const sumVat = rows.reduce((sum, r) => sum + r.lineVat, 0);
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   // Financial totals
   const grossTotal = sumGross;
-  const discountTotal = sumDiscounts;
+  const discountTotal = sumDiscounts + invoiceDiscount;
   const taxableAmount = invoice.subtotal !== null && invoice.subtotal !== undefined && invoice.subtotal !== ""
     ? toNumber(invoice.subtotal)
     : sumTaxable;
@@ -285,7 +287,7 @@ export function Template4JuffaliFood({
     : sumVat;
   const grandTotal = invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
     ? toNumber(invoice.total)
-    : (taxableAmount + totalVat);
+    : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const amountPaid = grandTotal;
   const balanceDue = 0;
@@ -300,6 +302,9 @@ export function Template4JuffaliFood({
   let extraContentHeight = extraItemsCount * 28;
   const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
   extraContentHeight += discountItemsCount * 12;
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 18;
+  }
 
   if (invoice.notes) {
     extraContentHeight += 22 + Math.min(invoice.notes.split("\n").length, 5) * 10;
@@ -717,6 +722,15 @@ export function Template4JuffaliFood({
             <Text style={styles.summaryLabelAr}>ضريبة القيمة المضافة ({primaryVatRate}%)</Text>
             <Text style={styles.summaryVal}>{formatExactAmount(totalVat)}</Text>
           </View>
+
+          {/* Invoice Discount if > 0 */}
+          {invoiceDiscount > 0 ? (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabelEn}>Invoice Discount</Text>
+              <Text style={styles.summaryLabelAr}>خصم الفاتورة</Text>
+              <Text style={[styles.summaryVal, { color: "#dc2626" }]}>-{formatExactAmount(invoiceDiscount)}</Text>
+            </View>
+          ) : null}
 
           {/* Grand Total Incl. VAT */}
           <View style={[styles.summaryRow, styles.summaryRowHighlight]}>

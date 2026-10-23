@@ -199,14 +199,17 @@ export function Template15RedaModern({
   const vatTotal = invoice.vatAmount !== null && invoice.vatAmount !== undefined && invoice.vatAmount !== ""
     ? toNumber(invoice.vatAmount)
     : computedVat;
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const totalDiscount = rows.reduce((sum, row) => sum + row.discount, 0) + invoiceDiscount;
   const grandTotal = invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
     ? toNumber(invoice.total)
-    : subtotal + vatTotal;
+    : Math.max(0, subtotal + vatTotal - invoiceDiscount);
 
   const itemExtraHeight = Math.max(0, rows.length - 5) * 22;
   const notesHeight = invoice.notes ? 20 + Math.min(invoice.notes.split("\n").length, 5) * 8 : 0;
   const termsHeight = invoice.terms ? 20 + Math.min(invoice.terms.split("\n").length, 5) * 8 : 0;
-  const dynamicHeight = Math.max(basePageHeight, basePageHeight + itemExtraHeight + notesHeight + termsHeight) + 52;
+  const discountExtraHeight = invoiceDiscount > 0 ? 14 : 0;
+  const dynamicHeight = Math.max(basePageHeight, basePageHeight + itemExtraHeight + notesHeight + termsHeight + discountExtraHeight) + 52;
   const pageSize = [basePageWidth, dynamicHeight] as [number, number];
   const companyAddress = formatCompanyAddress(company);
   const customerAddress = formatCustomerAddress(customer);
@@ -301,6 +304,9 @@ export function Template15RedaModern({
           <View style={styles.summaryTable}>
             <View style={styles.summaryRow}><Text style={styles.summaryLabel}>المجموع الفرعي</Text><Text style={styles.summaryValue}>{formatExactAmount(subtotal)}</Text></View>
             <View style={styles.summaryRow}><Text style={styles.summaryLabel}>الضريبة (%)</Text><Text style={styles.summaryValue}>{formatExactAmount(vatTotal)}</Text></View>
+            {invoiceDiscount > 0 ? (
+              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>خصم الفاتورة</Text><Text style={[styles.summaryValue, { color: RED }]}>-{formatExactAmount(invoiceDiscount)}</Text></View>
+            ) : null}
             <View style={[styles.summaryRow, styles.grandRow]}><Text style={styles.grandLabel}>المجموع الكلي</Text><Text style={styles.grandValue}>{formatExactAmount(grandTotal)}</Text></View>
           </View>
           {qrDataUrl ? <Image src={qrDataUrl} style={styles.qrCode} /> : null}

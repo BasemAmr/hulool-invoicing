@@ -87,6 +87,18 @@ export function MahalaPosTemplate({
   const dateStr = formatDateOnly(invoice.issueDate);
   const items = invoice.items || [];
   const hasAnyDiscount = items.some((it) => Number(it.discountAmount || 0) > 0);
+  const lineDiscountTotal = items.reduce(
+    (acc, it) => acc + Number(it.discountAmount || 0),
+    0
+  );
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
+  const totalDiscount = lineDiscountTotal + invoiceDiscount;
+  const subtotalNum = Number(invoice.subtotal || 0);
+  const vatAmountNum = Number(invoice.vatAmount || 0);
+  const grandTotal =
+    invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
+      ? Number(invoice.total)
+      : Math.max(0, subtotalNum + vatAmountNum - invoiceDiscount);
 
   const companyAddress = [
     company.addressStreet,
@@ -115,6 +127,7 @@ export function MahalaPosTemplate({
   }
   contentHeight += Math.max(1, items.length) * 38; // Table rows
   contentHeight += 120; // Totals block + Paid / Balance
+  if (invoiceDiscount > 0) contentHeight += 20;
   if (invoice.notes) {
     contentHeight += 35 + invoice.notes.split("\n").length * 14;
   }
@@ -300,9 +313,16 @@ export function MahalaPosTemplate({
             <Text style={styles.totalLabel}>مجموع ضريبة القيمة المضافة:</Text>
           </View>
 
+          {invoiceDiscount > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalVal}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+              <Text style={styles.totalLabel}>خصم إضافي على الفاتورة:</Text>
+            </View>
+          ) : null}
+
           {/* Row 3: الاجمالي بما في ذلك الضريبة */}
           <View style={[styles.totalRow, { borderBottomWidth: 1, borderBottomColor: "#000000", paddingBottom: 3 }]}>
-            <Text style={styles.totalVal}>{formatExactAmount(invoice.total)} SAR</Text>
+            <Text style={styles.totalVal}>{formatExactAmount(grandTotal)} SAR</Text>
             <Text style={styles.totalLabel}>الاجمالي (شامل الضريبة):</Text>
           </View>
 
@@ -311,7 +331,7 @@ export function MahalaPosTemplate({
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>الفاتورة مدفوعة</Text>
               <Text style={styles.centerColonBold}>:</Text>
-              <Text style={styles.paymentVal}>{formatExactAmount(invoice.total)} SAR</Text>
+              <Text style={styles.paymentVal}>{formatExactAmount(grandTotal)} SAR</Text>
             </View>
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>الرصيد المستحق</Text>

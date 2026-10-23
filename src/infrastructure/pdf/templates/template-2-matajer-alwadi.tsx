@@ -322,11 +322,12 @@ export function Template2MatajerAlwadi({
 
   // Master totals calculation
   const subtotalVal = invoice.subtotal !== undefined && invoice.subtotal !== null ? toNumber(invoice.subtotal) : computedSubtotal;
-  const headerDiscount = toNumber(extInv.discountTotal ?? extInv.discount ?? extInv.discountAmount ?? 0);
-  const totalDiscountVal = headerDiscount > 0 ? headerDiscount : computedDiscount;
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const headerDiscount = invoiceDiscount > 0 ? invoiceDiscount : toNumber(extInv.discountTotal ?? extInv.discount ?? extInv.discountAmount ?? 0);
+  const totalDiscountVal = computedDiscount + headerDiscount;
   const taxableSubtotalVal = Math.max(0, subtotalVal - totalDiscountVal);
   const vatVal = invoice.vatAmount !== undefined && invoice.vatAmount !== null ? toNumber(invoice.vatAmount) : computedVat;
-  const totalVal = invoice.total !== undefined && invoice.total !== null ? toNumber(invoice.total) : taxableSubtotalVal + vatVal;
+  const totalVal = invoice.total !== undefined && invoice.total !== null ? toNumber(invoice.total) : Math.max(0, taxableSubtotalVal + vatVal);
 
   const firstItemVatRate = rows.find((r) => r.vatRate !== undefined)?.vatRate ?? 15;
   const vatRatePercentage = `${firstItemVatRate}%`;

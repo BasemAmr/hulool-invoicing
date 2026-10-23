@@ -217,16 +217,14 @@ export function HasaniahFoamTemplate({
 
   // ─── Items & Totals Calculations ───
   const items = invoice.items || [];
-  const hasAnyDiscount = items.some(
-    (item) => Number(item.discountAmount || (item as any).discount || 0) > 0
+  const lineDiscountVal = items.reduce(
+    (s, it) => s + Number(it.discountAmount || (it as any).discount || 0),
+    0
   );
-
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
   const discountVal =
-    (invoice as any).discountTotal ??
-    items.reduce(
-      (s, it) => s + Number(it.discountAmount || (it as any).discount || 0),
-      0
-    );
+    (invoice as any).discountTotal ?? (lineDiscountVal + invoiceDiscount);
+  const hasAnyDiscount = lineDiscountVal > 0 || invoiceDiscount > 0;
 
   const rawSubtotalCalc = items.reduce(
     (s, it) => s + Number(it.quantity || 0) * Number(it.unitPrice || 0),
@@ -245,7 +243,7 @@ export function HasaniahFoamTemplate({
   const vatVal =
     invoice.vatAmount ??
     items.reduce((s, it) => s + Number(it.lineVat || 0), 0);
-  const totalVal = invoice.total ?? Number(taxableVal) + Number(vatVal);
+  const totalVal = invoice.total ?? Math.max(0, Number(taxableVal) + Number(vatVal) - invoiceDiscount);
 
   const firstItemVatRate = items.find(
     (it) => it.vatRate !== undefined && it.vatRate !== null

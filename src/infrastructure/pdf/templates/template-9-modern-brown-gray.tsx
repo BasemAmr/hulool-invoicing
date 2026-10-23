@@ -274,6 +274,8 @@ export function Template9ModernBrownGray({
     };
   });
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+  const totalDiscount = computedDiscount + invoiceDiscount;
   const sumTaxable = rows.reduce((a, r) => a + r.taxableSubtotal, 0);
   const taxableAmount =
     invoice.subtotal !== null && invoice.subtotal !== undefined && invoice.subtotal !== ""
@@ -288,7 +290,7 @@ export function Template9ModernBrownGray({
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
   const hasDiscounts = rows.some((r) => r.lineDiscount > 0);
@@ -299,6 +301,9 @@ export function Template9ModernBrownGray({
   let extraContentHeight = extraItemsCount * 22;
   const discountItemsCount = rows.filter((r) => r.lineDiscount > 0).length;
   extraContentHeight += discountItemsCount * 12;
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 18;
+  }
   extraContentHeight += 35; // supplier header metadata allowance
 
   if (invoice.notes) {
@@ -512,7 +517,7 @@ export function Template9ModernBrownGray({
               <Text style={styles.totalsKey}>قبل الضريبة</Text>
             </View>
             <View style={styles.totalsRow}>
-              <Text style={styles.totalsVal}>{formatExactAmount(computedDiscount)}</Text>
+              <Text style={styles.totalsVal}>{formatExactAmount(totalDiscount)}</Text>
               <Text style={styles.totalsKey}>مجموع الخصومات</Text>
             </View>
             <View style={styles.totalsRow}>
@@ -523,6 +528,13 @@ export function Template9ModernBrownGray({
               <Text style={styles.totalsVal}>{formatExactAmount(totalVat)}</Text>
               <Text style={styles.totalsKey}>الضــــــريبة (15%)</Text>
             </View>
+
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalsRow}>
+                <Text style={[styles.totalsVal, { color: "#dc2626" }]}>-{formatExactAmount(invoiceDiscount)}</Text>
+                <Text style={styles.totalsKey}>خصم الفاتورة</Text>
+              </View>
+            ) : null}
 
             {/* Accent divider line before Grand Total */}
             <View style={styles.totalDividerLine} />

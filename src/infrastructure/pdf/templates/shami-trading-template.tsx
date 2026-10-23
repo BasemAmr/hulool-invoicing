@@ -117,15 +117,25 @@ export function ShamiTradingTemplate({
     .join(" - ");
 
   const items = invoice.items || [];
-  const hasAnyDiscount = items.some((it) => Number(it.discountAmount || 0) > 0);
-  const totalDiscount = items.reduce(
+  const hasLineDiscount = items.some((it) => Number(it.discountAmount || 0) > 0);
+  const lineDiscountTotal = items.reduce(
     (acc, it) => acc + Number(it.discountAmount || 0),
     0
   );
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
+  const totalDiscount = lineDiscountTotal + invoiceDiscount;
+  const hasAnyDiscount = hasLineDiscount;
+  const subtotalNum = Number(invoice.subtotal || 0);
+  const vatAmountNum = Number(invoice.vatAmount || 0);
+  const grandTotal =
+    invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
+      ? Number(invoice.total)
+      : Math.max(0, subtotalNum + vatAmountNum - invoiceDiscount);
 
   // Single-page guarantee: dynamically calculate page height so content fits in ONE continuous page
   const baseA4Height = 842;
   let extraHeight = Math.max(0, items.length - 4) * 36;
+  if (invoiceDiscount > 0) extraHeight += 20;
   if (invoice.notes) extraHeight += 35 + invoice.notes.split("\n").length * 13;
   if (invoice.terms) extraHeight += 35 + invoice.terms.split("\n").length * 13;
   if (company.footerText) extraHeight += 30;
@@ -339,7 +349,7 @@ export function ShamiTradingTemplate({
             </View>
 
             {/* Row 2: Discount if applicable */}
-            {hasAnyDiscount || totalDiscount > 0 ? (
+            {totalDiscount > 0 ? (
               <View style={styles.totalRow}>
                 <Text style={styles.totalVal}>-{formatExactAmount(totalDiscount)} SAR</Text>
                 <Text style={styles.totalLabel}>إجمالي الخصم</Text>
@@ -352,15 +362,22 @@ export function ShamiTradingTemplate({
               <Text style={styles.totalLabel}>مجموع ضريبة القيمة المضافة</Text>
             </View>
 
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalVal}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+                <Text style={styles.totalLabel}>خصم إضافي على الفاتورة</Text>
+              </View>
+            ) : null}
+
             {/* Row 4: Total With VAT */}
             <View style={[styles.totalRow, styles.totalRowBordered]}>
-              <Text style={styles.totalValBold}>{formatExactAmount(invoice.total)} SAR</Text>
+              <Text style={styles.totalValBold}>{formatExactAmount(grandTotal)} SAR</Text>
               <Text style={styles.totalLabelBold}>الاجمالي (بما في ذلك ضريبة القيمة المضافة)</Text>
             </View>
 
             {/* Row 5: Invoice Paid */}
             <View style={styles.totalRow}>
-              <Text style={styles.totalValBold}>{formatExactAmount(invoice.total)} SAR</Text>
+              <Text style={styles.totalValBold}>{formatExactAmount(grandTotal)} SAR</Text>
               <Text style={styles.totalLabel}>الفاتورة مدفوعة</Text>
             </View>
 

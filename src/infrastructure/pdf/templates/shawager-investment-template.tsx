@@ -197,9 +197,10 @@ export function ShawagerInvestmentTemplate({
     0
   );
 
+  const lineDiscountVal = items.reduce((sum, item) => sum + Number(item.discountAmount || (item as any).discount || 0), 0);
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
   const discountVal =
-    (invoice as any).discountTotal ??
-    items.reduce((sum, item) => sum + Number(item.discountAmount || (item as any).discount || 0), 0);
+    (invoice as any).discountTotal ?? (lineDiscountVal + invoiceDiscount);
 
   const grossSubtotal =
     Number(discountVal) > 0
@@ -210,7 +211,7 @@ export function ShawagerInvestmentTemplate({
 
   const taxableVal = invoice.subtotal ?? Math.max(0, grossSubtotal - Number(discountVal));
   const vatVal = invoice.vatAmount ?? items.reduce((sum, item) => sum + Number(item.lineVat || 0), 0);
-  const totalVal = invoice.total ?? Number(taxableVal) + Number(vatVal);
+  const totalVal = invoice.total ?? Math.max(0, Number(taxableVal) + Number(vatVal) - invoiceDiscount);
 
   const tafqeetText = Number(totalVal) > 0 ? tafqeetShawager(Number(totalVal)) : "صفر ريال سعودي";
 

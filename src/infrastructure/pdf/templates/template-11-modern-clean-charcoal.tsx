@@ -270,10 +270,12 @@ export function Template11ModernCleanCharcoal({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
   const tafqeetText = tafqeet(grandTotal);
   const hasDiscounts = rows.some((r) => r.lineDiscount > 0);
@@ -290,6 +292,9 @@ export function Template11ModernCleanCharcoal({
   }
   if (invoice.terms) {
     extraContentHeight += 20 + Math.min(invoice.terms.split("\n").length, 5) * 8;
+  }
+  if (invoiceDiscount > 0) {
+    extraContentHeight += 14;
   }
 
   const dynamicHeight = Math.max(basePageHeight, basePageHeight + extraContentHeight);
@@ -509,7 +514,7 @@ export function Template11ModernCleanCharcoal({
             </View>
             <View style={styles.darkTotalRow}>
               <Text style={styles.darkTotalKey}>مجموع الخصومات</Text>
-              <Text style={styles.darkTotalVal}>{formatExactAmount(computedDiscount)}</Text>
+              <Text style={styles.darkTotalVal}>{formatExactAmount(computedDiscount + invoiceDiscount)}</Text>
             </View>
             <View style={styles.darkTotalRow}>
               <Text style={styles.darkTotalKey}>المبلغ الخاضع</Text>
@@ -519,6 +524,12 @@ export function Template11ModernCleanCharcoal({
               <Text style={styles.darkTotalKey}>الضـــــريبة (15%)</Text>
               <Text style={styles.darkTotalVal}>{formatExactAmount(totalVat)}</Text>
             </View>
+            {invoiceDiscount > 0 ? (
+              <View style={styles.darkTotalRow}>
+                <Text style={styles.darkTotalKey}>خصم إضافي على الفاتورة</Text>
+                <Text style={styles.darkTotalVal}>-{formatExactAmount(invoiceDiscount)}</Text>
+              </View>
+            ) : null}
             <View style={[styles.darkTotalRow, styles.darkGrandTotalRow]}>
               <Text style={[styles.darkTotalKey, styles.bold]}>الإجمــــالي</Text>
               <Text style={[styles.darkTotalVal, styles.bold]}>{formatExactAmount(grandTotal)}</Text>

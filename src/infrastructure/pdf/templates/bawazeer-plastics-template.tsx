@@ -192,9 +192,10 @@ export function BawazeerPlasticsTemplate({
   // ─── Line Items & Calculations ───
   const items = invoice.items || [];
   const totalQty = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const hasAnyDiscount = items.some((item) => Number(item.discountAmount || (item as any).discount || 0) > 0);
-
-  const discountVal = (invoice as any).discountTotal ?? items.reduce((s, it) => s + Number(it.discountAmount || (it as any).discount || 0), 0);
+  const lineDiscountVal = items.reduce((s, it) => s + Number(it.discountAmount || (it as any).discount || 0), 0);
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
+  const discountVal = (invoice as any).discountTotal ?? (lineDiscountVal + invoiceDiscount);
+  const hasAnyDiscount = lineDiscountVal > 0 || invoiceDiscount > 0;
   // invoice.subtotal in our domain model is already the net taxable subtotal after line item discounts.
   // The gross subtotal before discount is items.reduce(qty * unitPrice) or (invoice.subtotal + discountVal).
   const rawSubtotalCalc = items.reduce((s, it) => s + (Number(it.quantity || 0) * Number(it.unitPrice || 0)), 0);
@@ -204,7 +205,7 @@ export function BawazeerPlasticsTemplate({
 
   const taxableVal = invoice.subtotal ?? Math.max(0, grossSubtotal - Number(discountVal));
   const vatVal = invoice.vatAmount ?? items.reduce((s, it) => s + Number(it.lineVat || 0), 0);
-  const totalVal = invoice.total ?? (Number(taxableVal) + Number(vatVal));
+  const totalVal = invoice.total ?? Math.max(0, Number(taxableVal) + Number(vatVal) - invoiceDiscount);
 
   // Determine VAT rate label (default 15%)
   const firstItemVatRate = items.find((it) => it.vatRate !== undefined && it.vatRate !== null)?.vatRate;

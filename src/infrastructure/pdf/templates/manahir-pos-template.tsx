@@ -176,7 +176,8 @@ export function ManahirPosTemplate({
   const dateStr = formatDateOnly(invoice.issueDate, invoice.issuedAt);
 
   const items = invoice.items || [];
-  const hasAnyDiscount = items.some((it) => Number(it.discountAmount || 0) > 0);
+  const hasLineDiscount = items.some((it) => Number(it.discountAmount || 0) > 0);
+  const invoiceDiscount = parseFloat(String(invoice.discountAmount || 0)) || 0;
 
   // Total quantity calculation
   const totalQty = items.reduce((acc, it) => acc + parseFloat(String(it.quantity || 0)), 0);
@@ -188,26 +189,28 @@ export function ManahirPosTemplate({
     return acc + q * p;
   }, 0);
 
-  // Total discount across items
-  const totalDiscount = items.reduce((acc, it) => acc + parseFloat(String(it.discountAmount || 0)), 0);
+  // Total discount across items + invoiceDiscount
+  const lineDiscountTotal = items.reduce((acc, it) => acc + parseFloat(String(it.discountAmount || 0)), 0);
+  const totalDiscount = lineDiscountTotal + invoiceDiscount;
+  const hasAnyDiscount = totalDiscount > 0;
 
   // Taxable subtotal after discount
   const taxableSubtotal =
-    invoice.subtotal !== undefined && invoice.subtotal !== null
+    invoice.subtotal !== undefined && invoice.subtotal !== null && invoice.subtotal !== ""
       ? parseFloat(String(invoice.subtotal))
-      : Math.max(0, grossSubtotal - totalDiscount);
+      : Math.max(0, grossSubtotal - lineDiscountTotal);
 
   // VAT Amount
   const totalVat =
-    invoice.vatAmount !== undefined && invoice.vatAmount !== null
+    invoice.vatAmount !== undefined && invoice.vatAmount !== null && invoice.vatAmount !== ""
       ? parseFloat(String(invoice.vatAmount))
       : items.reduce((acc, it) => acc + parseFloat(String(it.lineVat || 0)), 0);
 
   // Grand total including VAT
   const totalIncVat =
-    invoice.total !== undefined && invoice.total !== null
+    invoice.total !== undefined && invoice.total !== null && invoice.total !== ""
       ? parseFloat(String(invoice.total))
-      : taxableSubtotal + totalVat;
+      : Math.max(0, taxableSubtotal + totalVat - invoiceDiscount);
 
   const companyAddress = [
     company.addressBuildingNumber,
@@ -292,6 +295,7 @@ export function ManahirPosTemplate({
   // Totals section (Account Summary)
   contentHeight += 110; // Header, Subtotal, Taxable, VAT, Net Total
   if (hasAnyDiscount) contentHeight += 20;
+  if (invoiceDiscount > 0) contentHeight += 20;
   contentHeight += 45; // Tafqeet box (spelled out amount)
   contentHeight += 40; // Payment box (Invoice Paid & Balance Due)
 
@@ -403,25 +407,25 @@ export function ManahirPosTemplate({
           {/* Header Row */}
           <View style={styles.tableHeaderRow}>
             {/* 1. البيان / Description (Right-most in RTL) */}
-            <View style={[styles.thCell, { width: hasAnyDiscount ? "26%" : "31%" }]}>
+            <View style={[styles.thCell, { width: hasLineDiscount ? "26%" : "31%" }]}>
               <Text style={styles.thTextAr}>بيان الصنف</Text>
               <Text style={styles.thTextEn}>Item</Text>
             </View>
 
             {/* 2. الكمية / Qty */}
-            <View style={[styles.thCell, { width: hasAnyDiscount ? "11%" : "12%" }]}>
+            <View style={[styles.thCell, { width: hasLineDiscount ? "11%" : "12%" }]}>
               <Text style={styles.thTextAr}>الكمية</Text>
               <Text style={styles.thTextEn}>Qty</Text>
             </View>
 
             {/* 3. السعر / Unit Price */}
-            <View style={[styles.thCell, { width: hasAnyDiscount ? "14%" : "17%" }]}>
+            <View style={[styles.thCell, { width: hasLineDiscount ? "14%" : "17%" }]}>
               <Text style={styles.thTextAr}>السعر</Text>
               <Text style={styles.thTextEn}>Price</Text>
             </View>
 
             {/* Optional: الخصم / Discount */}
-            {hasAnyDiscount && (
+            {hasLineDiscount && (
               <View style={[styles.thCell, { width: "13%" }]}>
                 <Text style={styles.thTextAr}>الخصم</Text>
                 <Text style={styles.thTextEn}>Disc</Text>
@@ -429,13 +433,13 @@ export function ManahirPosTemplate({
             )}
 
             {/* 4. الضريبة / VAT */}
-            <View style={[styles.thCell, { width: hasAnyDiscount ? "16%" : "18%" }]}>
+            <View style={[styles.thCell, { width: hasLineDiscount ? "16%" : "18%" }]}>
               <Text style={styles.thTextAr}>الضريبة</Text>
               <Text style={styles.thTextEn}>VAT</Text>
             </View>
 
             {/* 5. الإجمالي شامل الضريبة / Total Inc VAT */}
-            <View style={[styles.thCell, { width: hasAnyDiscount ? "20%" : "22%", borderLeftWidth: 0 }]}>
+            <View style={[styles.thCell, { width: hasLineDiscount ? "20%" : "22%", borderLeftWidth: 0 }]}>
               <Text style={styles.thTextAr}>الإجمالي</Text>
               <Text style={styles.thTextEn}>Total</Text>
             </View>
@@ -470,22 +474,22 @@ export function ManahirPosTemplate({
                 ]}
               >
                 {/* 1. Description */}
-                <View style={[styles.tdCell, { width: hasAnyDiscount ? "26%" : "31%" }]}>
+                <View style={[styles.tdCell, { width: hasLineDiscount ? "26%" : "31%" }]}>
                   <Text style={styles.tdTextRight}>{item.description}</Text>
                 </View>
 
                 {/* 2. Quantity */}
-                <View style={[styles.tdCell, { width: hasAnyDiscount ? "11%" : "12%" }]}>
+                <View style={[styles.tdCell, { width: hasLineDiscount ? "11%" : "12%" }]}>
                   <Text style={styles.tdTextCenter}>{formatExactAmount(item.quantity)}</Text>
                 </View>
 
                 {/* 3. Unit Price */}
-                <View style={[styles.tdCell, { width: hasAnyDiscount ? "14%" : "17%" }]}>
+                <View style={[styles.tdCell, { width: hasLineDiscount ? "14%" : "17%" }]}>
                   <Text style={styles.tdTextCenter}>{formatExactAmount(item.unitPrice)}</Text>
                 </View>
 
                 {/* Optional: Discount */}
-                {hasAnyDiscount && (
+                {hasLineDiscount && (
                   <View style={[styles.tdCell, { width: "13%" }]}>
                     <Text style={styles.tdTextCenter}>
                       {hasItemDiscount ? formatExactAmount(item.discountAmount) : "0"}
@@ -494,13 +498,13 @@ export function ManahirPosTemplate({
                 )}
 
                 {/* 4. VAT Amount & Rate */}
-                <View style={[styles.tdCell, { width: hasAnyDiscount ? "16%" : "18%" }]}>
+                <View style={[styles.tdCell, { width: hasLineDiscount ? "16%" : "18%" }]}>
                   <Text style={styles.tdTextCenter}>{formatExactAmount(item.lineVat ?? vat)}</Text>
                   <Text style={styles.tdSubCenter}>({vatPct}%)</Text>
                 </View>
 
                 {/* 5. Subtotal Inc VAT */}
-                <View style={[styles.tdCell, { width: hasAnyDiscount ? "20%" : "22%", borderLeftWidth: 0 }]}>
+                <View style={[styles.tdCell, { width: hasLineDiscount ? "20%" : "22%", borderLeftWidth: 0 }]}>
                   <Text style={styles.tdTextCenter}>{formatExactAmount(item.lineTotal ?? lineTotal)}</Text>
                 </View>
               </View>
@@ -530,6 +534,12 @@ export function ManahirPosTemplate({
             <Text style={styles.totalVal}>{formatExactAmount(totalVat)} SAR</Text>
             <Text style={styles.totalLbl}>ضريبة القيمة المضافة / VAT Total:</Text>
           </View>
+          {invoiceDiscount > 0 ? (
+            <View style={styles.totalLine}>
+              <Text style={styles.totalVal}>-{formatExactAmount(invoiceDiscount)} SAR</Text>
+              <Text style={styles.totalLbl}>خصم إضافي على الفاتورة / Invoice Discount:</Text>
+            </View>
+          ) : null}
           <View style={[styles.totalLine, styles.netTotalLine]}>
             <Text style={[styles.totalVal, styles.boldText, styles.netTotalVal]}>
               {formatExactAmount(totalIncVat)} SAR

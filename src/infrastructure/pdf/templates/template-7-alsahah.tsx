@@ -251,7 +251,7 @@ export function Template7Alsahah({
   // Totals calculations
   const calculatedGrossSubtotal = processedRows.reduce((sum, r) => sum + r.grossTotal, 0);
   const calculatedLineDiscounts = processedRows.reduce((sum, r) => sum + r.rawDiscount, 0);
-  const invoiceDiscount = toNumber(invAny.discountTotal ?? 0);
+  const invoiceDiscount = toNumber(invoice.discountAmount ?? invAny.discountTotal ?? 0);
   const totalDiscounts = calculatedLineDiscounts + invoiceDiscount;
   const calculatedTaxable = processedRows.reduce((sum, r) => sum + r.taxableSubtotal, 0);
   const calculatedVat = processedRows.reduce((sum, r) => sum + r.vatAmount, 0);
@@ -260,7 +260,7 @@ export function Template7Alsahah({
   const grossSubtotal = toNumber(invoice.subtotal) || calculatedGrossSubtotal;
   const taxableAmount = toNumber(invAny.taxableAmount) || Math.max(0, grossSubtotal - totalDiscounts);
   const vatTotal = toNumber(invAny.vatTotal ?? invoice.vatAmount) || calculatedVat;
-  const grandTotal = toNumber(invAny.grandTotal ?? invoice.total) || calculatedGrandTotal;
+  const grandTotal = toNumber(invAny.grandTotal ?? invoice.total) || Math.max(0, calculatedGrandTotal - invoiceDiscount);
   const tafqeetText = tafqeet(grandTotal);
 
   // ─── Single-Page Dynamic Height Guarantee ───
@@ -274,6 +274,7 @@ export function Template7Alsahah({
   if (invoiceTerms)
     extraContentHeight += 24 + Math.min(invoiceTerms.split("\n").length, 4) * 10;
   if (company.footerText) extraContentHeight += 18;
+  if (invoiceDiscount > 0) extraContentHeight += 18;
 
   const dynamicHeight = Math.max(basePageHeight, basePageHeight + extraContentHeight);
   const dynamicPageSize = [basePageWidth, dynamicHeight] as [number, number];
@@ -601,6 +602,12 @@ export function Template7Alsahah({
               <Text style={styles.totalVal}>{formatExactAmount(vatTotal)}</Text>
               <Text style={styles.totalLbl}>ضريبة القيمة المضافة 15%</Text>
             </View>
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalVal, { color: "#dc2626" }]}>-{formatExactAmount(invoiceDiscount)}</Text>
+                <Text style={styles.totalLbl}>خصم الفاتورة</Text>
+              </View>
+            ) : null}
             <View style={[styles.totalRow, styles.grandTotalRow]}>
               <Text style={styles.grandTotalVal}>{formatExactAmount(grandTotal)}</Text>
               <Text style={styles.grandTotalLbl}>المجموع الكلي شامل الضريبة</Text>

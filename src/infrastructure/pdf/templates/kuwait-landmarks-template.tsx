@@ -286,11 +286,18 @@ export function KuwaitLandmarksTemplate({
 
   // Items processing
   const items = invoice?.items || [];
-  const discountTotal = items.reduce(
+  const lineDiscountTotal = items.reduce(
     (acc, it) => acc + Number(it.discountAmount || 0),
     0
   );
+  const invoiceDiscount = Number(invoice?.discountAmount || 0);
+  const discountTotal = lineDiscountTotal + invoiceDiscount;
   const subtotalNum = Number(invoice?.subtotal || 0);
+  const vatAmountNum = Number(invoice?.vatAmount || 0);
+  const grandTotal =
+    invoice?.total !== null && invoice?.total !== undefined && invoice?.total !== ""
+      ? Number(invoice.total)
+      : Math.max(0, subtotalNum + vatAmountNum - invoiceDiscount);
   const hasDiscount = discountTotal > 0;
   const afterDiscount = hasDiscount ? Math.max(0, subtotalNum - discountTotal) : subtotalNum;
 
@@ -306,6 +313,7 @@ export function KuwaitLandmarksTemplate({
 
   // Dynamic single-page height calculation so the invoice NEVER spills onto a 2nd page
   let extraHeight = Math.max(0, items.length - 4) * 26;
+  if (invoiceDiscount > 0) extraHeight += 25;
   if (invoice?.notes) extraHeight += 25 + invoice.notes.split("\n").length * 10;
   if (invoice?.terms) extraHeight += 25 + invoice.terms.split("\n").length * 10;
   if (footerText) extraHeight += 25;
@@ -616,10 +624,23 @@ export function KuwaitLandmarksTemplate({
               </View>
             </View>
 
+            {/* Row: Invoice Discount (Conditional if invoiceDiscount > 0) */}
+            {invoiceDiscount > 0 ? (
+              <View style={styles.totalBoxRow}>
+                <View style={styles.numberBox}>
+                  <Text style={styles.numberBoxText}>-{formatExactAmount(invoiceDiscount)}</Text>
+                </View>
+                <View style={styles.labelGroup}>
+                  <Text style={styles.labelAr}>خصم إضافي على الفاتورة</Text>
+                  <Text style={styles.labelEn}>Invoice Discount</Text>
+                </View>
+              </View>
+            ) : null}
+
             {/* Row 5: Total Amount Due (Including VAT) */}
             <View style={styles.totalBoxRow}>
               <View style={styles.numberBox}>
-                <Text style={styles.numberBoxText}>{formatExactAmount(invoice?.total)}</Text>
+                <Text style={styles.numberBoxText}>{formatExactAmount(grandTotal)}</Text>
               </View>
               <View style={styles.labelGroup}>
                 <Text style={styles.labelAr}>إجمالي المبلغ المستحق شامل ضريبة القيمة المضافة</Text>
@@ -630,7 +651,7 @@ export function KuwaitLandmarksTemplate({
             {/* Row 6: Invoice Paid */}
             <View style={styles.totalBoxRow}>
               <View style={styles.numberBox}>
-                <Text style={styles.numberBoxText}>{formatExactAmount(invoice?.total)}</Text>
+                <Text style={styles.numberBoxText}>{formatExactAmount(grandTotal)}</Text>
               </View>
               <View style={styles.labelGroup}>
                 <Text style={styles.labelAr}>المبلغ المدفوع</Text>
@@ -654,7 +675,7 @@ export function KuwaitLandmarksTemplate({
           <View style={styles.tafqeetColumn}>
             {/* Tafqeet (Final Net) */}
             <View style={{ marginBottom: 8 }}>
-              <Text style={styles.tafqeetText}>{tafqeet(invoice?.total || 0)}</Text>
+              <Text style={styles.tafqeetText}>{tafqeet(grandTotal)}</Text>
             </View>
 
             {/* Notes Section (NO trailing colon) */}

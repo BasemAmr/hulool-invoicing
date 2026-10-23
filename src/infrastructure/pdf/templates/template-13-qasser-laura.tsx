@@ -162,12 +162,14 @@ export function Template13QasserLaura({
       ? toNumber(invoice.vatAmount)
       : computedVat;
 
+  const invoiceDiscount = toNumber(invoice.discountAmount);
+
   const grandTotal =
     invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
       ? toNumber(invoice.total)
-      : taxableAmount + totalVat;
+      : Math.max(0, taxableAmount + totalVat - invoiceDiscount);
 
-  const totalDiscount = computedDiscount;
+  const totalDiscount = computedDiscount + invoiceDiscount;
 
   // Single-page height dynamic calculation
   const itemsCount = rows.length;

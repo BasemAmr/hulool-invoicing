@@ -153,17 +153,32 @@ export function StructuredBilingualTemplate({
   const buyerEmail = customer.email || "";
 
   const items = invoice.items || [];
-  const hasAnyDiscount = items.some(
+  const hasLineDiscount = items.some(
     (it) => Number(it.discountAmount || 0) > 0
   );
+  const invoiceDiscount = Number(invoice.discountAmount || 0);
+  const lineDiscountTotal = items.reduce(
+    (acc, it) => acc + Number(it.discountAmount || 0),
+    0
+  );
+  const totalDiscount = lineDiscountTotal + invoiceDiscount;
+  const hasAnyDiscount = hasLineDiscount;
 
   const hasOptionalPhone = Boolean(sellerPhone || buyerPhone);
   const hasOptionalEmail = Boolean(sellerEmail || buyerEmail);
   const hasOptionalWebsite = Boolean(sellerWebsite);
 
+  const subtotalNum = Number(invoice.subtotal || 0);
+  const vatAmountNum = Number(invoice.vatAmount || 0);
+  const grandTotal =
+    invoice.total !== null && invoice.total !== undefined && invoice.total !== ""
+      ? Number(invoice.total)
+      : Math.max(0, subtotalNum + vatAmountNum - invoiceDiscount);
+
   // Dynamic single-page height calculation so the invoice NEVER spills onto a second page
   const baseA4Height = 842;
   let extraHeight = Math.max(0, items.length - 4) * 32;
+  if (invoiceDiscount > 0) extraHeight += 20;
   if (hasAnyDiscount) extraHeight += items.length * 10;
   if (hasOptionalPhone) extraHeight += 14;
   if (hasOptionalEmail) extraHeight += 14;
@@ -754,6 +769,28 @@ export function StructuredBilingualTemplate({
               </Text>
             </View>
 
+            {/* Row: Invoice Discount */}
+            {invoiceDiscount > 0 ? (
+              <View
+                style={[
+                  styles.totalRow,
+                  {
+                    borderBottomWidth: 1,
+                    borderBottomColor: "#000000",
+                    paddingBottom: 4,
+                  },
+                ]}
+              >
+                <View style={styles.totalLabelGroup}>
+                  <Text style={styles.totalLabelEn}>Invoice Discount</Text>
+                  <Text style={styles.totalLabelAr}>خصم إضافي على الفاتورة</Text>
+                </View>
+                <Text style={styles.totalVal}>
+                  -{formatExactAmount(invoiceDiscount)} SAR
+                </Text>
+              </View>
+            ) : null}
+
             {/* Row 3: Total (Including VAT) */}
             <View
               style={[
@@ -774,7 +811,7 @@ export function StructuredBilingualTemplate({
                 </Text>
               </View>
               <Text style={styles.totalValBold}>
-                {formatExactAmount(invoice.total)} SAR
+                {formatExactAmount(grandTotal)} SAR
               </Text>
             </View>
 
@@ -794,7 +831,7 @@ export function StructuredBilingualTemplate({
                 <Text style={styles.totalLabelAr}>الفاتورة مدفوعة</Text>
               </View>
               <Text style={styles.totalVal}>
-                {formatExactAmount(invoice.total)} SAR
+                {formatExactAmount(grandTotal)} SAR
               </Text>
             </View>
 
