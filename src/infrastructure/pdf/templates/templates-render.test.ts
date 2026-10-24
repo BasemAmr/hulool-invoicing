@@ -132,6 +132,7 @@ describe("Templates PDF Rendering", () => {
     "template_11_modern_clean_charcoal",
     "template_14_reda_trading",
     "al_qahwa_al_barriah",
+    "alam_al_wissam",
   ];
 
   for (const templateId of templateIds) {

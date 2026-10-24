@@ -714,6 +714,17 @@ generic_delivery_21: {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة مبيعات معتمد لشركة القهوة البرية بترويسة دائرية مزدوجة ومربع بيانات العميل وكود QR وجدول تفصيلي وتواقيع سداسية",
   },
+  alam_al_wissam: {
+    id: "alam_al_wissam",
+    nameAr: "شركة عالم الوسام",
+    nameEn: "Alam Al-Wissam Template",
+    parentCategory: "standard",
+    category: "classic",
+    primaryColor: "#1D4ED8",
+    accentColor: "#B91C1C",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة ضريبية مبسطة ثنائية الصفحات ببطاقتي المورد والعميل وجدول تفصيلي وتلخيص الإجماليات والكميات",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);
