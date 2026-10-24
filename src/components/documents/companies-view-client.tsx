@@ -68,6 +68,16 @@ export function CompaniesViewClient({
     }
   }, []);
 
+  // Listen for open-company-drawer custom event
+  useEffect(() => {
+    const handleOpenDrawer = () => {
+      setEditingCompany(null);
+      setDrawerOpen(true);
+    };
+    window.addEventListener("open-company-drawer", handleOpenDrawer);
+    return () => window.removeEventListener("open-company-drawer", handleOpenDrawer);
+  }, []);
+
   // Keyboard shortcut: Press '/' to focus search, 'Esc' to clear
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -294,7 +304,6 @@ export function CompaniesViewClient({
                 <th className="p-2 text-start min-w-[120px]">نوع المنشأة</th>
                 <th className="p-2 text-start min-w-[130px]">تابع للعميل</th>
                 <th className="p-2 text-start w-20">البادئة</th>
-                <th className="p-2 text-center w-36">عدد الفواتير / السندات</th>
                 <th className="p-2 text-start w-28">السجل التجاري</th>
                 <th className="p-2 text-start w-24">المدينة</th>
                 <th className="p-2 text-start w-48">الإجراءات السريعة</th>
@@ -363,19 +372,6 @@ export function CompaniesViewClient({
                       <span className="px-1.5 py-0.5 bg-muted border border-border">
                         {company.prefix}
                       </span>
-                    </td>
-
-                    {/* عدد الفواتير / السندات */}
-                    <td className="p-2 text-center">
-                      <div
-                        className="inline-flex items-center justify-center gap-1 font-mono font-semibold text-foreground text-xs tabular-nums"
-                        dir="ltr"
-                        title={`الفواتير: ${statsMap[company.id]?.invoicesCount ?? 0} | السندات: ${statsMap[company.id]?.receiptsCount ?? 0}`}
-                      >
-                        <span>{statsMap[company.id]?.receiptsCount ?? 0}</span>
-                        <span className="text-muted-foreground font-normal">/</span>
-                        <span>{statsMap[company.id]?.invoicesCount ?? 0}</span>
-                      </div>
                     </td>
 
                     {/* 5. CR Number */}

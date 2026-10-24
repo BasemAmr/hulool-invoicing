@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { eq, sql } from "drizzle-orm";
 import {
   FileText,
   ArrowUpRight,
+  FileCheck2,
+  MapPin,
+  Building,
 } from "lucide-react";
 
 import { createContainer } from "@/application/container";
 import { db } from "@/infrastructure/database";
+import { invoices as invoicesTable, receiptVouchers } from "@/infrastructure/database/schema";
 import { DEFAULT_PAGE_SIZE } from "@/domain/constants";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/documents/status-badge";
@@ -36,7 +41,7 @@ export default async function CompanyDashboardPage({
   const company = await container.companyRepository.findById(companyId as CompanyId);
   if (!company) notFound();
 
-  const [invoices, customers] = await Promise.all([
+  const [invoices, customers, [invoicesCount, receiptsCount]] = await Promise.all([
     container.invoiceRepository.listByCompany(
       companyId as CompanyId,
       { status: null },
@@ -44,6 +49,18 @@ export default async function CompanyDashboardPage({
       0
     ),
     container.customerRepository.list(null, DEFAULT_PAGE_SIZE, 0),
+    Promise.all([
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(invoicesTable)
+        .where(eq(invoicesTable.companyId, companyId as CompanyId))
+        .then((res) => res[0]?.count ?? 0),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(receiptVouchers)
+        .where(eq(receiptVouchers.companyId, companyId as CompanyId))
+        .then((res) => res[0]?.count ?? 0),
+    ]),
   ]);
 
   const customerNameById = new Map(
@@ -53,16 +70,65 @@ export default async function CompanyDashboardPage({
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+      {/* Header — Single compact horizontal row */}
+      <div className="flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap bg-card border border-border px-4 py-3 shadow-2xs text-xs overflow-x-auto whitespace-nowrap">
+        {/* Company Title */}
+        <div className="flex items-center gap-2 shrink-0">
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
             لوحة تحكم {company.nameAr}
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            الرقم الضريبي: {company.vatNumber} • بادئة الترقيم: {company.prefix}
-          </p>
+          {company.nameEn && (
+            <span className="text-xs font-mono text-muted-foreground" dir="ltr">
+              ({company.nameEn})
+            </span>
+          )}
         </div>
+
+        {/* Badge for Prefix */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-muted border border-border text-foreground">
+            بادئة الترقيم: {company.prefix}
+          </span>
+        </div>
+
+        <div className="h-4 w-px bg-border shrink-0 hidden sm:block" />
+
+        {/* Invoices / Receipts Count */}
+        <div className="flex items-center gap-1.5 bg-muted/50 border border-border px-2.5 py-1 shrink-0">
+          <span className="text-[11px] font-semibold text-foreground">عدد الفواتير / السندات:</span>
+          <div className="flex items-center justify-center gap-1 font-mono font-bold text-foreground text-xs" dir="ltr">
+            <span>{receiptsCount}</span>
+            <span className="text-foreground font-normal">/</span>
+            <span>{invoicesCount}</span>
+          </div>
+        </div>
+
+        {/* Tax Number */}
+        {company.vatNumber && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <FileCheck2 className="size-3.5 text-primary shrink-0" />
+            <span className="text-muted-foreground font-medium">الرقم الضريبي:</span>
+            <span className="font-mono font-semibold text-foreground">{company.vatNumber}</span>
+          </div>
+        )}
+
+        {/* Organization Type */}
+        {company.organizationType && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Building className="size-3.5 text-primary shrink-0" />
+            <span className="text-muted-foreground font-medium">نوع المنشأة:</span>
+            <span className="font-medium text-foreground">{company.organizationType}</span>
+          </div>
+        )}
+
+        {/* City */}
+        {company.addressCity && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <MapPin className="size-3.5 text-primary shrink-0" />
+            <span className="text-muted-foreground font-medium">المدينة:</span>
+            <span className="text-foreground">{company.addressCity}</span>
+          </div>
+        )}
       </div>
 
       {/* Quick Action Cards Grid */}

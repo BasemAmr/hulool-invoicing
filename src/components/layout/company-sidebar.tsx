@@ -23,9 +23,41 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { logoutAction } from "@/app/actions/auth";
 import type { CompanyRecord } from "@/application/ports/company-repository";
 
+function getCompanyQuickAction(cPath: string, pathname: string) {
+  if (pathname.startsWith(`${cPath}/receipts`)) {
+    return {
+      href: `${cPath}/receipts/new`,
+      label: "إنشاء سند قبض جديد",
+      shortLabel: "سند قبض",
+      eventName: null,
+    };
+  }
+  if (pathname.startsWith(`${cPath}/customers`)) {
+    return {
+      href: `${cPath}/customers?action=new`,
+      label: "إضافة عميل جديد",
+      shortLabel: "عميل",
+      eventName: "open-customer-drawer",
+    };
+  }
+  return {
+    href: `${cPath}/invoices/new`,
+    label: "إنشاء فاتورة جديدة",
+    shortLabel: "فاتورة",
+    eventName: null,
+  };
+}
+
 export function CompanySidebar({ company }: { company: CompanyRecord }) {
   const pathname = usePathname();
   const cPath = `/c/${company.id}`;
+  const quickAction = getCompanyQuickAction(cPath, pathname);
+
+  const handleQuickAction = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (quickAction.eventName) {
+      window.dispatchEvent(new CustomEvent(quickAction.eventName));
+    }
+  };
 
   const navItems = [
     { href: cPath, labelAr: "لوحة التحكم", icon: LayoutDashboard, exact: true },
@@ -75,11 +107,12 @@ export function CompanySidebar({ company }: { company: CompanyRecord }) {
       {/* Quick Action Button */}
       <div className="p-3 border-b border-border bg-muted/10">
         <Link
-          href={`${cPath}/invoices/new`}
+          href={quickAction.href}
+          onClick={handleQuickAction}
           className="flex items-center justify-center gap-2 w-full py-2 px-3 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
         >
           <PlusCircle className="size-3.5" />
-          إنشاء فاتورة جديدة
+          {quickAction.label}
         </Link>
       </div>
 
@@ -142,6 +175,13 @@ export function CompanyMobileNav({ company }: { company: CompanyRecord }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const cPath = `/c/${company.id}`;
+  const quickAction = getCompanyQuickAction(cPath, pathname);
+
+  const handleQuickAction = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (quickAction.eventName) {
+      window.dispatchEvent(new CustomEvent(quickAction.eventName));
+    }
+  };
 
   const navItems = [
     { href: cPath, labelAr: "لوحة التحكم", icon: LayoutDashboard, exact: true },
@@ -169,11 +209,12 @@ export function CompanyMobileNav({ company }: { company: CompanyRecord }) {
 
       <div className="flex items-center gap-2">
         <Link
-          href={`${cPath}/invoices/new`}
+          href={quickAction.href}
+          onClick={handleQuickAction}
           className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-primary text-primary-foreground font-medium"
         >
           <PlusCircle className="size-3.5" />
-          <span>فاتورة</span>
+          <span>{quickAction.shortLabel}</span>
         </Link>
         <ThemeToggle />
       </div>

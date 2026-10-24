@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Package, Search, Edit2, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,25 @@ export function ProductsTableClient({
 
   // Delete state
   const [deletingProduct, setDeletingProduct] = useState<SavedProductRecord | null>(null);
+
+  const searchParams = useSearchParams();
+
+  // Handle open drawer via action=new query param or custom event
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setEditingProduct(null);
+      setDrawerOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const handleOpenEvent = () => {
+      setEditingProduct(null);
+      setDrawerOpen(true);
+    };
+    window.addEventListener("open-product-drawer", handleOpenEvent);
+    return () => window.removeEventListener("open-product-drawer", handleOpenEvent);
+  }, []);
 
   // Sentinel ref for infinite scroll
   const sentinelRef = useRef<HTMLDivElement | null>(null);

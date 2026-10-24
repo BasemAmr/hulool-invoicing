@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Plus, Users, Search, Edit2, Trash2, X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,25 @@ export function CustomersTableClient({
 
   // Delete state
   const [deletingCustomer, setDeletingCustomer] = useState<CustomerRecord | null>(null);
+
+  const searchParams = useSearchParams();
+
+  // Handle open drawer via action=new query param or custom event
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setEditingCustomer(null);
+      setDrawerOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const handleOpenEvent = () => {
+      setEditingCustomer(null);
+      setDrawerOpen(true);
+    };
+    window.addEventListener("open-customer-drawer", handleOpenEvent);
+    return () => window.removeEventListener("open-customer-drawer", handleOpenEvent);
+  }, []);
 
   const filteredCustomers = useMemo(() => {
     if (!searchTerm.trim()) return customers;
@@ -135,7 +155,6 @@ export function CustomersTableClient({
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead className="text-start">اسم العميل</TableHead>
-                <TableHead className="w-36 text-center">عدد الفواتير / السندات</TableHead>
                 <TableHead className="w-32 text-start">الرقم الضريبي</TableHead>
                 <TableHead className="w-28 text-start">الرقم الموحد</TableHead>
                 <TableHead className="w-28 text-start">المدينة</TableHead>
@@ -160,17 +179,6 @@ export function CustomersTableClient({
                         {customer.nameEn}
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-center py-2.5">
-                    <div
-                      className="inline-flex items-center justify-center gap-1 font-mono font-semibold tabular-nums text-foreground text-xs"
-                      dir="ltr"
-                      title={`الفواتير: ${statsMap[customer.id]?.invoicesCount ?? 0} | السندات: ${statsMap[customer.id]?.receiptsCount ?? 0}`}
-                    >
-                      <span>{statsMap[customer.id]?.receiptsCount ?? 0}</span>
-                      <span className="text-muted-foreground font-normal">/</span>
-                      <span>{statsMap[customer.id]?.invoicesCount ?? 0}</span>
-                    </div>
                   </TableCell>
                   <TableCell className="font-mono text-muted-foreground py-2.5">
                     {customer.vatNumber ?? "—"}

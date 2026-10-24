@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -23,8 +23,41 @@ export const NAV_ITEMS = [
   { href: "/products", labelAr: "المنتجات والخدمات", icon: Package },
 ] as const;
 
+function getQuickAction(pathname: string) {
+  if (pathname.startsWith("/customers")) {
+    return {
+      href: "/customers?action=new",
+      label: "إضافة عميل جديد",
+      shortLabel: "عميل",
+      eventName: "open-customer-drawer",
+    };
+  }
+  if (pathname.startsWith("/products")) {
+    return {
+      href: "/products?action=new",
+      label: "إضافة منتج جديد",
+      shortLabel: "منتج",
+      eventName: "open-product-drawer",
+    };
+  }
+  return {
+    href: "/companies?action=new",
+    label: "إضافة منشأة جديدة",
+    shortLabel: "منشأة",
+    eventName: "open-company-drawer",
+  };
+}
+
 export function Sidebar() {
   const pathname = usePathname();
+  const quickAction = getQuickAction(pathname);
+
+  const handleQuickAction = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // If already on the corresponding page, trigger event to open drawer directly
+    if (quickAction.eventName) {
+      window.dispatchEvent(new CustomEvent(quickAction.eventName));
+    }
+  };
 
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col border-l border-border bg-card">
@@ -42,11 +75,12 @@ export function Sidebar() {
       {/* Quick Action Button */}
       <div className="p-3 border-b border-border bg-muted/20">
         <Link
-          href="/companies/new"
+          href={quickAction.href}
+          onClick={handleQuickAction}
           className="flex items-center justify-center gap-2 w-full py-2 px-3 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
         >
           <PlusCircle className="size-3.5" />
-          إضافة منشأة جديدة
+          {quickAction.label}
         </Link>
       </div>
 
@@ -109,6 +143,13 @@ export function Sidebar() {
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const quickAction = getQuickAction(pathname);
+
+  const handleQuickAction = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (quickAction.eventName) {
+      window.dispatchEvent(new CustomEvent(quickAction.eventName));
+    }
+  };
 
   return (
     <div className="md:hidden border-b border-border bg-card flex items-center justify-between px-4 py-3 sticky top-0 z-40">
@@ -127,11 +168,12 @@ export function MobileNav() {
 
       <div className="flex items-center gap-2">
         <Link
-          href="/companies/new"
+          href={quickAction.href}
+          onClick={handleQuickAction}
           className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-primary text-primary-foreground font-medium"
         >
           <PlusCircle className="size-3.5" />
-          <span>منشأة</span>
+          <span>{quickAction.shortLabel}</span>
         </Link>
         <ThemeToggle />
       </div>
