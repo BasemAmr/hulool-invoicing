@@ -131,6 +131,7 @@ describe("Templates PDF Rendering", () => {
     "template_10_dark_header_brown",
     "template_11_modern_clean_charcoal",
     "template_14_reda_trading",
+    "al_qahwa_al_barriah",
   ];
 
   for (const templateId of templateIds) {

@@ -703,6 +703,17 @@ generic_delivery_21: {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة ضريبية معتمد لشركة كنان بترويسة كبسولية ثنائية وشريط مبيعات كحلي داكن وجدول أصناف تفصيلي",
   },
+  al_qahwa_al_barriah: {
+    id: "al_qahwa_al_barriah",
+    nameAr: "شركة القهوه البريه",
+    nameEn: "Al-Qahwa Al-Barriah Template",
+    parentCategory: "standard",
+    category: "classic",
+    primaryColor: "#000000",
+    accentColor: "#800000",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة مبيعات معتمد لشركة القهوة البرية بترويسة دائرية مزدوجة ومربع بيانات العميل وكود QR وجدول تفصيلي وتواقيع سداسية",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);
