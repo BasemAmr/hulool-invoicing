@@ -135,121 +135,122 @@ export function ReceiptVoucherDocument({
         orientation={paperOrientation as any}
         style={styles.page}
       >
-        <View style={styles.outerFrame}>
-          {/* Background Watermark Image if present */}
-          {backgroundDataUrl ? (
-            <Image
-              src={backgroundDataUrl}
-              style={{
-                position: "absolute",
-                top: "22%",
-                left: "15%",
-                width: "70%",
-                height: "55%",
-                opacity: 0.05,
-                objectFit: "contain",
-              }}
-            />
-          ) : null}
+        {/* Background Watermark Image if present */}
+        {backgroundDataUrl ? (
+          <Image
+            src={backgroundDataUrl}
+            style={{
+              position: "absolute",
+              top: "22%",
+              left: "15%",
+              width: "70%",
+              height: "55%",
+              opacity: 0.05,
+              objectFit: "contain",
+            }}
+          />
+        ) : null}
 
-          {/* Top Colored Accent Bar */}
-          <View style={styles.topBar} />
-
-          {/* 1. Header Box: 3-Column Layout (Company Info Right/Start, Title Center, Voucher Meta Left/End) */}
-          <View style={styles.headerBox}>
-            {/* Header Start (Right in RTL): Company Logo & Details */}
-            <View style={styles.headerCompanyCol}>
-              <View style={styles.companyTop}>
-                {logoDataUrl ? (
-                  <Image src={logoDataUrl} style={styles.logo} />
-                ) : null}
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.companyNameAr}>{company.nameAr}</Text>
-                  {company.nameEn ? (
-                    <Text style={styles.companyNameEn}>{company.nameEn}</Text>
-                  ) : null}
-                </View>
-              </View>
-
-              <View style={styles.companyMeta}>
-                {company.vatNumber ? (
-                  <View style={styles.companyInfoRow}>
-                    <Text style={styles.companyMetaKey}>الرقم الضريبي</Text>
-                    <Text style={styles.colon}>:</Text>
-                    <Text style={styles.companyMetaVal}>{company.vatNumber}</Text>
-                  </View>
-                ) : null}
-
-                {company.crNumber ? (
-                  <View style={styles.companyInfoRow}>
-                    <Text style={styles.companyMetaKey}>السجل التجاري</Text>
-                    <Text style={styles.colon}>:</Text>
-                    <Text style={styles.companyMetaVal}>{company.crNumber}</Text>
-                  </View>
-                ) : null}
-
-                {company.addressCity ? (
-                  <View style={styles.companyInfoRow}>
-                    <Text style={styles.companyMetaKey}>المدينة</Text>
-                    <Text style={styles.colon}>:</Text>
-                    <Text style={styles.companyMetaVal}>{company.addressCity}</Text>
-                  </View>
-                ) : null}
-
-                {company.phone ? (
-                  <View style={styles.companyInfoRow}>
-                    <Text style={styles.companyMetaKey}>الهاتف</Text>
-                    <Text style={styles.colon}>:</Text>
-                    <Text style={styles.companyMetaVal}>{company.phone}</Text>
-                  </View>
-                ) : null}
-
-                {company.email ? (
-                  <View style={styles.companyInfoRow}>
-                    <Text style={styles.companyMetaKey}>البريد</Text>
-                    <Text style={styles.colon}>:</Text>
-                    <Text style={styles.companyMetaVal}>{company.email}</Text>
-                  </View>
+        {/* 1. Header Box: 3-Column Layout (Company Info Right/Start, Title Center, Voucher Meta Left/End) */}
+        <View style={styles.headerBox}>
+          {/* Header Start (Right in RTL): Company Logo & Details */}
+          <View style={styles.headerCompanyCol}>
+            <View style={styles.companyTop}>
+              {logoDataUrl ? (
+                <Image src={logoDataUrl} style={styles.logo} />
+              ) : null}
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={styles.companyNameAr}>{company.nameAr}</Text>
+                {company.nameEn ? (
+                  <Text style={styles.companyNameEn}>{company.nameEn}</Text>
                 ) : null}
               </View>
             </View>
 
-            {/* Header Center: Title */}
-            <View style={styles.headerCenterCol}>
-              <Text style={styles.titleAr}>سند قبض</Text>
-              <Text style={styles.titleEn}>RECEIPT VOUCHER</Text>
-            </View>
-
-            {/* Header End (Left in RTL): Voucher Number Badge & Metadata */}
-            <View style={styles.headerMetaCol}>
-              <View style={styles.voucherBadge}>
-                <Text style={styles.voucherBadgeText}>{voucher.voucherNumber}</Text>
-              </View>
-
-              {/* Date Row */}
-              <View style={styles.metaRow}>
-                <View style={styles.metaLabelGroup}>
-                  <Text style={styles.metaLabel}>التاريخ</Text>
-                  <Text style={styles.metaLabelEn}>(Date)</Text>
+            <View style={styles.companyMeta}>
+              {company.vatNumber ? (
+                <View style={styles.companyInfoRow}>
+                  <Text style={styles.companyMetaKey}>الرقم الضريبي</Text>
                   <Text style={styles.colon}>:</Text>
+                  <Text style={styles.companyMetaVal}>{company.vatNumber}</Text>
                 </View>
-                <Text style={styles.metaValue}>{voucher.voucherDate}</Text>
-              </View>
+              ) : null}
 
-              {/* Linked Invoice if present */}
-              {invoice?.invoiceNumber ? (
-                <View style={styles.metaRow}>
-                  <View style={styles.metaLabelGroup}>
-                    <Text style={styles.metaLabel}>الفاتورة</Text>
-                    <Text style={styles.metaLabelEn}>(Invoice)</Text>
-                    <Text style={styles.colon}>:</Text>
-                  </View>
-                  <Text style={styles.metaValue}>{invoice.invoiceNumber}</Text>
+              {company.crNumber ? (
+                <View style={styles.companyInfoRow}>
+                  <Text style={styles.companyMetaKey}>السجل التجاري</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.companyMetaVal}>{company.crNumber}</Text>
+                </View>
+              ) : null}
+
+              {company.addressCity ? (
+                <View style={styles.companyInfoRow}>
+                  <Text style={styles.companyMetaKey}>المدينة</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.companyMetaVal}>{company.addressCity}</Text>
+                </View>
+              ) : null}
+
+              {company.phone ? (
+                <View style={styles.companyInfoRow}>
+                  <Text style={styles.companyMetaKey}>الهاتف</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.companyMetaVal}>{company.phone}</Text>
+                </View>
+              ) : null}
+
+              {company.email ? (
+                <View style={styles.companyInfoRow}>
+                  <Text style={styles.companyMetaKey}>البريد</Text>
+                  <Text style={styles.colon}>:</Text>
+                  <Text style={styles.companyMetaVal}>{company.email}</Text>
                 </View>
               ) : null}
             </View>
           </View>
 
+          {/* Header Center: Title */}
+          <View style={styles.headerCenterCol}>
+            <Text style={styles.titleAr}>سند قبض</Text>
+            <Text style={styles.titleEn}>RECEIPT VOUCHER</Text>
+          </View>
+
+          {/* Header End (Left in RTL): Voucher Number Badge & Metadata */}
+          <View style={styles.headerMetaCol}>
+            <View style={styles.voucherBadge}>
+              <Text style={styles.voucherBadgeText}>{voucher.voucherNumber}</Text>
+            </View>
+
+            {/* Date Row */}
+            <View style={styles.metaRow}>
+              <View style={styles.metaLabelGroup}>
+                <Text style={styles.metaLabel}>التاريخ</Text>
+                <Text style={styles.metaLabelEn}>(Date)</Text>
+                <Text style={styles.colon}>:</Text>
+              </View>
+              <Text style={styles.metaValue}>{voucher.voucherDate}</Text>
+            </View>
+
+            {/* Linked Invoice if present */}
+            {invoice?.invoiceNumber ? (
+              <View style={styles.metaRow}>
+                <View style={styles.metaLabelGroup}>
+                  <Text style={styles.metaLabel}>الفاتورة</Text>
+                  <Text style={styles.metaLabelEn}>(Invoice)</Text>
+                  <Text style={styles.colon}>:</Text>
+                </View>
+                <Text style={styles.metaValue}>{invoice.invoiceNumber}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Thin primary accent bar below header row, directly above the content frame */}
+        <View style={styles.topBar} />
+
+        {/* Content Box with outer frame border enclosing Amount, Details, Signatures, and Footer */}
+        <View style={styles.outerFrame}>
           {/* 2. Amount Box */}
           <View style={styles.amountBox}>
             <Text style={styles.amountLabel}>المبلغ المستلم / Received Amount</Text>
@@ -379,18 +380,16 @@ function buildStyles(primaryColor: string, accentColor: string) {
       padding: 18,
     },
     topBar: {
-      height: 4,
+      height: 1.5,
       backgroundColor: primaryColor,
-      marginBottom: 16,
+      marginBottom: 8,
     },
     headerBox: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      paddingBottom: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: "#E2E8F0",
-      marginBottom: 16,
+      paddingBottom: 10,
+      marginBottom: 0,
     },
     headerCompanyCol: {
       width: "36%",
