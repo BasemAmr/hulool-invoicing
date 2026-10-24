@@ -352,11 +352,11 @@ export function ReceiptVoucherDocument({
               </View>
             </View>
           </View>
+        </View>
 
-          {/* 5. Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>{footerText}</Text>
-          </View>
+        {/* 5. Footer (outside outerFrame at bottom of page) */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>{footerText}</Text>
         </View>
       </Page>
     </Document>
@@ -373,11 +373,11 @@ function buildStyles(primaryColor: string, accentColor: string) {
       color: "#1E293B",
     },
     outerFrame: {
-      flex: 1,
       borderWidth: 1,
       borderColor: "#000000",
       borderRadius: 4,
       padding: 18,
+      paddingBottom: 22,
     },
     topBar: {
       height: 1.5,
