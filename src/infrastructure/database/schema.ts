@@ -154,7 +154,7 @@ export const companySequences = pgTable(
   {
     companyId: uuid("company_id")
       .notNull()
-      .references(() => companies.id),
+      .references(() => companies.id, { onDelete: "cascade" }),
     year: integer("year").notNull(),
     lastValue: integer("last_value").notNull().default(0),
   },

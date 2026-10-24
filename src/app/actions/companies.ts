@@ -121,10 +121,8 @@ export async function deleteCompanyAction(id: string): Promise<{ status: "succes
     revalidatePath("/companies");
     return { status: "success" };
   } catch (error) {
-    if (error instanceof DomainError) {
-      return { status: "error", message: error.message };
-    }
-    return { status: "error", message: "تعذر حذف الشركة" };
+    console.error("deleteCompanyAction failed:", error);
+    return { status: "error", message: formatDatabaseError(error, "تعذر حذف الشركة", "company") };
   }
 }
 

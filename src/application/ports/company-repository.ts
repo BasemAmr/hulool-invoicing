@@ -86,6 +86,7 @@ export interface CompanyRepository {
   ): Promise<CompanyRecord>;
   delete(id: CompanyId): Promise<void>;
   countInvoices(id: CompanyId): Promise<number>;
+  countReceiptVouchers(id: CompanyId): Promise<number>;
   /** Pass a Tx inside use-case transactions; omit for plain reads. */
 
   findById(id: CompanyId, tx?: Tx): Promise<CompanyRecord | null>;

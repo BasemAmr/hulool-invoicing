@@ -6,7 +6,7 @@ import type { CompanyRecord } from "@/application/ports/company-repository";
 import type { Database, Tx } from "@/application/tx";
 import { ValidationError } from "@/domain/errors";
 import { formatDatabaseError } from "@/lib/format-db-error";
-import { companies, invoices } from "../schema";
+import { companies, invoices, receiptVouchers } from "../schema";
 
 type CompanyRow = typeof companies.$inferSelect;
 
@@ -190,6 +190,14 @@ export class CompanyRepositoryImpl implements CompanyRepository {
       .select({ count: sql<number>`count(*)::int` })
       .from(invoices)
       .where(eq(invoices.companyId, id));
+    return result?.count ?? 0;
+  }
+
+  async countReceiptVouchers(id: CompanyId): Promise<number> {
+    const [result] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(receiptVouchers)
+      .where(eq(receiptVouchers.companyId, id));
     return result?.count ?? 0;
   }
 

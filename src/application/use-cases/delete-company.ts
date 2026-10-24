@@ -19,6 +19,13 @@ export class DeleteCompany {
       );
     }
 
+    const receiptCount = await this.companyRepository.countReceiptVouchers(companyId);
+    if (receiptCount > 0) {
+      throw new DomainError(
+        `لا يمكن حذف المنشأة «${existing.nameAr}» لوجود ${receiptCount} سند قبض مرتبط بها.`,
+      );
+    }
+
     await this.companyRepository.delete(companyId);
   }
 }
