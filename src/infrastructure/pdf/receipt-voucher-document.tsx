@@ -135,222 +135,227 @@ export function ReceiptVoucherDocument({
         orientation={paperOrientation as any}
         style={styles.page}
       >
-        {/* Background Watermark Image if present */}
-        {backgroundDataUrl ? (
-          <Image
-            src={backgroundDataUrl}
-            style={{
-              position: "absolute",
-              top: "22%",
-              left: "15%",
-              width: "70%",
-              height: "55%",
-              opacity: 0.05,
-              objectFit: "contain",
-            }}
-          />
-        ) : null}
+        <View style={styles.outerFrame}>
+          {/* Background Watermark Image if present */}
+          {backgroundDataUrl ? (
+            <Image
+              src={backgroundDataUrl}
+              style={{
+                position: "absolute",
+                top: "22%",
+                left: "15%",
+                width: "70%",
+                height: "55%",
+                opacity: 0.05,
+                objectFit: "contain",
+              }}
+            />
+          ) : null}
 
-        {/* Top Colored Accent Bar */}
-        <View style={styles.topBar} />
+          {/* Top Colored Accent Bar */}
+          <View style={styles.topBar} />
 
-        {/* 1. Header Box: Document Info (Left) + Company Info & Logo (Right) */}
-        <View style={styles.headerBox}>
-          {/* Header Left (Document Metadata) */}
-          <View style={styles.headerLeft}>
-            <Text style={styles.titleAr}>سند قبض</Text>
-            <Text style={styles.titleEn}>RECEIPT VOUCHER</Text>
-
-            <View style={styles.voucherBadge}>
-              <Text style={styles.voucherBadgeText}>{voucher.voucherNumber}</Text>
-            </View>
-
-            {/* Date Row (RTL: Label on Right, Value on Left) */}
-            <View style={styles.metaRow}>
-              <View style={styles.metaLabelGroup}>
-                <Text style={styles.metaLabel}>التاريخ</Text>
-                <Text style={styles.metaLabelEn}>(Date)</Text>
-                <Text style={styles.colon}>:</Text>
-              </View>
-              <Text style={styles.metaValue}>{voucher.voucherDate}</Text>
-            </View>
-
-            {/* Linked Invoice if present */}
-            {invoice?.invoiceNumber ? (
-              <View style={styles.metaRow}>
-                <View style={styles.metaLabelGroup}>
-                  <Text style={styles.metaLabel}>الفاتورة</Text>
-                  <Text style={styles.metaLabelEn}>(Invoice)</Text>
-                  <Text style={styles.colon}>:</Text>
+          {/* 1. Header Box: 3-Column Layout (Company Info Right/Start, Title Center, Voucher Meta Left/End) */}
+          <View style={styles.headerBox}>
+            {/* Header Start (Right in RTL): Company Logo & Details */}
+            <View style={styles.headerCompanyCol}>
+              <View style={styles.companyTop}>
+                {logoDataUrl ? (
+                  <Image src={logoDataUrl} style={styles.logo} />
+                ) : null}
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.companyNameAr}>{company.nameAr}</Text>
+                  {company.nameEn ? (
+                    <Text style={styles.companyNameEn}>{company.nameEn}</Text>
+                  ) : null}
                 </View>
-                <Text style={styles.metaValue}>{invoice.invoiceNumber}</Text>
               </View>
-            ) : null}
-          </View>
 
-          {/* Header Right (Company Logo & Details) */}
-          <View style={styles.headerRight}>
-            <View style={styles.companyTop}>
-              {logoDataUrl ? (
-                <Image src={logoDataUrl} style={styles.logo} />
-              ) : null}
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.companyNameAr}>{company.nameAr}</Text>
-                {company.nameEn ? (
-                  <Text style={styles.companyNameEn}>{company.nameEn}</Text>
+              <View style={styles.companyMeta}>
+                {company.vatNumber ? (
+                  <View style={styles.companyInfoRow}>
+                    <Text style={styles.companyMetaKey}>الرقم الضريبي</Text>
+                    <Text style={styles.colon}>:</Text>
+                    <Text style={styles.companyMetaVal}>{company.vatNumber}</Text>
+                  </View>
+                ) : null}
+
+                {company.crNumber ? (
+                  <View style={styles.companyInfoRow}>
+                    <Text style={styles.companyMetaKey}>السجل التجاري</Text>
+                    <Text style={styles.colon}>:</Text>
+                    <Text style={styles.companyMetaVal}>{company.crNumber}</Text>
+                  </View>
+                ) : null}
+
+                {company.addressCity ? (
+                  <View style={styles.companyInfoRow}>
+                    <Text style={styles.companyMetaKey}>المدينة</Text>
+                    <Text style={styles.colon}>:</Text>
+                    <Text style={styles.companyMetaVal}>{company.addressCity}</Text>
+                  </View>
+                ) : null}
+
+                {company.phone ? (
+                  <View style={styles.companyInfoRow}>
+                    <Text style={styles.companyMetaKey}>الهاتف</Text>
+                    <Text style={styles.colon}>:</Text>
+                    <Text style={styles.companyMetaVal}>{company.phone}</Text>
+                  </View>
+                ) : null}
+
+                {company.email ? (
+                  <View style={styles.companyInfoRow}>
+                    <Text style={styles.companyMetaKey}>البريد</Text>
+                    <Text style={styles.colon}>:</Text>
+                    <Text style={styles.companyMetaVal}>{company.email}</Text>
+                  </View>
                 ) : null}
               </View>
             </View>
 
-            <View style={styles.companyMeta}>
-              {company.vatNumber ? (
-                <View style={styles.companyInfoRow}>
-                  <Text style={styles.companyMetaKey}>الرقم الضريبي</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.companyMetaVal}>{company.vatNumber}</Text>
-                </View>
-              ) : null}
+            {/* Header Center: Title */}
+            <View style={styles.headerCenterCol}>
+              <Text style={styles.titleAr}>سند قبض</Text>
+              <Text style={styles.titleEn}>RECEIPT VOUCHER</Text>
+            </View>
 
-              {company.crNumber ? (
-                <View style={styles.companyInfoRow}>
-                  <Text style={styles.companyMetaKey}>السجل التجاري</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.companyMetaVal}>{company.crNumber}</Text>
-                </View>
-              ) : null}
+            {/* Header End (Left in RTL): Voucher Number Badge & Metadata */}
+            <View style={styles.headerMetaCol}>
+              <View style={styles.voucherBadge}>
+                <Text style={styles.voucherBadgeText}>{voucher.voucherNumber}</Text>
+              </View>
 
-              {company.addressCity ? (
-                <View style={styles.companyInfoRow}>
-                  <Text style={styles.companyMetaKey}>المدينة</Text>
+              {/* Date Row */}
+              <View style={styles.metaRow}>
+                <View style={styles.metaLabelGroup}>
+                  <Text style={styles.metaLabel}>التاريخ</Text>
+                  <Text style={styles.metaLabelEn}>(Date)</Text>
                   <Text style={styles.colon}>:</Text>
-                  <Text style={styles.companyMetaVal}>{company.addressCity}</Text>
                 </View>
-              ) : null}
+                <Text style={styles.metaValue}>{voucher.voucherDate}</Text>
+              </View>
 
-              {company.phone ? (
-                <View style={styles.companyInfoRow}>
-                  <Text style={styles.companyMetaKey}>الهاتف</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.companyMetaVal}>{company.phone}</Text>
-                </View>
-              ) : null}
-
-              {company.email ? (
-                <View style={styles.companyInfoRow}>
-                  <Text style={styles.companyMetaKey}>البريد</Text>
-                  <Text style={styles.colon}>:</Text>
-                  <Text style={styles.companyMetaVal}>{company.email}</Text>
+              {/* Linked Invoice if present */}
+              {invoice?.invoiceNumber ? (
+                <View style={styles.metaRow}>
+                  <View style={styles.metaLabelGroup}>
+                    <Text style={styles.metaLabel}>الفاتورة</Text>
+                    <Text style={styles.metaLabelEn}>(Invoice)</Text>
+                    <Text style={styles.colon}>:</Text>
+                  </View>
+                  <Text style={styles.metaValue}>{invoice.invoiceNumber}</Text>
                 </View>
               ) : null}
             </View>
           </View>
-        </View>
 
-        {/* 2. Amount Box */}
-        <View style={styles.amountBox}>
-          <Text style={styles.amountLabel}>المبلغ المستلم / Received Amount</Text>
-          <Text style={styles.amountValue}>{formattedAmount}</Text>
-        </View>
-
-        {/* 3. Details Card (RTL: Label on Right, Colon, Value starts immediately after colon) */}
-        <View style={styles.detailsCard}>
-          {/* Customer Name */}
-          <View style={styles.detailRow}>
-            <View style={styles.detailLabelWrap}>
-              <Text style={styles.detailLabel}>استلمنا من المكرم</Text>
-              <Text style={styles.detailLabelEn}>/ Received From</Text>
-              <Text style={styles.colon}>:</Text>
-            </View>
-            <Text style={styles.detailValueBold}>{customer.nameAr}</Text>
+          {/* 2. Amount Box */}
+          <View style={styles.amountBox}>
+            <Text style={styles.amountLabel}>المبلغ المستلم / Received Amount</Text>
+            <Text style={styles.amountValue}>{formattedAmount}</Text>
           </View>
 
-          {/* Customer VAT if present */}
-          {customer.vatNumber ? (
+          {/* 3. Details Card (RTL: Label on Right, Colon, Value starts immediately after colon) */}
+          <View style={styles.detailsCard}>
+            {/* Customer Name */}
             <View style={styles.detailRow}>
               <View style={styles.detailLabelWrap}>
-                <Text style={styles.detailLabel}>الرقم الضريبي للعميل</Text>
-                <Text style={styles.detailLabelEn}>/ Customer VAT</Text>
+                <Text style={styles.detailLabel}>استلمنا من المكرم</Text>
+                <Text style={styles.detailLabelEn}>/ Received From</Text>
                 <Text style={styles.colon}>:</Text>
               </View>
-              <Text style={styles.detailValue}>{customer.vatNumber}</Text>
+              <Text style={styles.detailValueBold}>{customer.nameAr}</Text>
             </View>
-          ) : null}
 
-          {/* Customer Unified No if present */}
-          {customer.unifiedNumber ? (
+            {/* Customer VAT if present */}
+            {customer.vatNumber ? (
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelWrap}>
+                  <Text style={styles.detailLabel}>الرقم الضريبي للعميل</Text>
+                  <Text style={styles.detailLabelEn}>/ Customer VAT</Text>
+                  <Text style={styles.colon}>:</Text>
+                </View>
+                <Text style={styles.detailValue}>{customer.vatNumber}</Text>
+              </View>
+            ) : null}
+
+            {/* Customer Unified No if present */}
+            {customer.unifiedNumber ? (
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelWrap}>
+                  <Text style={styles.detailLabel}>الرقم الموحد</Text>
+                  <Text style={styles.detailLabelEn}>/ Unified No</Text>
+                  <Text style={styles.colon}>:</Text>
+                </View>
+                <Text style={styles.detailValue}>{customer.unifiedNumber}</Text>
+              </View>
+            ) : null}
+
+            {/* Payment Method */}
             <View style={styles.detailRow}>
               <View style={styles.detailLabelWrap}>
-                <Text style={styles.detailLabel}>الرقم الموحد</Text>
-                <Text style={styles.detailLabelEn}>/ Unified No</Text>
+                <Text style={styles.detailLabel}>طريقة الدفع</Text>
+                <Text style={styles.detailLabelEn}>/ Payment Method</Text>
                 <Text style={styles.colon}>:</Text>
               </View>
-              <Text style={styles.detailValue}>{customer.unifiedNumber}</Text>
-            </View>
-          ) : null}
-
-          {/* Payment Method */}
-          <View style={styles.detailRow}>
-            <View style={styles.detailLabelWrap}>
-              <Text style={styles.detailLabel}>طريقة الدفع</Text>
-              <Text style={styles.detailLabelEn}>/ Payment Method</Text>
-              <Text style={styles.colon}>:</Text>
-            </View>
-            <Text style={styles.detailValue}>
-              {PAYMENT_METHODS_AR[voucher.paymentMethod] ?? voucher.paymentMethod}
-            </Text>
-          </View>
-
-          {/* Reference No if present */}
-          {voucher.reference ? (
-            <View style={styles.detailRow}>
-              <View style={styles.detailLabelWrap}>
-                <Text style={styles.detailLabel}>رقم المرجع / الحوالة</Text>
-                <Text style={styles.detailLabelEn}>/ Reference</Text>
-                <Text style={styles.colon}>:</Text>
-              </View>
-              <Text style={styles.detailValue}>{voucher.reference}</Text>
-            </View>
-          ) : null}
-
-          {/* Notes / For Description if present */}
-          {voucher.notes ? (
-            <View style={styles.detailRow}>
-              <View style={styles.detailLabelWrap}>
-                <Text style={styles.detailLabel}>وذلك عن (البيان)</Text>
-                <Text style={styles.detailLabelEn}>/ For</Text>
-                <Text style={styles.colon}>:</Text>
-              </View>
-              <Text style={styles.detailValue}>{voucher.notes}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* 4. Signature & Stamp Area */}
-        <View style={styles.signaturesBox}>
-          {/* Receiver Signature */}
-          <View style={styles.sigCol}>
-            <Text style={styles.sigTitle}>توقيع المستلم / Receiver Signature</Text>
-            <View style={styles.sigLine}>
-              {signatureDataUrl ? (
-                <Image src={signatureDataUrl} style={styles.sigImage} />
-              ) : null}
-            </View>
-          </View>
-
-          {/* Company Endorsement */}
-          <View style={styles.sigCol}>
-            <Text style={styles.sigTitle}>اعتماد المنشأة / Approved</Text>
-            <View style={styles.sigLine}>
-              <Text style={{ fontSize: 8, color: "#94A3B8" }}>
-                {company.nameAr}
+              <Text style={styles.detailValue}>
+                {PAYMENT_METHODS_AR[voucher.paymentMethod] ?? voucher.paymentMethod}
               </Text>
             </View>
-          </View>
-        </View>
 
-        {/* 5. Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{footerText}</Text>
+            {/* Reference No if present */}
+            {voucher.reference ? (
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelWrap}>
+                  <Text style={styles.detailLabel}>رقم المرجع / الحوالة</Text>
+                  <Text style={styles.detailLabelEn}>/ Reference</Text>
+                  <Text style={styles.colon}>:</Text>
+                </View>
+                <Text style={styles.detailValue}>{voucher.reference}</Text>
+              </View>
+            ) : null}
+
+            {/* Notes / For Description if present */}
+            {voucher.notes ? (
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelWrap}>
+                  <Text style={styles.detailLabel}>وذلك عن (البيان)</Text>
+                  <Text style={styles.detailLabelEn}>/ For</Text>
+                  <Text style={styles.colon}>:</Text>
+                </View>
+                <Text style={styles.detailValue}>{voucher.notes}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* 4. Signature & Stamp Area */}
+          <View style={styles.signaturesBox}>
+            {/* Receiver Signature */}
+            <View style={styles.sigCol}>
+              <Text style={styles.sigTitle}>توقيع المستلم / Receiver Signature</Text>
+              <View style={styles.sigLine}>
+                {signatureDataUrl ? (
+                  <Image src={signatureDataUrl} style={styles.sigImage} />
+                ) : null}
+              </View>
+            </View>
+
+            {/* Company Endorsement */}
+            <View style={styles.sigCol}>
+              <Text style={styles.sigTitle}>اعتماد المنشأة / Approved</Text>
+              <View style={styles.sigLine}>
+                <Text style={{ fontSize: 8, color: "#94A3B8" }}>
+                  {company.nameAr}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* 5. Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{footerText}</Text>
+          </View>
         </View>
       </Page>
     </Document>
@@ -360,11 +365,18 @@ export function ReceiptVoucherDocument({
 function buildStyles(primaryColor: string, accentColor: string) {
   return StyleSheet.create({
     page: {
-      padding: 30,
+      padding: 16,
       fontFamily: "Amiri",
       backgroundColor: "#FFFFFF",
       fontSize: 9,
       color: "#1E293B",
+    },
+    outerFrame: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: "#000000",
+      borderRadius: 4,
+      padding: 18,
     },
     topBar: {
       height: 4,
@@ -374,13 +386,14 @@ function buildStyles(primaryColor: string, accentColor: string) {
     headerBox: {
       flexDirection: "row-reverse",
       justifyContent: "space-between",
+      alignItems: "flex-start",
       paddingBottom: 14,
       borderBottomWidth: 1,
       borderBottomColor: "#E2E8F0",
       marginBottom: 16,
     },
-    headerRight: {
-      width: "55%",
+    headerCompanyCol: {
+      width: "36%",
       alignItems: "flex-end",
     },
     companyTop: {
@@ -431,21 +444,27 @@ function buildStyles(primaryColor: string, accentColor: string) {
       fontWeight: "bold",
       textAlign: "right",
     },
-    headerLeft: {
-      width: "42%",
+    headerCenterCol: {
+      width: "28%",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingTop: 4,
+    },
+    headerMetaCol: {
+      width: "34%",
       alignItems: "flex-start",
     },
     titleAr: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: "bold",
       color: primaryColor,
-      textAlign: "left",
+      textAlign: "center",
     },
     titleEn: {
-      fontSize: 8,
+      fontSize: 8.5,
       color: "#64748B",
-      marginBottom: 6,
-      textAlign: "left",
+      textAlign: "center",
+      marginTop: 2,
     },
     voucherBadge: {
       backgroundColor: "#F1F5F9",
