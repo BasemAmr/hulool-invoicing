@@ -52,6 +52,10 @@ import { CyanSalesTemplate } from "./templates/cyan-sales-template";
 import { KenanCompanyTemplate } from "./templates/kenan-company-template";
 import { AlQahwaAlBarriahTemplate } from "./templates/al-qahwa-al-barriah-template";
 import { AlamAlWissamTemplate } from "./templates/alam-al-wissam-template";
+import { FoodstuffsFmcgTemplate } from "./templates/foodstuffs-fmcg-template";
+import { AlQahwaAlAlamiahTemplate } from "./templates/al-qahwa-al-alamiah-template";
+import { MaraiAlbunTemplate } from "./templates/marai-albun-template";
+import { QahwatBishaTemplate } from "./templates/qahwat-bisha-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -230,6 +234,18 @@ if (templateDef.id === "generic_delivery_21") {
   }
   if (templateDef.id === "alam_al_wissam") {
     return <AlamAlWissamTemplate {...props} />;
+  }
+  if (templateDef.id === "foodstuffs_fmcg") {
+    return <FoodstuffsFmcgTemplate {...props} />;
+  }
+  if (templateDef.id === "al_qahwa_al_alamiah") {
+    return <AlQahwaAlAlamiahTemplate {...props} />;
+  }
+  if (templateDef.id === "marai_albun") {
+    return <MaraiAlbunTemplate {...props} />;
+  }
+  if (templateDef.id === "qahwat_bisha") {
+    return <QahwatBishaTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;

@@ -133,6 +133,10 @@ describe("Templates PDF Rendering", () => {
     "template_14_reda_trading",
     "al_qahwa_al_barriah",
     "alam_al_wissam",
+    "foodstuffs_fmcg",
+    "al_qahwa_al_alamiah",
+    "marai_albun",
+    "qahwat_bisha",
   ];
 
   for (const templateId of templateIds) {
