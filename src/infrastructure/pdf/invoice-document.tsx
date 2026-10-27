@@ -56,6 +56,7 @@ import { FoodstuffsFmcgTemplate } from "./templates/foodstuffs-fmcg-template";
 import { AlQahwaAlAlamiahTemplate } from "./templates/al-qahwa-al-alamiah-template";
 import { MaraiAlbunTemplate } from "./templates/marai-albun-template";
 import { QahwatBishaTemplate } from "./templates/qahwat-bisha-template";
+import { FadakContractingTemplate } from "./templates/fadak-contracting-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -246,6 +247,9 @@ if (templateDef.id === "generic_delivery_21") {
   }
   if (templateDef.id === "qahwat_bisha") {
     return <QahwatBishaTemplate {...props} />;
+  }
+  if (templateDef.id === "fadak_contracting") {
+    return <FadakContractingTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;

@@ -769,6 +769,17 @@ generic_delivery_21: {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة ضريبية معتمد لشركة قهوة بيشة بشريط أسود عريض وبطاقة العميل وجدول أصناف دقيق وبطاقة إجماليات يسارية بعلامة الريال السعودي",
   },
+  fadak_contracting: {
+    id: "fadak_contracting",
+    nameAr: "نموذج شركة فدك للمقاولات",
+    nameEn: "Fadak Contracting Template",
+    parentCategory: "standard",
+    category: "contracting",
+    primaryColor: "#000000",
+    accentColor: "#1F2937",
+    isBilingual: true,
+    descriptionAr: "تصميم فاتورة ضريبية معتمد لشركة فدك للطرق والمقاولات ببيانات العميل وجدول 7 أعمدة وبطاقة إجماليات يسارية ورقم إشارة الدفعة",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);

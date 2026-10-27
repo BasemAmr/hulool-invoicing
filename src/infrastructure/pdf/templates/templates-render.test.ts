@@ -137,6 +137,7 @@ describe("Templates PDF Rendering", () => {
     "al_qahwa_al_alamiah",
     "marai_albun",
     "qahwat_bisha",
+    "fadak_contracting",
   ];
 
   for (const templateId of templateIds) {
