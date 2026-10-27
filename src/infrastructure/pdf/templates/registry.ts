@@ -816,7 +816,7 @@ export const RECEIPT_TEMPLATES_REGISTRY: Record<string, TemplateDefinition> = {
     primaryColor: "#1E3A5F",
     accentColor: "#DC2626",
     isBilingual: true,
-    descriptionAr: "تصميم سند صرف رسمي أفقي مع أسطر منقطة، جدول هللات وريالات، رقم السند بالأحمر، وشريط كحلي",
+    descriptionAr: "تصميم سند قبض رسمي أفقي مع أسطر منقطة، جدول هللات وريالات، رقم السند بالأحمر، وشريط كحلي",
   },
   receipt_joy_receipt: {
     id: "receipt_joy_receipt",

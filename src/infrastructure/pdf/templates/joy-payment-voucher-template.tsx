@@ -113,11 +113,11 @@ export function JoyPaymentVoucherTemplate({
 }: JoyVoucherTemplateProps) {
   const paperSize = settings?.paperSize === "Letter" ? "LETTER" : "A4";
 
-  const isPayment = mode === "payment";
-  const voucherTitleAr = isPayment ? "سند صرف" : "سند قبض";
-  const voucherTitleEn = isPayment ? "PAYMENT VOUCHER" : "RECEIPT VOUCHER";
-  const partyLabelAr = isPayment ? "أصرفوا للسيد / السادة" : "استلمنا من السيد / السادة";
-  const partyLabelEn = isPayment ? "Pay To Mrs" : "Received From";
+  const isPayment = false;
+  const voucherTitleAr = "سند قبض";
+  const voucherTitleEn = "RECEIPT VOUCHER";
+  const partyLabelAr = "استلمنا من السيد / السادة";
+  const partyLabelEn = "Received From";
 
   const voucherNum = voucher?.voucherNumber ? String(voucher.voucherNumber) : "";
   const dateTimeStr = formatDateTime(voucher?.voucherDate);
@@ -132,17 +132,7 @@ export function JoyPaymentVoucherTemplate({
   const companyAddress = [company?.addressStreet, company?.addressCity].filter(Boolean).join(" - ");
 
   const payeeName = customer?.nameAr || customer?.nameEn || "";
-  const pm = String(voucher?.paymentMethod || "");
-  const methodText =
-    pm === "bank_transfer" || pm === "transfer"
-      ? "- تحويل"
-      : pm === "card"
-      ? "- شبكة / مدى"
-      : pm === "cash"
-      ? "- نقداً"
-      : pm === "check" || pm === "cheque"
-      ? "- شيك"
-      : "";
+  const methodText = "- نقداً";
 
   const purpose = voucher?.notes || (voucher?.reference ? `دفعة حساب بموجب مرجع ${voucher.reference}` : "");
 
@@ -281,7 +271,7 @@ export function JoyPaymentVoucherTemplate({
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Amiri",
+    fontFamily: "Tajawal",
     paddingTop: 24,
     paddingBottom: 24,
     paddingHorizontal: 28,

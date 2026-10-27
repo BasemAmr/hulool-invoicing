@@ -242,7 +242,7 @@ export function DesignWorkReceiptTemplate({
                 <Text style={styles.rowLabelAr}>مبلغاً وقدره</Text>
               </View>
 
-              {/* Row 3: Payment Method Checkboxes & Bank/Account Line */}
+              {/* Row 3: Payment Method (Only Cash / نقداً) */}
               <View style={styles.voucherRow}>
                 {/* Left: Custodian / Bank Account Note */}
                 <View style={styles.bankAccountCol}>
@@ -253,33 +253,15 @@ export function DesignWorkReceiptTemplate({
                   ) : null}
                 </View>
 
-                {/* Right: Payment Method Checkboxes */}
+                {/* Right: Payment Method Only Cash / نقداً */}
                 <View style={styles.paymentMethodsCol}>
                   <View style={styles.checkItem}>
                     <Text style={styles.checkLabel}>Cash</Text>
                     <View style={styles.checkboxBox}>
-                      {isCash ? <Text style={styles.checkboxCheck}>✓</Text> : null}
+                      <Text style={styles.checkboxCheck}>✓</Text>
                     </View>
                     <Text style={styles.checkLabel}>نقداً</Text>
                   </View>
-
-                  <View style={styles.checkItem}>
-                    <Text style={styles.checkLabel}>Cheque</Text>
-                    <View style={styles.checkboxBox}>
-                      {isCheck ? <Text style={styles.checkboxCheck}>✓</Text> : null}
-                    </View>
-                    <Text style={styles.checkLabel}>شيك</Text>
-                  </View>
-
-                  <View style={styles.checkItem}>
-                    <Text style={styles.checkLabel}>Transfer</Text>
-                    <View style={styles.checkboxBox}>
-                      {isTransfer ? <Text style={styles.checkboxCheck}>✓</Text> : null}
-                    </View>
-                    <Text style={styles.checkLabel}>تحويل</Text>
-                  </View>
-
-                  <Text style={styles.checkLabel}>رقم</Text>
                 </View>
               </View>
 
@@ -327,7 +309,7 @@ export function DesignWorkReceiptTemplate({
 
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Amiri",
+    fontFamily: "Tajawal",
     padding: 16,
     backgroundColor: "#FFFFFF",
     color: "#000000",

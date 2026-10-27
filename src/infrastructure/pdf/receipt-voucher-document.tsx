@@ -34,10 +34,10 @@ export interface ReceiptVoucherDocumentProps {
 
 const PAYMENT_METHODS_AR: Record<string, string> = {
   cash: "نقداً (Cash)",
-  bank_transfer: "تحويل بنكي (Bank Transfer)",
-  card: "بطاقة دفع (Card)",
-  check: "شيك (Cheque)",
-  other: "أخرى (Other)",
+  bank_transfer: "نقداً (Cash)",
+  card: "نقداً (Cash)",
+  check: "نقداً (Cash)",
+  other: "نقداً (Cash)",
 };
 
 export function ReceiptVoucherDocument({
@@ -84,7 +84,7 @@ export function ReceiptVoucherDocument({
         logoDataUrl={logoDataUrl}
         backgroundDataUrl={backgroundDataUrl}
         signatureDataUrl={signatureDataUrl}
-        mode="payment"
+        mode="receipt"
       />
     );
   }
@@ -367,7 +367,7 @@ function buildStyles(primaryColor: string, accentColor: string) {
   return StyleSheet.create({
     page: {
       padding: 16,
-      fontFamily: "Amiri",
+      fontFamily: "Tajawal",
       backgroundColor: "#FFFFFF",
       fontSize: 9,
       color: "#1E293B",
@@ -476,7 +476,7 @@ function buildStyles(primaryColor: string, accentColor: string) {
       marginBottom: 6,
     },
     voucherBadgeText: {
-      fontFamily: "Amiri",
+      fontFamily: "Tajawal",
       fontWeight: "bold",
       fontSize: 10,
       color: "#0F172A",
