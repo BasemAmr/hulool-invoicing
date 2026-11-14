@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { Children, isValidElement, type ReactNode } from "react";
 import { ReactPdfRenderer } from "../react-pdf-renderer";
 import { InvoiceDocument } from "../invoice-document";
 import { SaddtAlkhaleejTemplate } from "./saddt-alkhaleej-template";
@@ -97,8 +98,40 @@ const mockInvoice: InvoiceDto = {
   ],
 };
 
+// Inspect text before PDF font encoding; successful PDF generation can hide wrong words.
+function collectTemplateText(node: ReactNode): string {
+  return Children.toArray(node)
+    .map((child) =>
+      isValidElement<{ children?: ReactNode }>(child)
+        ? collectTemplateText(child.props.children)
+        : String(child),
+    )
+    .join("");
+}
+
 describe("Templates PDF Rendering", () => {
   const renderer = new ReactPdfRenderer();
+
+  it.each([
+    ["9.00", "\u062a\u0633\u0639\u0629 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
+    ["10.00", "\u0639\u0634\u0631\u0629 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
+    ["11.00", "\u0623\u062d\u062f \u0639\u0634\u0631 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
+    ["110.00", "\u0645\u0627\u0626\u0629 \u0648 \u0639\u0634\u0631\u0629 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
+    ["10000.00", "\u0639\u0634\u0631\u0629 \u0622\u0644\u0627\u0641 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
+    ["10000000.00", "\u0639\u0634\u0631\u0629 \u0645\u0644\u0627\u064a\u064a\u0646 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
+    ["0.10", "\u0635\u0641\u0631 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a \u0648 \u0639\u0634\u0631\u0629 \u0647\u0644\u0644\u0629"],
+    ["50100.10", "\u062e\u0645\u0633\u0648\u0646 \u0623\u0644\u0641 \u0648 \u0645\u0627\u0626\u0629 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a \u0648 \u0639\u0634\u0631\u0629 \u0647\u0644\u0644\u0629"],
+  ])("renders Saddt Alkhaleej amount %s without undefined", (total, expectedWords) => {
+    const text = collectTemplateText(SaddtAlkhaleejTemplate({
+      invoice: { ...mockInvoice, total },
+      company: mockCompany,
+      customer: mockCustomer,
+      qrDataUrl: null,
+    }));
+
+    expect(text).not.toContain("undefined");
+    expect(text).toContain(expectedWords);
+  });
 
   it.each([
     { templateId: "saddt_alkhaleej", invoice: mockInvoice },
