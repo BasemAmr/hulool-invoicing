@@ -57,6 +57,7 @@ import { AlQahwaAlAlamiahTemplate } from "./templates/al-qahwa-al-alamiah-templa
 import { MaraiAlbunTemplate } from "./templates/marai-albun-template";
 import { QahwatBishaTemplate } from "./templates/qahwat-bisha-template";
 import { FadakContractingTemplate } from "./templates/fadak-contracting-template";
+import { SaddtAlkhaleejTemplate } from "./templates/saddt-alkhaleej-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -250,6 +251,9 @@ if (templateDef.id === "generic_delivery_21") {
   }
   if (templateDef.id === "fadak_contracting") {
     return <FadakContractingTemplate {...props} />;
+  }
+  if (templateDef.id === "saddt_alkhaleej") {
+    return <SaddtAlkhaleejTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;

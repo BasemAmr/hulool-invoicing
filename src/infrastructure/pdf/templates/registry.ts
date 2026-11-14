@@ -780,6 +780,17 @@ generic_delivery_21: {
     isBilingual: true,
     descriptionAr: "تصميم فاتورة ضريبية معتمد لشركة فدك للطرق والمقاولات ببيانات العميل وجدول 7 أعمدة وبطاقة إجماليات يسارية ورقم إشارة الدفعة",
   },
+  saddt_alkhaleej: {
+    id: "saddt_alkhaleej",
+    nameAr: "قالب سدة الخليج",
+    nameEn: "Saddt Alkhaleej Template",
+    parentCategory: "standard",
+    category: "classic",
+    primaryColor: "#1B4F9C",
+    accentColor: "#8B1E1E",
+    isBilingual: true,
+    descriptionAr: "فاتورة ضريبية ثنائية اللغة بتفاصيل البائع والعميل وجدول الأصناف وملخص الضريبة ورمز QR",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);

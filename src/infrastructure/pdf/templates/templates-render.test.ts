@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ReactPdfRenderer } from "../react-pdf-renderer";
+import { InvoiceDocument } from "../invoice-document";
+import { SaddtAlkhaleejTemplate } from "./saddt-alkhaleej-template";
 import type { InvoicePdfInput } from "@/application/ports/pdf-renderer";
 import type { InvoiceDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
@@ -97,6 +99,25 @@ const mockInvoice: InvoiceDto = {
 
 describe("Templates PDF Rendering", () => {
   const renderer = new ReactPdfRenderer();
+
+  it.each([
+    { templateId: "saddt_alkhaleej", invoice: mockInvoice },
+    { templateId: null, invoice: { ...mockInvoice, templateId: "saddt_alkhaleej" } },
+  ])("dispatches Saddt Alkhaleej with templateId=$templateId", ({ templateId, invoice }) => {
+    const document = InvoiceDocument({
+      invoice,
+      company: mockCompany,
+      customer: mockCustomer,
+      templateId,
+      qrDataUrl: null,
+      logoDataUrl: null,
+      signatureDataUrl: null,
+    });
+
+    // A generic fallback also renders a valid PDF, so verify the actual component.
+    expect(document.type).toBe(SaddtAlkhaleejTemplate);
+  });
+
   const templateIds = [
     "template_1_al_asma",
     "template_2_matajer_alwadi",
@@ -138,6 +159,7 @@ describe("Templates PDF Rendering", () => {
     "marai_albun",
     "qahwat_bisha",
     "fadak_contracting",
+    "saddt_alkhaleej",
   ];
 
   for (const templateId of templateIds) {
