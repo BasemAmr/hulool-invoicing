@@ -3,6 +3,10 @@ import { Children, isValidElement, type ReactNode } from "react";
 import { ReactPdfRenderer } from "../react-pdf-renderer";
 import { InvoiceDocument } from "../invoice-document";
 import { SaddtAlkhaleejTemplate } from "./saddt-alkhaleej-template";
+import { AlEntajAlMutamakkinTemplate } from "./al-entaj-al-mutamakkin-template";
+import { FastWoodTemplate } from "./fast-wood-template";
+import { TamouhCompanyTemplate } from "./tamouh-company-template";
+import { NourFakhamaTemplate } from "./nour-fakhama-template";
 import type { InvoicePdfInput } from "@/application/ports/pdf-renderer";
 import type { InvoiceDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
@@ -112,6 +116,116 @@ function collectTemplateText(node: ReactNode): string {
 describe("Templates PDF Rendering", () => {
   const renderer = new ReactPdfRenderer();
 
+  const newTemplates = [
+    { templateId: "al_entaj_al_mutamakkin", Template: AlEntajAlMutamakkinTemplate },
+    { templateId: "fast_wood", Template: FastWoodTemplate },
+    { templateId: "tamouh_company", Template: TamouhCompanyTemplate },
+    { templateId: "nour_fakhama", Template: NourFakhamaTemplate },
+  ];
+
+  for (const { templateId, Template } of newTemplates) {
+    it.each(["explicit", "invoice"])(`dispatches ${templateId} from %s`, (source) => {
+      const document = InvoiceDocument({
+        invoice: { ...mockInvoice, templateId: source === "invoice" ? templateId : mockInvoice.templateId },
+        company: mockCompany,
+        customer: mockCustomer,
+        templateId: source === "explicit" ? templateId : null,
+        qrDataUrl: null,
+        logoDataUrl: null,
+        signatureDataUrl: null,
+      });
+
+      // A valid generic fallback PDF would hide missing dispatcher wiring.
+      expect(document.type).toBe(Template);
+    });
+
+    it(`renders a simplified draft with notes for ${templateId}`, async () => {
+      const buffer = await renderer.renderInvoicePdf({
+        invoice: {
+          ...mockInvoice,
+          templateId,
+          invoiceType: "simplified",
+          status: "draft",
+          invoiceNumber: null,
+          issueTime: "00:00",
+          terms: "First term\nSecond term",
+          notes: "Draft note",
+          items: [],
+          subtotal: "0.00",
+          vatAmount: "0.00",
+          total: "0.00",
+        },
+        company: mockCompany,
+        customer: mockCustomer,
+        qrDataUrl: null,
+        logoDataUrl: null,
+        signatureDataUrl: null,
+      });
+
+      expect(Buffer.from(buffer).subarray(0, 5).toString()).toBe("%PDF-");
+    });
+  }
+
+  // Nour shows numeric totals only; the other three also spell out the amount.
+  for (const { templateId, Template } of newTemplates.slice(0, 3)) {
+    it.each([
+      ["0.00", "\u0635\u0641\u0631 \u0631\u064a\u0627\u0644"],
+      ["10.00", "\u0639\u0634\u0631\u0629 \u0631\u064a\u0627\u0644"],
+      // Preserve each supplied template's spelling and conjunction spacing.
+      ["11.00", templateId === "tamouh_company"
+        ? "\u0627\u062d\u062f \u0639\u0634\u0631 \u0631\u064a\u0627\u0644"
+        : "\u0623\u062d\u062f \u0639\u0634\u0631 \u0631\u064a\u0627\u0644"],
+      ["110.00", templateId === "al_entaj_al_mutamakkin"
+        ? "\u0645\u0627\u0626\u0629 \u0648 \u0639\u0634\u0631\u0629 \u0631\u064a\u0627\u0644"
+        : "\u0645\u0627\u0626\u0629 \u0648\u0639\u0634\u0631\u0629 \u0631\u064a\u0627\u0644"],
+      ["10000.00", "\u0639\u0634\u0631\u0629 \u0622\u0644\u0627\u0641 \u0631\u064a\u0627\u0644"],
+      ["10000000.00", "\u0639\u0634\u0631\u0629 \u0645\u0644\u0627\u064a\u064a\u0646 \u0631\u064a\u0627\u0644"],
+      ["0.10", "\u0639\u0634\u0631\u0629 \u0647\u0644\u0644\u0629"],
+      ["50100.10", "\u0639\u0634\u0631\u0629 \u0647\u0644\u0644\u0629"],
+    ])(`renders ${templateId} amount %s without undefined`, (total, expectedWords) => {
+      const text = collectTemplateText(Template({
+        invoice: { ...mockInvoice, templateId, total },
+        company: mockCompany,
+        customer: mockCustomer,
+        qrDataUrl: null,
+      }));
+
+      expect(text).not.toMatch(/undefined|NaN/);
+      expect(text).toContain(expectedWords);
+    });
+  }
+
+  it("formats Tamouh amounts with thousands separators", () => {
+    const text = collectTemplateText(TamouhCompanyTemplate({
+      invoice: { ...mockInvoice, total: "50100.10" },
+      company: mockCompany,
+      customer: mockCustomer,
+      qrDataUrl: null,
+    }));
+
+    expect(text).toContain("50,100.10");
+  });
+
+  it("does not repeat Tamouh address prefixes or restore the removed seller employee", () => {
+    const text = collectTemplateText(TamouhCompanyTemplate({
+      invoice: mockInvoice,
+      company: {
+        ...mockCompany,
+        addressDistrict: "\u062d\u064a \u0627\u0644\u0639\u0644\u064a\u0627",
+        addressStreet: "\u0634\u0627\u0631\u0639 \u0627\u0644\u062a\u062d\u0644\u064a\u0629",
+        clientEmployee: "REMOVED_SELLER_EMPLOYEE",
+      },
+      customer: mockCustomer,
+      qrDataUrl: null,
+    }));
+
+    expect(text).toContain("\u062d\u064a \u0627\u0644\u0639\u0644\u064a\u0627");
+    expect(text).toContain("\u0634\u0627\u0631\u0639 \u0627\u0644\u062a\u062d\u0644\u064a\u0629");
+    expect(text).not.toContain("\u062d\u064a \u062d\u064a");
+    expect(text).not.toContain("\u0634\u0627\u0631\u0639 \u0634\u0627\u0631\u0639");
+    expect(text).not.toContain("REMOVED_SELLER_EMPLOYEE");
+  });
+
   it.each([
     ["9.00", "\u062a\u0633\u0639\u0629 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
     ["10.00", "\u0639\u0634\u0631\u0629 \u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a"],
@@ -193,6 +307,7 @@ describe("Templates PDF Rendering", () => {
     "qahwat_bisha",
     "fadak_contracting",
     "saddt_alkhaleej",
+    ...newTemplates.map(({ templateId }) => templateId),
   ];
 
   for (const templateId of templateIds) {
@@ -214,6 +329,7 @@ describe("Templates PDF Rendering", () => {
   }
 
   const refinedTemplates = [
+    ...newTemplates.map(({ templateId }) => templateId),
     "structured_bilingual",
     "kuwait_landmarks",
     "shami_trading",

@@ -58,6 +58,10 @@ import { MaraiAlbunTemplate } from "./templates/marai-albun-template";
 import { QahwatBishaTemplate } from "./templates/qahwat-bisha-template";
 import { FadakContractingTemplate } from "./templates/fadak-contracting-template";
 import { SaddtAlkhaleejTemplate } from "./templates/saddt-alkhaleej-template";
+import { AlEntajAlMutamakkinTemplate } from "./templates/al-entaj-al-mutamakkin-template";
+import { FastWoodTemplate } from "./templates/fast-wood-template";
+import { TamouhCompanyTemplate } from "./templates/tamouh-company-template";
+import { NourFakhamaTemplate } from "./templates/nour-fakhama-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -254,6 +258,18 @@ if (templateDef.id === "generic_delivery_21") {
   }
   if (templateDef.id === "saddt_alkhaleej") {
     return <SaddtAlkhaleejTemplate {...props} />;
+  }
+  if (templateDef.id === "al_entaj_al_mutamakkin") {
+    return <AlEntajAlMutamakkinTemplate {...props} />;
+  }
+  if (templateDef.id === "fast_wood") {
+    return <FastWoodTemplate {...props} />;
+  }
+  if (templateDef.id === "tamouh_company") {
+    return <TamouhCompanyTemplate {...props} />;
+  }
+  if (templateDef.id === "nour_fakhama") {
+    return <NourFakhamaTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
