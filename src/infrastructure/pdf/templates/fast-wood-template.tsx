@@ -430,22 +430,26 @@ export function FastWoodTemplate({
             <View style={styles.headerLeftMetaCol}>
               {companyCr ? (
                 <View style={styles.headerMetaRow}>
+                  {/* BiDi rule: Arabic label first (row-reverse = right), then a standalone colon, then the value. */}
+                  <Text style={styles.headerMetaLabel}>سجل تجاري</Text>
+                  <Text style={styles.headerMetaColon}>:</Text>
                   <Text style={styles.headerMetaVal}>{companyCr}</Text>
-                  <Text style={styles.headerMetaLabel}>سجل تجاري :</Text>
                 </View>
               ) : null}
 
               {companyVat ? (
                 <View style={styles.headerMetaRow}>
+                  <Text style={styles.headerMetaLabel}>الرقم الضريبي</Text>
+                  <Text style={styles.headerMetaColon}>:</Text>
                   <Text style={styles.headerMetaVal}>{companyVat}</Text>
-                  <Text style={styles.headerMetaLabel}>الرقم الضريبي :</Text>
                 </View>
               ) : null}
 
               {companyBranch ? (
                 <View style={[styles.headerMetaRow, { marginBottom: 0 }]}>
+                  <Text style={styles.headerMetaLabel}>إسم الفرع</Text>
+                  <Text style={styles.headerMetaColon}>:</Text>
                   <Text style={styles.headerMetaVal}>{companyBranch}</Text>
-                  <Text style={styles.headerMetaLabel}>إسم الفرع :</Text>
                 </View>
               ) : null}
             </View>
@@ -493,26 +497,30 @@ export function FastWoodTemplate({
               {/* Row 1: Invoice No (Left) | Serial Invoice No (Center) | Date (Right) */}
               <View style={styles.metaBandRow}>
                 <View style={styles.band1Left}>
+                  <Text style={styles.metaLabelBold}>رقم الفاتورة</Text>
+                  <Text style={styles.metaColon}>:</Text>
                   <Text style={styles.metaValBold}>{invoiceNumber}</Text>
-                  <Text style={styles.metaLabelBold}>رقم الفاتورة : </Text>
                 </View>
 
                 <View style={styles.band1Center}>
+                  <Text style={styles.metaLabelBold}>رقم الفاتورة التسلسلي</Text>
+                  <Text style={styles.metaColon}>:</Text>
                   <Text style={styles.metaValBold}>{serialInvoiceNumber}</Text>
-                  <Text style={styles.metaLabelBold}>رقم الفاتورة التسلسلي: </Text>
                 </View>
 
                 <View style={styles.band1Right}>
+                  <Text style={styles.metaLabelBold}>التاريخ</Text>
+                  <Text style={styles.metaColon}>:</Text>
                   <Text style={styles.metaValBold}>{issueDateStr}</Text>
-                  <Text style={styles.metaLabelBold}>التاريخ : </Text>
                 </View>
               </View>
 
               {/* Row 2: Customer Name on Right */}
               <View style={styles.metaBandRow}>
                 <View style={styles.bandFullRight}>
+                  <Text style={styles.metaLabelBold}>اسم العميل</Text>
+                  <Text style={styles.metaColon}>:</Text>
                   <Text style={styles.metaValBold}>{customerName}</Text>
-                  <Text style={styles.metaLabelBold}>اسم العميل : </Text>
                 </View>
               </View>
 
@@ -527,14 +535,16 @@ export function FastWoodTemplate({
                 <View style={styles.band3Right}>
                   {customerVat ? (
                     <View style={styles.inlineRightPair}>
+                      <Text style={styles.metaLabelBold}>الرقم الضريبي</Text>
+                      <Text style={styles.metaColon}>:</Text>
                       <Text style={styles.metaValBold}>{customerVat}</Text>
-                      <Text style={styles.metaLabelBold}>الرقم الضريبي : </Text>
                     </View>
                   ) : null}
                   {customerCr ? (
                     <View style={[styles.inlineRightPair, { marginTop: 1.5 }]}>
+                      <Text style={styles.metaLabelBold}>السجل التجاري</Text>
+                      <Text style={styles.metaColon}>:</Text>
                       <Text style={styles.metaValBold}>{customerCr}</Text>
-                      <Text style={styles.metaLabelBold}>السجل التجاري : </Text>
                     </View>
                   ) : null}
                 </View>
@@ -542,8 +552,9 @@ export function FastWoodTemplate({
 
               {/* Row 4: Full-Width Customer Address */}
               <View style={styles.metaAddressRow}>
+                <Text style={styles.metaLabelBold}>عنوان العميل</Text>
+                <Text style={styles.metaColon}>:</Text>
                 <Text style={styles.metaAddressVal}>{customerAddressLine}</Text>
-                <Text style={styles.metaLabelBold}>عنوان العميل : </Text>
               </View>
             </View>
           </View>
@@ -814,10 +825,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    // BiDi rule: label right, colon middle, value left.
+    flexDirection: "row-reverse",
+    justifyContent: "flex-start",
     alignItems: "center",
     marginBottom: 5,
+  },
+  headerMetaColon: {
+    fontFamily: "Tajawal",
+    fontWeight: "bold",
+    fontSize: 9,
+    color: "#D91E18",
+    marginHorizontal: 2,
   },
   headerMetaLabel: {
     fontFamily: "Tajawal",
@@ -936,27 +955,27 @@ const styles = StyleSheet.create({
   },
   band1Left: {
     width: "26%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "flex-start",
   },
   band1Center: {
     width: "44%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
   },
   band1Right: {
     width: "30%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
   },
   bandFullRight: {
     width: "100%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
   },
   band3LeftSpacer: {
     width: "26%",
@@ -972,15 +991,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   inlineRightPair: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
   },
   metaAddressRow: {
     width: "100%",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     paddingVertical: 4,
     paddingHorizontal: 4,
   },
@@ -989,6 +1008,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 8.2,
     color: "#111827",
+    textAlign: "right",
+  },
+  metaColon: {
+    fontFamily: "Tajawal",
+    fontWeight: "bold",
+    fontSize: 8.2,
+    color: "#111827",
+    marginHorizontal: 2,
   },
   metaValBold: {
     fontFamily: "Tajawal",
