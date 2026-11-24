@@ -7,6 +7,7 @@ import { AlEntajAlMutamakkinTemplate } from "./al-entaj-al-mutamakkin-template";
 import { FastWoodTemplate } from "./fast-wood-template";
 import { TamouhCompanyTemplate } from "./tamouh-company-template";
 import { NourFakhamaTemplate } from "./nour-fakhama-template";
+import { BinHarkilTemplate } from "./bin-harkil-template";
 import type { InvoicePdfInput } from "@/application/ports/pdf-renderer";
 import type { InvoiceDto } from "@/application/dto";
 import type { CompanyRecord } from "@/application/ports/company-repository";
@@ -121,6 +122,7 @@ describe("Templates PDF Rendering", () => {
     { templateId: "fast_wood", Template: FastWoodTemplate },
     { templateId: "tamouh_company", Template: TamouhCompanyTemplate },
     { templateId: "nour_fakhama", Template: NourFakhamaTemplate },
+    { templateId: "bin_harkil", Template: BinHarkilTemplate },
   ];
 
   for (const { templateId, Template } of newTemplates) {
@@ -263,6 +265,27 @@ describe("Templates PDF Rendering", () => {
 
     // A generic fallback also renders a valid PDF, so verify the actual component.
     expect(document.type).toBe(SaddtAlkhaleejTemplate);
+  });
+
+  it("renders Bin Harkil without dummy placeholders and spells out the exact total", () => {
+    const text = collectTemplateText(BinHarkilTemplate({
+      invoice: { ...mockInvoice, templateId: "bin_harkil", total: "23.4646916641601264" },
+      company: mockCompany,
+      customer: mockCustomer,
+      qrDataUrl: null,
+    }));
+
+    // Exact representation must survive untouched.
+    expect(text).toContain("23.4646916641601264");
+    // Spelled-out total due (Tafqeet) must be present.
+    expect(text).toContain("فقط");
+    expect(text).toContain("لا غير");
+    // Guideline removals: no dummy stamp box, no item-code/UOM columns, no supply date.
+    expect(text).not.toContain("Stamp / Signature Area");
+    expect(text).not.toContain("Item Code");
+    expect(text).not.toContain("UOM");
+    expect(text).not.toContain("تاريخ التوريد");
+    expect(text).not.toContain("Walk In Name");
   });
 
   const templateIds = [

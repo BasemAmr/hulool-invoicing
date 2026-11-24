@@ -8,8 +8,8 @@ import {
 
 describe("Templates Registry", () => {
   it("contains registered templates (17 system default + company chosen)", () => {
-    expect(Object.keys(TEMPLATES_REGISTRY)).toHaveLength(72);
-    expect(TEMPLATES_LIST).toHaveLength(72);
+    expect(Object.keys(TEMPLATES_REGISTRY)).toHaveLength(73);
+    expect(TEMPLATES_LIST).toHaveLength(73);
   });
 
   it("contains all requested template IDs", () => {
@@ -79,6 +79,7 @@ describe("Templates Registry", () => {
       "fast_wood",
       "tamouh_company",
       "nour_fakhama",
+      "bin_harkil",
     ];
 
     for (const id of expectedIds) {
@@ -90,12 +91,13 @@ describe("Templates Registry", () => {
   });
 
   it("appends the new templates without changing existing assignment order", () => {
-    expect(TEMPLATES_LIST.slice(-5).map((template) => template.id)).toEqual([
+    expect(TEMPLATES_LIST.slice(-6).map((template) => template.id)).toEqual([
       "saddt_alkhaleej",
       "al_entaj_al_mutamakkin",
       "fast_wood",
       "tamouh_company",
       "nour_fakhama",
+      "bin_harkil",
     ]);
   });
 

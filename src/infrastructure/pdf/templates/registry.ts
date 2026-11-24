@@ -835,6 +835,17 @@ generic_delivery_21: {
     isBilingual: false,
     descriptionAr: "\u0642\u0627\u0644\u0628 \u0628\u0633\u064a\u0637 \u0628\u062c\u062f\u0648\u0644 \u062f\u0648\u0646 \u062d\u062f\u0648\u062f \u0648\u0631\u0645\u0632 \u0627\u0644\u0631\u064a\u0627\u0644 \u0627\u0644\u0633\u0639\u0648\u062f\u064a",
   },
+  bin_harkil: {
+    id: "bin_harkil",
+    nameAr: "قالب بن هركيل",
+    nameEn: "Bin Harkil Template",
+    parentCategory: "standard",
+    category: "modern",
+    primaryColor: "#111827",
+    accentColor: "#E2E5E9",
+    isBilingual: true,
+    descriptionAr: "قالب فاتورة ضريبية ثنائي اللغة بجداول منظمة للبائع والعميل وجدول أصناف مفصل ورمز ريال سعودي",
+  },
 };
 
 export const TEMPLATES_LIST: TemplateDefinition[] = Object.values(TEMPLATES_REGISTRY);

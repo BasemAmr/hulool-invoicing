@@ -62,6 +62,7 @@ import { AlEntajAlMutamakkinTemplate } from "./templates/al-entaj-al-mutamakkin-
 import { FastWoodTemplate } from "./templates/fast-wood-template";
 import { TamouhCompanyTemplate } from "./templates/tamouh-company-template";
 import { NourFakhamaTemplate } from "./templates/nour-fakhama-template";
+import { BinHarkilTemplate } from "./templates/bin-harkil-template";
 
 export interface InvoiceDocumentProps {
   invoice: InvoiceDto;
@@ -270,6 +271,9 @@ if (templateDef.id === "generic_delivery_21") {
   }
   if (templateDef.id === "nour_fakhama") {
     return <NourFakhamaTemplate {...props} />;
+  }
+  if (templateDef.id === "bin_harkil") {
+    return <BinHarkilTemplate {...props} />;
   }
   if (templateDef.id === "masdar_materials_terms") {
     return <MasdarBuildingMaterialsTemplate {...props} withTerms={true} />;
