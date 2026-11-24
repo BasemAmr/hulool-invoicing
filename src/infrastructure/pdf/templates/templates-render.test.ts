@@ -288,6 +288,23 @@ describe("Templates PDF Rendering", () => {
     expect(text).not.toContain("Walk In Name");
   });
 
+  it.each([
+    ["10.00", "عشرة"],
+    ["110.00", "مائة و عشرة"],
+    ["210.00", "مائتان و عشرة"],
+    ["6210.00", "ستة آلاف و مائتان و عشرة"],
+  ])("renders Bin Harkil tafqeet for %s without undefined", (total, expectedWords) => {
+    const text = collectTemplateText(BinHarkilTemplate({
+      invoice: { ...mockInvoice, templateId: "bin_harkil", total },
+      company: mockCompany,
+      customer: mockCustomer,
+      qrDataUrl: null,
+    }));
+
+    expect(text).not.toContain("undefined");
+    expect(text).toContain(expectedWords);
+  });
+
   const templateIds = [
     "template_1_al_asma",
     "template_2_matajer_alwadi",
